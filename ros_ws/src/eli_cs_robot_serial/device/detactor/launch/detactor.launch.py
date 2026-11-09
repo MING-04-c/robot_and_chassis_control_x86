@@ -20,7 +20,7 @@ def generate_launch_description():
     return LaunchDescription([
         DeclareLaunchArgument("config_file", default_value=default_config),
         DeclareLaunchArgument("transport", default_value="serial", choices=["tcp", "serial"]),
-        DeclareLaunchArgument("device", default_value="/dev/ttyCH341USB0"),
+        DeclareLaunchArgument("device", default_value="/dev/ttyUSB0"),
         DeclareLaunchArgument("baudrate", default_value="115200"),
         DeclareLaunchArgument("task_once", default_value="false"),
         DeclareLaunchArgument("host", default_value="169.254.199.90"),

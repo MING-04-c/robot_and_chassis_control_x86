@@ -201,7 +201,7 @@ try:
                     PythonLaunchDescriptionSource(
                         str(
                             root
-                            / "robot_task_control/launch/line_follow_arm_test.launch.py"
+                            / "robot_task_control/archive/launch/line_follow_arm_test.launch.py"
                         )
                     ),
                     launch_arguments={
@@ -225,7 +225,7 @@ try:
         and "dataset_capture_node.py" not in combined
     )
     assert combined["auto_admittance_start.py"]["wait_only"] is True
-    assert combined["auto_admittance_start.py"]["settle_seconds"] == 5.0
+    assert combined["auto_admittance_start.py"]["settle_seconds"] == 0.5
     assert combined["move_group"]["publish_robot_description"] is False
     seen.clear()
     service = LaunchService()
@@ -236,7 +236,7 @@ try:
                     PythonLaunchDescriptionSource(
                         str(
                             root
-                            / "robot_task_control/launch/line_follow_arm_test.launch.py"
+                            / "robot_task_control/archive/launch/line_follow_arm_test.launch.py"
                         )
                     ),
                     launch_arguments={
@@ -266,7 +266,7 @@ try:
                     PythonLaunchDescriptionSource(
                         str(
                             root
-                            / "robot_task_control/launch/line_follow_only.launch.py"
+                            / "robot_task_control/archive/launch/line_follow_only.launch.py"
                         )
                     ),
                     launch_arguments={
@@ -308,7 +308,7 @@ try:
         service = LaunchService()
         service.include_launch_description(LaunchDescription([
             IncludeLaunchDescription(PythonLaunchDescriptionSource(str(
-                root / "robot_task_control/launch/line_follow_only.launch.py"
+                root / "robot_task_control/archive/launch/line_follow_only.launch.py"
             )), launch_arguments=arguments.items()),
         ]))
         assert service.run() == 0
@@ -328,7 +328,7 @@ try:
     service = LaunchService()
     service.include_launch_description(LaunchDescription([
         IncludeLaunchDescription(PythonLaunchDescriptionSource(str(
-            root / 'robot_task_control/launch/line_follow_only.launch.py'
+            root / 'robot_task_control/archive/launch/line_follow_only.launch.py'
         )), launch_arguments={'round_trip': 'true'}.items())]))
     assert service.run() == 0
     round_trip = {executable: values for executable, values in seen}
@@ -340,7 +340,7 @@ try:
     service = LaunchService()
     service.include_launch_description(LaunchDescription([
         IncludeLaunchDescription(PythonLaunchDescriptionSource(str(
-            root / 'robot_task_control/launch/line_follow_only.launch.py')),
+            root / 'robot_task_control/archive/launch/line_follow_only.launch.py')),
             launch_arguments={'round_trip': 'true', 'charging_mode': 'true'}.items()),
     ]))
     assert service.run() == 0
@@ -358,7 +358,7 @@ try:
         service=LaunchService()
         service.include_launch_description(LaunchDescription([
             IncludeLaunchDescription(PythonLaunchDescriptionSource(str(
-                root/'robot_task_control/launch/line_follow_only.launch.py')),
+                root/'robot_task_control/archive/launch/line_follow_only.launch.py')),
                 launch_arguments={'navigation_mode':mode,'route_name':'route_test',
                                   'line_opencv_threads':'2', 'line_marker_opencv_threads':'1'}.items())]))
         assert service.run()==0
@@ -384,7 +384,7 @@ try:
         LaunchDescription([
             IncludeLaunchDescription(
                 PythonLaunchDescriptionSource(str(
-                    root / "robot_task_control/launch/line_follow_arm_test.launch.py"
+                    root / "robot_task_control/archive/launch/line_follow_arm_test.launch.py"
                 )),
             ),
         ])
@@ -404,7 +404,7 @@ try:
     service = LaunchService()
     service.include_launch_description(LaunchDescription([
         IncludeLaunchDescription(PythonLaunchDescriptionSource(str(
-            root / 'robot_task_control/launch/line_follow_arm_test.launch.py')),
+            root / 'robot_task_control/archive/launch/line_follow_arm_test.launch.py')),
             launch_arguments={'test_profile': 'return_charge', 'launch_rviz': 'false'}.items()),
     ]))
     assert service.run() == 0
@@ -454,7 +454,7 @@ try:
     service = LaunchService()
     service.include_launch_description(LaunchDescription([
         IncludeLaunchDescription(PythonLaunchDescriptionSource(str(
-            root / 'robot_task_control/launch/line_follow_arm_test.launch.py')),
+            root / 'robot_task_control/archive/launch/line_follow_arm_test.launch.py')),
             launch_arguments={'test_profile': 'return_charge', 'enable_status_monitor': 'false',
                               'start_tcp': 'true', 'remote_control': 'false',
                               'line_processing_fps': '6.0', 'line_opencv_threads': '3',
@@ -477,7 +477,7 @@ try:
     service = LaunchService()
     service.include_launch_description(LaunchDescription([
         IncludeLaunchDescription(PythonLaunchDescriptionSource(str(
-            root / "robot_task_control/launch/line_follow_arm_test.launch.py"
+            root / "robot_task_control/archive/launch/line_follow_arm_test.launch.py"
         )), launch_arguments={"remote_control": "true", "key_file": "/tmp/test-only-key"}.items()),
     ]))
     assert service.run() == 0
@@ -572,7 +572,7 @@ try:
         service = LaunchService()
         service.include_launch_description(LaunchDescription([
             IncludeLaunchDescription(PythonLaunchDescriptionSource(str(
-                root / 'robot_task_control/launch/line_follow_arm_test.launch.py')),
+                root / 'robot_task_control/archive/launch/line_follow_arm_test.launch.py')),
                 launch_arguments={'test_profile': profile_name}.items()),
         ]))
         service.run()
@@ -619,7 +619,7 @@ try:
         assert f'Controller startup failed: {failure}' in shutdown_reasons, shutdown_reasons
     failed_controller_name = None
     for entry in (root/'eli_cs_robot_driver/launch/elite_control.launch.py',
-                  root/'robot_task_control/launch/line_follow_arm_test.launch.py'):
+                  root/'robot_task_control/archive/launch/line_follow_arm_test.launch.py'):
         seen.clear()
         service = LaunchService()
         service.include_launch_description(LaunchDescription([
@@ -627,6 +627,32 @@ try:
                 launch_arguments={'ros_discovery_range': 'SUBNET'}.items())]))
         assert service.run() == 0
         assert seen and all(values['dds_discovery_range'] == 'SUBNET' for _, values in seen)
+    gate_exit_code = 0
+    seen.clear()
+    service = LaunchService()
+    service.include_launch_description(LaunchDescription([
+        IncludeLaunchDescription(PythonLaunchDescriptionSource(str(
+            root/'robot_task_control/launch/robot_task.launch.py')))]))
+    assert service.run() == 0
+    production = {name: values for name, values in seen}
+    assert production['task_controller']['workflow_file'].endswith('/config/robot_task.yaml')
+    assert production['task_controller']['capture_config_file'].endswith('/config/robot_task.yaml')
+    assert production['task_controller']['require_arm_ready'] is True
+    assert production['task_controller']['check_devices_on_startup'] is True
+    assert production['task_controller']['manage_line_stream'] is True
+    assert production['line_follow_node.py']['navigation_mode'] == 'replay'
+    assert production['line_follow_node.py']['record_route'] is False
+    assert production['line_follow_node.py']['forward_speed'] == .1
+    assert production['line_follow_node.py']['reverse_max_speed'] == .05
+    assert production['line_follow_node.py']['show_window'] is True
+    assert production['camera_detection_task']['capture_config_file'].endswith('/config/robot_task.yaml')
+    assert production['camera_detection_task']['auto_start'] is False
+    assert production['detect_controller.py']['hold_seconds'] == 5.
+    assert production['serial_node']['device'] == '/dev/ttyUSB0'
+    assert production['arm_joint_postures']['initial_settle_sec'] == 5.
+    order = [name for name, _ in seen]
+    assert order.index('auto_admittance_start.py') < order.index('task_controller')
+    assert 'admittance_pose_controller' not in production
     print(
         "PASS: staged startup order, defaults, reuse, hardware description ownership, and gate failure cancellation"
     )

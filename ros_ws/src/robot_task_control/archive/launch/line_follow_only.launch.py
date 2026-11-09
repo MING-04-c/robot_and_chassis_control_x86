@@ -65,7 +65,7 @@ def generate_launch_description():
             DeclareLaunchArgument(
                 "workflow_file",
                 default_value=PathJoinSubstitution(
-                    [share, "config", IfElseSubstitution(LaunchConfiguration('round_trip'),
+                    [share, "archive", "config", IfElseSubstitution(LaunchConfiguration('round_trip'),
                         IfElseSubstitution(LaunchConfiguration('charging_mode'),
                             'line_follow_charge_test.yaml', 'line_follow_round_trip.yaml'), IfElseSubstitution(
                         EqualsSubstitution(LaunchConfiguration("drive_direction"), "reverse"),
@@ -89,6 +89,8 @@ def generate_launch_description():
                     "line_navigation_mode": IfElseSubstitution(
                         EqualsSubstitution(LaunchConfiguration('navigation_mode'), 'replay'), 'replay', 'vision'),
                     "standard_route_file": LaunchConfiguration("standard_route_file"),
+                    "line_record_route": IfElseSubstitution(
+                        EqualsSubstitution(LaunchConfiguration('navigation_mode'), 'replay'), 'false', 'true'),
                     "standard_route_output": IfElseSubstitution(
                         EqualsSubstitution(LaunchConfiguration('navigation_mode'), 'teach'),
                         LaunchConfiguration('standard_route_file'), ''),

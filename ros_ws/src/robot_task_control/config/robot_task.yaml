@@ -1,0 +1,186 @@
+# Main task. Distances: metres; Cartesian RPY and joint postures: degrees.
+# Fixed waits and timeout limits are separate. Restart the launch after editing.
+system:
+  ros_discovery_range: LOCALHOST
+  robot_ip: 169.254.199.150
+  local_ip: 0.0.0.0
+  auto_start: true
+  arm_control_start_delay: 0.5
+  launch_rviz: false
+  line_camera_device: /dev/v4l/by-id/usb-Sonix_Technology_Co.__Ltd._USB_2.0_Camera_SN0001-video-index0
+  line_show_window: true
+  line_processing_fps: 8.0  # Processing limit; USB acquisition remains 30 FPS.
+  line_opencv_threads: -1
+  line_marker_opencv_threads: -1
+  line_navigation_mode: replay
+  standard_route_file: ~/.ros/line_follow/standards/route_01/standard_route.json
+  line_record_route: false
+  line_charging_mode: false
+  line_follow_speed: 0.1
+  line_reverse_speed: 0.05
+  line_reverse_route_max_curvature: 5.0
+  line_start_alignment_enabled: true
+  line_start_alignment_min_lateral_speed: 0.02
+  line_start_alignment_lateral_speed: 0.03
+
+tcp:
+  enabled: true
+  enable_status_monitor: true
+  key_file: ''
+  charging_status_layout: byte_flags
+
+thickness_detector:
+  transport: serial
+  device: /dev/ttyUSB0
+  baudrate: 115200
+  data_directory: ~/.ros/eli_cs_robot_serial/detactor
+
+# Six joints: base, shoulder, elbow, wrist1, wrist2, wrist3.
+travel: [-45.0, 15.0, -71.0, 4.4, 148.0, 75.0]
+detection_ready: [-45.0, 0.0, 0.0, 0.0, 90.0, 0.0]
+arm_joint_postures:
+  ros__parameters:
+    velocity_scaling: 0.1
+    startup_timeout: 480.0
+    initial_settle_sec: 5.0  # First MoveIt client discovery, not a station wait.
+    report_file: ~/.ros/robot_control/joint_postures.json
+
+workflow:
+  name: robot_task
+  arm_postures_before_chassis: true  # Automatically inserts travel before driving.
+  travel_posture_timeout_sec: 600.0
+  device_check_timeout_sec: 120.0
+  device_ready_stable_sec: 1.0
+  line_stream_service_timeout_sec: 5.0
+  line_stream_warmup_timeout_sec: 15.0
+  steps:
+  - &wait_stopped
+    action: wait_chassis_stopped
+    stable_seconds: 1.0
+    step_timeout_sec: 15.0
+  - action: line_follow
+    drive_direction: forward
+    finish_at_first_marker: true
+    until_untrusted: true
+    require_final_marker: true
+    boundary_wait_sec: 5.0  # Timeout/confirmation limit, not a fixed sleep.
+    marker_confirm_timeout_sec: 5.0
+    progress_timeout_sec: 5.0
+    step_timeout_sec: 900.0
+  - *wait_stopped
+  - action: arm_posture
+    posture: detection_ready
+    step_timeout_sec: 600.0
+  - action: arm_move
+    control_mode: moveit
+    frame_id: base_link
+    end_effector_frame: tool0
+    max_position_distance: 1.0
+    arrival_tolerance: 0.005
+    arrival_orientation_tolerance_deg: 1.0
+    after_arrival_delay_sec: 0.5
+    step_timeout_sec: 180.0
+    target_pose:
+      position_mode: absolute
+      position: [0.375, 0.360, 0.590]
+      orientation: [-175.0, 0.0, -90.0]
+  - action: camera_detection
+    step_timeout_sec: 1200.0
+  - action: arm_posture
+    posture: detection_ready
+    step_timeout_sec: 600.0
+  - action: line_follow
+    drive_direction: reverse
+    skip_intermediate_markers: true
+    return_to_start: true
+    until_untrusted: true
+    require_final_marker: true
+    boundary_wait_sec: 5.0
+    marker_confirm_timeout_sec: 5.0
+    progress_timeout_sec: 5.0
+    step_timeout_sec: 900.0
+  - *wait_stopped
+
+camera_detection_task:
+  ros__parameters:
+    joint_postures_enabled: false
+    camera_frame: terminal_link_1
+    probe_frame: terminal_link_2
+    base_frame: base_link
+    target_source: local
+    camera_points_mm: [10.0, 10.0, 140.0]  # Placeholder camera-frame point (mm).
+    auto_start: false  # Triggered by workflow, never races the photo-pose move.
+    capture_local: true
+    status_topic: /camera_detection_task/status
+    stop_service: /camera_detection_task/stop
+    startup_timeout: 300.0
+    ready_stable_sec: 2.0
+    capture_timeout: 240.0
+    result_timeout: 300.0
+    contact_timeout: 600.0
+    hold_position_tolerance: 0.001
+    hold_angle_tolerance_deg: 0.5
+    report_directory: ~/.ros/line_robot_camer_detect_test
+
+detect_controller:
+  ros__parameters:
+    base_frame: base_link
+    tool_frame: tool0
+    probe_frame: terminal_link_2
+    planning_group: cs_manipulator
+    touch_control_mode: moveit_force_guard
+    joint_postures_enabled: false
+    initial_position_enabled: false
+    workspace_min: [-1.0, -1.0, 0.08]
+    workspace_max: [1.0, 1.0, 1.5]
+    target_source: camera
+    targets_file: ~/.ros/detect_control/line_robot_camera_targets.yaml
+    approach_axis: tool_positive_z
+    continue_until_contact: true
+    lock_tool_orientation: false
+    orientation_tolerance_deg: 1.0
+    phase_timeout: 120.0
+    approach_clearance: 0.02
+    approach_speed: 0.002
+    max_penetration: 0.05
+    recover_approach_failure: true
+    recovery_settle_seconds: 0.5
+    require_thickness_measurement: true
+    contact_force: 20.0
+    overload_force: 40.0
+    initial_force_limit: 5.0
+    data_timeout: 0.3
+    target_max_age: 30.0
+    service_timeout: 5.0
+    moveit_cartesian_step: 0.005
+    max_tracking_error: 0.005
+    lateral_tolerance: 0.002
+    pose_tolerance: 0.003
+    home_joint_tolerance: 0.01
+    force_filter_alpha: 0.25
+    force_bias_sample_count: 50
+    hold_seconds: 5.0  # Actual contact dwell for thickness reading.
+    velocity_scaling: 0.1
+    acceleration_scaling: 0.1
+
+capture:
+  output_dir: /home/robot/Desktop/line_robot_camer_detect_test
+  local_only: true
+  receiver_ip: 169.254.199.250
+  hk_bind_ip: 169.254.199.100
+  hk_port: 9002
+  rgbd_port: 9030
+  transfer_timeout_sec: 60.0
+  robot_settle_sec: 0.5
+  camera_warmup_sec: 3.0
+  stable_frames: 8
+  frame_difference_threshold: 3.0
+  stability_timeout_sec: 30.0
+  pause_line_camera: true
+  line_streaming_service: /line_camera/camera_node/streaming
+  hk_image_topic: /camera/image
+  hk_frame_rate: 10.0
+  jpeg_quality: 95
+  hk_params: ''
+  depth_params: ''
+  depth_namespace: final_depth

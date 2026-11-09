@@ -1,4 +1,4 @@
-# 联合测试：到站、过渡、拍照位、本地相机点触碰测厚、过渡、行车位、原路返回。
+# 联合测试：标准路线到站、过渡、拍照位、本地相机点触碰测厚、过渡、行车位、标准路线返回。
 # 笛卡尔 XYZ 为 base_link 下的米，RPY 为度。
 workflow:
   name: line_robot_camer_detect_test
@@ -18,8 +18,6 @@ workflow:
     progress_timeout_sec: 5.0
     step_timeout_sec: 900.0
   - *wait_stopped
-  - action: save_line_route
-    step_timeout_sec: 10.0
   - action: arm_posture
     posture: detection_ready
     step_timeout_sec: 600.0

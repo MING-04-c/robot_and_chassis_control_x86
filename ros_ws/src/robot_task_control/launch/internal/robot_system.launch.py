@@ -198,6 +198,9 @@ def generate_launch_description():
                 "opencv_threads": ParameterValue(LaunchConfiguration("line_marker_opencv_threads"), value_type=int),
                 "navigation_mode": LaunchConfiguration("line_navigation_mode"),
                 "standard_route_file": LaunchConfiguration("standard_route_file"),
+                "record_route": ParameterValue(
+                    LaunchConfiguration("line_record_route"), value_type=bool
+                ),
                 "route_sample_distance": ParameterValue(LaunchConfiguration("line_route_sample_distance"), value_type=float),
                 "drive_direction": LaunchConfiguration("line_drive_direction"),
                 "route_file": LaunchConfiguration("line_route_file"),
@@ -312,6 +315,7 @@ def generate_launch_description():
                     LaunchConfiguration("start_image_transfer"), value_type=bool
                 ),
                 "workflow_file": LaunchConfiguration("workflow_file"),
+                "capture_config_file": LaunchConfiguration("capture_config_file"),
                 "standard_route_output": LaunchConfiguration("standard_route_output"),
                 "manage_admittance": ParameterValue(LaunchConfiguration("launch_admittance"), value_type=bool),
                 "joint_posture_only": ParameterValue(LaunchConfiguration("joint_posture_only"), value_type=bool),
@@ -379,7 +383,9 @@ def generate_launch_description():
             DeclareLaunchArgument("start_line_camera", default_value="true"),
             DeclareLaunchArgument("line_navigation_mode", default_value="vision"),
             DeclareLaunchArgument("standard_route_file", default_value="~/.ros/line_follow/standards/route_01/standard_route.json"),
+            DeclareLaunchArgument("line_record_route", default_value="true"),
             DeclareLaunchArgument("standard_route_output", default_value=""),
+            DeclareLaunchArgument("capture_config_file", default_value=""),
             DeclareLaunchArgument("line_processing_fps", default_value="0.0"),
             DeclareLaunchArgument("line_opencv_threads", default_value="2"),
             DeclareLaunchArgument("line_marker_opencv_threads", default_value=LaunchConfiguration("line_opencv_threads")),
@@ -487,7 +493,7 @@ def generate_launch_description():
                     [
                         FindPackageShare("robot_task_control"),
                         "config",
-                        "line_follow_arm_test.yaml",
+                        "robot_task.yaml",
                     ]
                 ),
             ),

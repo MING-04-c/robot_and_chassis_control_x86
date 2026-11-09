@@ -113,6 +113,9 @@ class CameraDetectionTask(Node):
         self.targets = []
         self.holds = 0
         self.ready_since = None
+        self.ready_stable_sec = float(param('ready_stable_sec', 2.))
+        if not math.isfinite(self.ready_stable_sec) or self.ready_stable_sec < 0:
+            raise ValueError('ready_stable_sec must be finite and nonnegative')
         retained = QoSProfile(depth=1, durability=DurabilityPolicy.TRANSIENT_LOCAL)
         status_topic = str(param('status_topic', '/task_controller/status'))
         self.status_pub = self.create_publisher(String, status_topic, retained)
@@ -431,7 +434,7 @@ class CameraDetectionTask(Node):
                 self.ready_since = monotonic()
                 self.snapshot = {'base_T_camera': camera.tolist(), 'base_T_probe': probe.tolist()}
             self.check_stationary()
-            if monotonic()-self.ready_since >= 2.:
+            if monotonic()-self.ready_since >= self.ready_stable_sec:
                 if self.target_source == 'tcp' or self.capture_local is True:
                     self.begin_capture()
                 else:

@@ -4,7 +4,7 @@
 serial_node:
   ros__parameters:
     # 串口线路参数，必须和探测器设置一致。
-    device: /dev/ttyCH341USB0
+    device: /dev/ttyUSB0
     baudrate: 115200
     data_bits: 8
     stop_bits: 1

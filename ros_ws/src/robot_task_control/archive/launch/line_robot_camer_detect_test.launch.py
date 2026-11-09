@@ -1,9 +1,9 @@
 """Line-follow, camera capture, probe touch and thickness measurement test."""
 
 from launch import LaunchDescription
-from launch.actions import GroupAction, IncludeLaunchDescription
+from launch.actions import DeclareLaunchArgument, GroupAction, IncludeLaunchDescription
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import PathJoinSubstitution
+from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
 
@@ -11,18 +11,26 @@ from launch_ros.substitutions import FindPackageShare
 def generate_launch_description():
     share = FindPackageShare('robot_task_control')
     task_config = PathJoinSubstitution([
-        share, 'config', 'line_robot_camera_detection.yaml'])
+        share, 'archive', 'config', 'line_robot_camera_detection.yaml'])
     capture_config = PathJoinSubstitution([
-        share, 'config', 'capture', 'line_robot_local_capture.yaml'])
+        share, 'archive', 'config', 'capture', 'line_robot_local_capture.yaml'])
     return LaunchDescription([
+        DeclareLaunchArgument('line_show_window', default_value='true', choices=['true', 'false']),
         IncludeLaunchDescription(
             PythonLaunchDescriptionSource(PathJoinSubstitution([
-                share, 'launch', 'line_follow_arm_test.launch.py'])),
+                share, 'archive', 'launch', 'line_follow_arm_test.launch.py'])),
             launch_arguments={
                 'test_profile': 'return_charge',
                 'workflow_file': PathJoinSubstitution([
-                    share, 'config', 'line_robot_camer_detect_test.yaml']),
+                    share, 'archive', 'config', 'line_robot_camer_detect_test.yaml']),
                 'line_follow_speed': '0.1',
+                'line_show_window': LaunchConfiguration('line_show_window'),
+                'line_navigation_mode': 'replay',
+                'standard_route_file': '~/.ros/line_follow/standards/route_01/standard_route.json',
+                'line_record_route': 'false',
+                'charging_mode': 'false',
+                'line_opencv_threads': '-1',
+                'line_marker_opencv_threads': '-1',
                 'launch_force_sensor': 'true',
                 'joint_posture_only': 'false',
                 'manage_line_stream': 'true',

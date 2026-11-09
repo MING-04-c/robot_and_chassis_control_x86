@@ -37,6 +37,7 @@ def launch_setup(context, *args, **kwargs):
 
     cs_type_value = cs_type.perform(context)
     is_5_axis = cs_type_value.endswith("h")
+    attach_forearm_accessory = "true" if cs_type_value == "ls65" else "false"
     description_file_value = description_file.perform(context)
     moveit_config_file_value = moveit_config_file.perform(context)
     moveit_joint_limits_file_value = moveit_joint_limits_file.perform(context)
@@ -110,6 +111,9 @@ def launch_setup(context, *args, **kwargs):
             "prefix:=",
             prefix,
             " ",
+            "attach_forearm_accessory:=",
+            attach_forearm_accessory,
+            " ",
         ]
     )
     robot_description = {"robot_description": robot_description_content}
@@ -130,6 +134,9 @@ def launch_setup(context, *args, **kwargs):
             " ",
             "prefix:=",
             prefix,
+            " ",
+            "attach_forearm_accessory:=",
+            attach_forearm_accessory,
             " ",
         ]
     )

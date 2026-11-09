@@ -218,10 +218,12 @@ class WorkflowController(Node):
             self.declare_parameter("check_devices_on_startup", False).value
         )
         self.device_check_timeout = float(
-            self.declare_parameter("device_check_timeout_sec", 120.0).value
+            self.declare_parameter("device_check_timeout_sec", float(
+                self.workflow.get('device_check_timeout_sec', 120.0))).value
         )
         self.device_ready_stable_sec = float(
-            self.declare_parameter("device_ready_stable_sec", 1.0).value
+            self.declare_parameter("device_ready_stable_sec", float(
+                self.workflow.get('device_ready_stable_sec', 1.0))).value
         )
         if (
             not math.isfinite(self.device_check_timeout)
@@ -334,6 +336,16 @@ class WorkflowController(Node):
         ):
             raise ValueError("workflow YAML must contain a 'workflow' mapping")
         workflow = document["workflow"]
+        for name, default in (
+            ('travel_posture_timeout_sec', 600.0), ('device_check_timeout_sec', 120.0),
+            ('device_ready_stable_sec', 1.0), ('line_stream_service_timeout_sec', 5.0),
+            ('line_stream_warmup_timeout_sec', 15.0),
+        ):
+            value = workflow.get(name, default)
+            if (isinstance(value, bool) or not isinstance(value, (int, float))
+                    or not math.isfinite(value) or value < 0
+                    or (value == 0 and name != 'device_ready_stable_sec')):
+                raise ValueError(f'workflow.{name} has invalid timing')
         steps = workflow.get("steps")
         if not isinstance(steps, list) or not steps:
             raise ValueError("workflow.steps must be a non-empty list")
@@ -342,11 +354,14 @@ class WorkflowController(Node):
             return [deepcopy(step) for item in items
                     for step in (flatten(item) if isinstance(item, list) else [item])]
         steps = flatten(steps)
+        if any(not isinstance(step, dict) for step in steps):
+            raise ValueError('workflow steps must be mappings')
         station_steps = flatten(workflow.get('station_steps', []))
         workflow['station_steps'] = station_steps
         if workflow.get('arm_postures_before_chassis', False):
             steps = [part for step in steps for part in (
-                [{'action': 'arm_posture', 'posture': 'travel', 'step_timeout_sec': 600.}, step]
+                [{'action': 'arm_posture', 'posture': 'travel',
+                  'step_timeout_sec': float(workflow.get('travel_posture_timeout_sec', 600.))}, step]
                 if step.get('action') in ('line_follow', 'chassis_execute') else [step])]
         workflow['steps'] = steps
         for index, step in enumerate(steps+station_steps):
@@ -383,6 +398,9 @@ class WorkflowController(Node):
                 if step.get('drive_direction') != 'forward' or step.get('service_intermediate_stations', False):
                     raise ValueError('首条横线到站仅支持显式forward，且不能同时插入逐站动作')
             if action == "line_follow":
+                marker_timeout = float(step.get('marker_confirm_timeout_sec', 5.0))
+                if not math.isfinite(marker_timeout) or marker_timeout <= 0:
+                    raise ValueError(f'workflow step {index} invalid marker_confirm_timeout_sec')
                 if 'drive_direction' in step and step['drive_direction'] not in ('forward', 'reverse'):
                     raise ValueError(f'workflow step {index} drive_direction must be forward or reverse')
                 if type(step.get('skip_intermediate_markers', False)) is not bool:
@@ -582,14 +600,23 @@ class WorkflowController(Node):
             response.success = checkpoint is None and not self.safety_inhibited
             response.message = "No checkpoint" if checkpoint is None else "Safety inhibit is still active"
             return response
+        step = checkpoint['step']
+        if not checkpoint['holding'] and (step is None or step['action'] not in ('arm_move', 'delay')):
+            # 底盘、拍照等步骤不能安全重放，但这不应阻止保护停止本身完成恢复。
+            # 保持任务停止并丢弃检查点，操作者可在安全恢复后显式从头启动。
+            self.safety_checkpoint = None
+            self.recovery_arm_target = None
+            self.recovery_hold_step = None
+            self.active = False
+            self.failed = True
+            self.phase = "stopped_after_safety"
+            self.last_failure = "安全恢复完成；当前步骤不可续跑，请从头重新启动任务"
+            response.success = True
+            response.message = self.last_failure
+            return response
         if self.workflow.get('arm_postures_before_chassis', False):
             response.success = False
             response.message = '联动姿态任务已中止锁定；完成安全恢复后重新启动联动launch，不原地续跑'
-            return response
-        step = checkpoint['step']
-        if not checkpoint['holding'] and (step is None or step['action'] not in ('arm_move', 'delay')):
-            response.success = False
-            response.message = "This step needs an explicit task restart; checkpoint retained (no side effects replayed)"
             return response
         self.generation += 1
         self.step_index = checkpoint['step_index']
@@ -755,7 +782,7 @@ class WorkflowController(Node):
     def advance_final_capture(self, step):
         if self.phase == "ready":
             from ament_index_python.packages import get_package_share_directory
-            config = Path(step.get("config_file") or (
+            config = Path(step.get("config_file") or self.capture_config_file or (
                 Path(get_package_share_directory("robot_task_control")) / "config/capture/final_capture.yaml")).expanduser()
             if not config.is_absolute():
                 config = self.workflow_path.parent / config
@@ -950,8 +977,9 @@ class WorkflowController(Node):
                     "stop_marker_missing", "stop_marker_unknown"):
                 if self.follow_station_confirm_since is None:
                     self.follow_station_confirm_since = now
-                if now-self.follow_station_confirm_since > 5.0:
-                    self.fail_workflow("停止线位置在5秒内未稳定到停车容差内；保持停车，请检查位置误差")
+                confirm_timeout = float(step.get('marker_confirm_timeout_sec', 5.0))
+                if now-self.follow_station_confirm_since > confirm_timeout:
+                    self.fail_workflow(f"停止线位置在{confirm_timeout:g}秒内未稳定到停车容差内；保持停车，请检查位置误差")
                     return
                 self.follow_last_tracking = now
                 self.follow_boundary_since = None
@@ -1233,7 +1261,8 @@ class WorkflowController(Node):
                 return False
             self.line_streaming = goal
             self.get_logger().info('按需恢复循迹相机，等待新视觉反馈' if goal else '按需暂停循迹相机，保留底盘/机械臂驱动及里程计')
-            self.line_warmup_deadline = now+15. if goal else None
+            self.line_warmup_deadline = now+float(self.workflow.get(
+                'line_stream_warmup_timeout_sec', 15.)) if goal else None
             self.line_warmup_future = None
         if self.line_streaming != desired:
             if not self.line_stream_client.service_is_ready():
@@ -1241,11 +1270,12 @@ class WorkflowController(Node):
                 return False
             request = SetBool.Request()
             request.data = desired
-            self.line_stream_wait = (desired, self.line_stream_client.call_async(request), now+5.)
+            self.line_stream_wait = (desired, self.line_stream_client.call_async(request),
+                                    now+float(self.workflow.get('line_stream_service_timeout_sec', 5.)))
             return False
         if desired and self.line_warmup_deadline is not None:
             if now > self.line_warmup_deadline:
-                self.fail_workflow('循迹相机恢复后15秒仍无有效新反馈，底盘保持停车')
+                self.fail_workflow('循迹相机恢复后在配置期限内仍无有效新反馈，底盘保持停车')
                 return False
             if self.line_warmup_future is not None and self.line_warmup_future.done():
                 try:

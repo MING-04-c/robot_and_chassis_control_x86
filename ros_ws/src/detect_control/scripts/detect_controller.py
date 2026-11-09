@@ -219,6 +219,8 @@ class DetectController(Node):
             PoseStamped, namespace + "/tracking_target_pose", 10
         )
         self.status_pub = self.create_publisher(String, "~/status", 10)
+        self.corrected_force_pub = self.create_publisher(
+            WrenchStamped, "~/measured_wrench", qos_profile_sensor_data)
         self.window_pub = self.create_publisher(Bool, "~/measurement_active", 10)
         self.contact_pub = self.create_publisher(PoseStamped, "~/contact_pose", 10)
         self.measure_pub = self.create_publisher(Empty, "/detactor/acquire_trigger", 10)
@@ -701,6 +703,14 @@ class DetectController(Node):
                     )
                     self.force = self.force_filter.copy()
                     self.force_at = monotonic()
+                    if self.force_bias is not None:
+                        corrected = WrenchStamped()
+                        corrected.header.stamp = message.header.stamp
+                        corrected.header.frame_id = self.cfg["base_frame"]
+                        corrected.wrench.force.x = float(self.force[0])
+                        corrected.wrench.force.y = float(self.force[1])
+                        corrected.wrench.force.z = float(self.force[2])
+                        self.corrected_force_pub.publish(corrected)
                     self.handle_force_sample(self.force)
                 except Exception as error:
                     if self.active:

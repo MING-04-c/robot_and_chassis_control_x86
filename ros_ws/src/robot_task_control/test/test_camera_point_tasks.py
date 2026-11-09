@@ -64,6 +64,7 @@ class CameraPointTasksTest(unittest.TestCase):
             node.timeouts = {'startup': 120.}
             node.ready.return_value = True
             node.ready_since = monotonic()-3.
+            node.ready_stable_sec = 2.
             node.pose.return_value = np.eye(4)
             node.target_source = source
             CameraDetectionTask.advance(node)
@@ -388,7 +389,7 @@ module.main()
 
     def test_line_robot_local_point_is_camera_centimetres_converted_to_millimetres(self):
         import yaml
-        profile = yaml.safe_load((ROOT/'robot_task_control/config/line_robot_camera_detection.yaml').read_text())
+        profile = yaml.safe_load((ROOT/'robot_task_control/archive/config/line_robot_camera_detection.yaml').read_text())
         params = profile['camera_detection_task']['ros__parameters']
         self.assertEqual(params['camera_points_mm'], [10., 10., 140.])
         self.assertEqual(params['target_source'], 'local')
@@ -611,6 +612,27 @@ module.main()
         controller.on_raw(node, WrenchStamped())
         self.assertIn('原始去偏合力', node.fail.call_args.args[0])
         node.handle_force_sample.assert_not_called()
+
+    def test_moveit_publishes_bias_corrected_force_for_recovery_guard(self):
+        from geometry_msgs.msg import WrenchStamped
+        controller = self.probe_controller()
+        node = MagicMock()
+        node.touch_control_mode = 'moveit_force_guard'
+        node.cfg = dict(data_timeout=.3, overload_force=40., force_filter_alpha=.25,
+                        base_frame='base_link')
+        node.force_bias = np.array([1., 2., 3.])
+        node.force_filter = None
+        node.stamp_fresh.return_value = True
+        node.raw_force_in_base.return_value = np.array([1.5, 1., 5.])
+        message = WrenchStamped()
+        message.header.stamp.sec = 12
+        controller.on_raw(node, message)
+        corrected = node.corrected_force_pub.publish.call_args.args[0]
+        self.assertEqual(corrected.header.frame_id, 'base_link')
+        self.assertEqual(corrected.header.stamp.sec, 12)
+        np.testing.assert_allclose(
+            [corrected.wrench.force.x, corrected.wrench.force.y,
+             corrected.wrench.force.z], [.5, -1., 2.])
 
     def test_moveit_live_descent_checks_travel_while_action_pending(self):
         controller = self.probe_controller()

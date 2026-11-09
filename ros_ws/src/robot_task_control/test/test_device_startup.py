@@ -107,7 +107,7 @@ class DeviceStartupTest(unittest.TestCase):
 
     def test_arm_charge_recipe_first_marker_and_half_second_wait(self):
         flow = WorkflowController.load_workflow(Path(__file__).resolve().parents[1]/
-                                                'config/line_follow_arm_charge_test.yaml')
+                                                'archive/config/line_follow_arm_charge_test.yaml')
         steps = flow['steps']
         self.assertEqual([step['action'] for step in steps],
             ['wait_chassis_stopped', 'arm_posture', 'line_follow', 'wait_chassis_stopped',
@@ -120,13 +120,15 @@ class DeviceStartupTest(unittest.TestCase):
         self.assertTrue(steps[8]['return_to_start'])
 
     def test_named_line_robot_recipes_preserve_round_trip_and_detection_pose(self):
-        config = Path(__file__).resolve().parents[1]/'config'
+        config = Path(__file__).resolve().parents[1]/'archive/config'
         saved = WorkflowController.load_workflow(config/'line_robot_test.yaml')
         self.assertEqual(saved['name'], 'line_robot_test')
+        self.assertNotIn('save_line_route', [step['action'] for step in saved['steps']])
         self.assertEqual([step['seconds'] for step in saved['steps']
                           if step['action'] == 'delay'], [.5])
         flow = WorkflowController.load_workflow(config/'line_robot_camer_detect_test.yaml')
         self.assertEqual(flow['name'], 'line_robot_camer_detect_test')
+        self.assertNotIn('save_line_route', [step['action'] for step in flow['steps']])
         self.assertEqual(sum(step['action'] == 'camera_detection' for step in flow['steps']), 1)
         photo = next(step for step in flow['steps'] if step['action'] == 'arm_move')
         self.assertEqual(photo['target_pose']['position'], [.375, .360, .590])
@@ -149,7 +151,7 @@ class DeviceStartupTest(unittest.TestCase):
         import json
         from uuid import uuid4
         from nav_msgs.msg import Odometry
-        config = Path(__file__).resolve().parents[1]/'config'/('line_follow_arm_charge_test.yaml'
+        config = Path(__file__).resolve().parents[1]/'archive/config'/('line_follow_arm_charge_test.yaml'
             if with_arm else 'line_follow_charge_test.yaml')
         with tempfile.TemporaryDirectory() as directory:
             rclpy.init(args=['--ros-args', '-p', 'workflow_file:='+str(config),
@@ -281,7 +283,7 @@ class DeviceStartupTest(unittest.TestCase):
                 rclpy.shutdown()
 
     def test_station_recipe_gates_each_chassis_move_and_reuses_station_points(self):
-        path = Path(__file__).resolve().parents[1]/'config/line_follow_arm_test.yaml'
+        path = Path(__file__).resolve().parents[1]/'archive/config/line_follow_arm_test.yaml'
         flow = WorkflowController.load_workflow(path)
         actions = [step['action'] for step in flow['steps']]
         self.assertEqual(actions[:3], ['wait_chassis_stopped', 'arm_posture', 'line_follow'])
@@ -347,7 +349,7 @@ class DeviceStartupTest(unittest.TestCase):
         from std_msgs.msg import Empty
         from nav_msgs.msg import Odometry
         from uuid import uuid4
-        config = Path(__file__).resolve().parents[1]/'config/line_follow_arm_test.yaml'
+        config = Path(__file__).resolve().parents[1]/'archive/config/line_follow_arm_test.yaml'
         flow = WorkflowController.load_workflow(config)
         # 这里只测站点调度，机械臂轨迹由独立GenericSystem测试验证。
         station = [dict(action='delay', seconds=.15),
@@ -722,6 +724,19 @@ class DeviceStartupTest(unittest.TestCase):
                 self.assertIsNone(node.recovery_arm_target)
                 node.complete_step()
                 self.assertFalse(node.active)
+                # 非机械臂步骤不重放，但不能因此阻塞保护停止恢复闭环。
+                node.steps = [dict(action='wait_chassis_stopped')]
+                node.step_index, node.active, node.phase = 0, True, 'ready'
+                node.safety_checkpoint = None
+                node.workflow['arm_postures_before_chassis'] = True
+                node.on_safety_inhibit(Bool(data=True))
+                node.on_safety_inhibit(Bool(data=False))
+                resumed = node.on_safety_resume(Trigger.Request(), Trigger.Response())
+                self.assertTrue(resumed.success)
+                self.assertIsNone(node.safety_checkpoint)
+                self.assertFalse(node.active)
+                self.assertTrue(node.failed)
+                self.assertEqual(node.phase, 'stopped_after_safety')
         finally:
             node.destroy_node()
             rclpy.shutdown()

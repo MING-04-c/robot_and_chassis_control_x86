@@ -1,4 +1,4 @@
-# 已验证联合往返任务的冻结副本：行车位 -> 首条有效横线 -> 过渡位 -> 0.5s -> 行车位 -> 原路返回。
+# 标准路线联合往返：重放去程 -> 过渡位 -> 0.5s -> 行车位 -> 按标准路线返回。
 workflow:
   name: line_robot_test
   auto_start: true
@@ -17,8 +17,6 @@ workflow:
     progress_timeout_sec: 5.0
     step_timeout_sec: 900.0
   - *wait_stopped
-  - action: save_line_route
-    step_timeout_sec: 10.0
   - action: arm_posture
     posture: detection_ready
     step_timeout_sec: 600.0

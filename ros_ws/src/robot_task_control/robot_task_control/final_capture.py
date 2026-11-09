@@ -33,6 +33,10 @@ def load_config(path):
     config = yaml.safe_load(Path(path).read_text(encoding="utf-8"))
     if not isinstance(config, dict):
         raise ValueError("拍照配置必须是 mapping")
+    if 'capture' in config:
+        config = config['capture']
+        if not isinstance(config, dict):
+            raise ValueError("capture 必须是 mapping")
     for key in ('receiver_ip', 'hk_bind_ip'):
         ipaddress.IPv4Address(config[key])
     for key in ('hk_port', 'rgbd_port'):

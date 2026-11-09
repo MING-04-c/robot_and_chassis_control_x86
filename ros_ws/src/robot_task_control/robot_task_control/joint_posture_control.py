@@ -1,5 +1,6 @@
 """双关节姿态测试：核查硬件模式后自动执行往返，支持显式真机模式。"""
 import json
+import math
 import os
 from pathlib import Path
 from time import monotonic
@@ -29,6 +30,10 @@ class JointPostureControl(Node):
         super().__init__(node_name)
         self.simulation = bool(self.declare_parameter('simulation', True).value)
         self.startup_timeout = float(self.declare_parameter('startup_timeout', 480.).value)
+        self.initial_settle_sec = float(self.declare_parameter(
+            'initial_settle_sec', 2. if self.simulation else 5.).value)
+        if not math.isfinite(self.initial_settle_sec) or self.initial_settle_sec < 0:
+            raise ValueError('initial_settle_sec must be finite and nonnegative')
         self.abort_reason = None
         self.motion_started = False
         self.initialized = False
@@ -266,8 +271,8 @@ class JointPostureControl(Node):
         self.verify_hardware()
         if not self.execution_ready:
             raise RuntimeError('轨迹控制器未激活，不提前发送轨迹')
-        # 初始姿态保留2秒，等待MoveIt内部轨迹客户端完成DDS发现，也便于RViz观察。
-        deadline = monotonic()+((2. if self.simulation else 5.) if not self.initialized else 0.)
+        # Only the first request waits for MoveIt's internal client discovery.
+        deadline = monotonic()+(self.initial_settle_sec if not self.initialized else 0.)
         while rclpy.ok() and monotonic() < deadline:
             rclpy.spin_once(self, timeout_sec=.05)
         self.initialized = True

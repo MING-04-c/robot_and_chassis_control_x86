@@ -709,8 +709,10 @@ class LocalControlTest(unittest.TestCase):
         ):
             with self.subTest(profile=name):
                 arm_expected[0] = with_arm
+                folder = ('test/fixtures' if name == 'arm_admittance_line_follow'
+                          else 'archive/config' if name == 'line_follow_only' else 'config')
                 config = WorkflowController.load_workflow(
-                    Path(__file__).parents[1] / ("test/fixtures" if name == "arm_admittance_line_follow" else "config") / f"{name}.yaml"
+                    Path(__file__).parents[1] / folder / f"{name}.yaml"
                 )
                 self.controller.original_steps = config["steps"]
                 until_boundary[0] = name == "line_follow_only"

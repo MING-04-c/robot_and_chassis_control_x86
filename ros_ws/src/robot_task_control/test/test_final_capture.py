@@ -23,7 +23,7 @@ from robot_task_control import final_capture as capture
 from robot_task_control.workflow_controller import WorkflowController
 
 CONFIG = Path(__file__).resolve().parents[1]/'config/capture/final_capture.yaml'
-LOCAL_CONFIG = Path(__file__).resolve().parents[1]/'config/capture/line_robot_local_capture.yaml'
+LOCAL_CONFIG = Path(__file__).resolve().parents[1]/'archive/config/capture/line_robot_local_capture.yaml'
 
 
 class FinalCaptureTest(unittest.TestCase):

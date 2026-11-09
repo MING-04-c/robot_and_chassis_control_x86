@@ -28,6 +28,11 @@ def generate_launch_description():
             LaunchConfiguration('remote_control'), LaunchConfiguration('enable_status_monitor')),
             choices=['true', 'false'], description='启动9010 TCP桥；关闭状态汇总后仍可单独开启'),
         DeclareLaunchArgument('line_follow_speed', default_value='0.125'),
+        DeclareLaunchArgument('line_navigation_mode', default_value='vision', choices=['vision', 'replay']),
+        DeclareLaunchArgument('standard_route_file', default_value='~/.ros/line_follow/standards/route_01/standard_route.json'),
+        DeclareLaunchArgument('line_record_route', default_value='true', choices=['true', 'false']),
+        DeclareLaunchArgument('charging_mode', default_value=EqualsSubstitution(
+            LaunchConfiguration('test_profile'), 'return_charge')),
         DeclareLaunchArgument('line_camera_device', default_value=(
             '/dev/v4l/by-id/'
             'usb-Sonix_Technology_Co.__Ltd._USB_2.0_Camera_SN0001-video-index0')),
@@ -37,6 +42,8 @@ def generate_launch_description():
             LaunchConfiguration("remote_control"))),
         DeclareLaunchArgument("key_file", default_value=""),
         DeclareLaunchArgument("launch_admittance", default_value="false"),
+        DeclareLaunchArgument("arm_control_start_delay", default_value="0.5",
+                             description="机械臂控制器就绪后的联合任务启动稳定等待秒数"),
         DeclareLaunchArgument("launch_rviz", default_value="false",
                              description="树莓派默认关闭RViz；循迹画面由line_show_window单独控制"),
         DeclareLaunchArgument("prepare_line_camera_early", default_value="false",
@@ -56,7 +63,7 @@ def generate_launch_description():
         DeclareLaunchArgument('launch_arm_executor', default_value=IfElseSubstitution(
             EqualsSubstitution(LaunchConfiguration('test_profile'), 'return_charge'), 'false', 'true')),
         DeclareLaunchArgument("workflow_file", default_value=PathJoinSubstitution(
-            [share, "config", IfElseSubstitution(
+            [share, "archive", "config", IfElseSubstitution(
                 EqualsSubstitution(LaunchConfiguration('test_profile'), 'return_charge'),
                 'line_follow_arm_charge_test.yaml', 'line_follow_arm_test.yaml')])),
         IncludeLaunchDescription(
@@ -89,11 +96,15 @@ def generate_launch_description():
                 "manage_line_stream": LaunchConfiguration('manage_line_stream'),
                 "chassis_pid_enabled": "false", "use_velocity_mux": "true",
                 "line_follow_speed": LaunchConfiguration('line_follow_speed'),
+                "line_navigation_mode": LaunchConfiguration('line_navigation_mode'),
+                "standard_route_file": LaunchConfiguration('standard_route_file'),
+                "line_record_route": LaunchConfiguration('line_record_route'),
                 "line_route_file": LaunchConfiguration('route_file'),
                 "line_reverse_route_max_curvature": LaunchConfiguration('reverse_route_max_curvature'),
                 "launch_arm_executor": LaunchConfiguration('launch_arm_executor'),
+                "arm_control_start_delay": LaunchConfiguration('arm_control_start_delay'),
                 "arm_use_cartesian_path": "false",
-                'line_charging_mode': EqualsSubstitution(LaunchConfiguration('test_profile'), 'return_charge'),
+                'line_charging_mode': LaunchConfiguration('charging_mode'),
                 'line_charging_status_layout': LaunchConfiguration('charging_status_layout'),
                 "start_hk_camera": "false", "start_image_transfer": "false",
                 "start_line_camera": "true",

@@ -18,6 +18,7 @@
 #include <stdexcept>
 #include <std_msgs/msg/bool.hpp>
 #include <std_msgs/msg/string.hpp>
+#include <thread>
 
 namespace camer_diver
 {
@@ -34,17 +35,21 @@ public:
       throw std::invalid_argument("max_processing_fps must be 0..30; 0 means unlimited");
     }
     const int opencv_threads = declare_parameter<int>("opencv_threads", 2, fixed);
-    if (opencv_threads < 1 || opencv_threads > 4) {
-      throw std::invalid_argument("opencv_threads must be 1..4");
+    if (opencv_threads != -1 && (opencv_threads < 1 || opencv_threads > 4)) {
+      throw std::invalid_argument("opencv_threads must be -1 (automatic) or 1..4");
     }
     force_debug_publish_ = declare_parameter<bool>("publish_debug_image", false, fixed);
     force_mask_publish_ = declare_parameter<bool>("publish_mask_image", false, fixed);
     force_marker_mask_publish_ = declare_parameter<bool>("publish_stop_marker_mask", false, fixed);
     force_edges_publish_ = declare_parameter<bool>("publish_edges_image", false, fixed);
-    // 树莓派同时运行ROS控制：限制图像算法线程，避免争抢控制回调CPU。
-    cv::setNumThreads(opencv_threads);
-    RCLCPP_INFO(get_logger(), "OpenCV processing threads: %d; processing limit: %.1f fps (0=unlimited)",
-      cv::getNumThreads(), max_processing_fps_);
+    const auto available_cpus = std::max(1u, std::thread::hardware_concurrency());
+    const int effective_threads = opencv_threads == -1 ?
+      std::clamp(static_cast<int>(available_cpus / 4), 1, 4) : opencv_threads;
+    cv::setNumThreads(effective_threads);
+    RCLCPP_INFO(get_logger(),
+      "OpenCV processing threads: %d (%s, %u logical CPUs); processing limit: %.1f fps (0=unlimited)",
+      cv::getNumThreads(), opencv_threads == -1 ? "automatic budget" : "fixed",
+      available_cpus, max_processing_fps_);
     const auto topic = declare_parameter<std::string>("input_topic", "image_raw", fixed);
     show_window_ = declare_parameter<bool>("show_window", false, fixed);
     timeout_ = declare_parameter<double>("frame_timeout_sec", 0.5, fixed);

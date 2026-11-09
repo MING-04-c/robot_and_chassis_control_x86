@@ -47,10 +47,15 @@ class LineFollowNode(Node):
     def __init__(self):
         super().__init__('line_follow_controller')
         cv_threads = self.declare_parameter('opencv_threads', 2, ParameterDescriptor(read_only=True)).value
-        if type(cv_threads) is not int or not 1 <= cv_threads <= 4:
-            raise ValueError('opencv_threads must be 1..4')
-        cv2.setNumThreads(cv_threads)  # 后台掩膜计算受限并行，控制状态机保持串行。
-        self.get_logger().info(f'横线/预览 OpenCV线程数={cv2.getNumThreads()}；控制状态机串行执行')
+        if type(cv_threads) is not int or not (cv_threads == -1 or 1 <= cv_threads <= 4):
+            raise ValueError('opencv_threads must be -1 (automatic) or 1..4')
+        available_cpus = os.cpu_count() or 4
+        effective_cv_threads = (
+            max(1, min(2, available_cpus // 8)) if cv_threads == -1 else cv_threads)
+        cv2.setNumThreads(effective_cv_threads)
+        mode = f'自动/{available_cpus}逻辑CPU' if cv_threads == -1 else '固定'
+        self.get_logger().info(
+            f'横线/预览 OpenCV线程数={cv2.getNumThreads()}（{mode}）；控制状态机串行执行')
         fixed = ParameterDescriptor(read_only=True)
         defaults = ControlConfig()
         values = {name: self.declare_parameter(name, value).value
@@ -298,6 +303,14 @@ class LineFollowNode(Node):
     def uses_recorded_route(self):
         return self.reverse_mode == 'recorded_route' and self.config.drive_direction == 'reverse'
 
+    def return_route_filename(self):
+        """Replay returns on the immutable standard route, not a new recording."""
+        if self.frozen_route_file:
+            return self.frozen_route_file
+        if self.navigation_mode == 'replay' and not self.record_route:
+            return self.standard_file
+        return self.route_file
+
     def start_alignment_required(self, config):
         """Only align when establishing a recorded or standard-route origin."""
         return (config.start_alignment_enabled and config.stop_marker_enabled
@@ -513,8 +526,9 @@ class LineFollowNode(Node):
         self.return_fault = None
         self.finish_entry_reason = None
         self.finish_straight_frames = self.finish_goal_frames = self.strafe_entry_frames = 0
+        filename = self.return_route_filename()
         try:
-            self.route_document = load_route(self.frozen_route_file or self.route_file)
+            self.route_document = load_route(filename)
             self.route_load_error = None
             known = self.recorded_station_order()
             if known:
@@ -524,7 +538,7 @@ class LineFollowNode(Node):
         except (OSError, ValueError, TypeError, KeyError) as error:
             self.route_document = None
             self.route_load_error = str(error)
-            self.get_logger().warning(f'倒车路线不可用：{os.path.expanduser(self.route_file)}；{error}')
+            self.get_logger().warning(f'倒车路线不可用：{os.path.expanduser(filename)}；{error}')
 
     def odom_reason(self, now):
         if self.odom_fault:
@@ -1608,7 +1622,7 @@ class LineFollowNode(Node):
                 reason = 'charging_dock_status_unavailable'
             response.success = reason is None
             response.message = ('recorded route and odometry ready' if reason is None else
-                                f'{reason}; route={self.route_file}; detail={self.route_load_error}')
+                                f'{reason}; route={self.return_route_filename()}; detail={self.route_load_error}')
             return response
         reason = self.blocked_reason(time.monotonic(), check_enabled=False)
         if reason is None and self.navigation_mode == 'replay' and not self.start_alignment_required(self.config):

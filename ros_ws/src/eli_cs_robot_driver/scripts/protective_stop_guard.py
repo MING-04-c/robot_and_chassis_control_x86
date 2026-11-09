@@ -64,6 +64,8 @@ class ProtectiveStopGuard(Node):
         self.create_subscription(JointState, '/joint_states', self.on_joints, qos_profile_sensor_data)
         self.create_subscription(WrenchStamped, '/admittance_controller/measured_wrench',
                                  self.on_force, qos_profile_sensor_data)
+        self.create_subscription(WrenchStamped, '/detect_controller/measured_wrench',
+                                 self.on_force, qos_profile_sensor_data)
         self.create_service(Trigger, '~/confirm_recovery', self.confirm_recovery,
                             callback_group=ReentrantCallbackGroup())
         self.create_service(Trigger, '~/cancel_recovery', self.cancel_recovery,

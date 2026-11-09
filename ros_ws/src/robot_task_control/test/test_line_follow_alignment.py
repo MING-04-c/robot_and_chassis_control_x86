@@ -59,6 +59,15 @@ class StartAlignmentWorkflowTests(unittest.TestCase):
             self.assertIn(status, node.fail_workflow.call_args.args[0])
             self.assertEqual(node.follow_tracking_seconds, 3.0)
 
+    def test_marker_confirmation_uses_yaml_timeout_not_a_fixed_sleep(self):
+        for timeout, should_fail in ((1., True), (5., False)):
+            node = self.workflow_state('stop_marker_settling')
+            node.follow_station_confirm_since = monotonic()-2.
+            WorkflowController.advance_line_follow(node, {
+                'seconds': 1., 'marker_confirm_timeout_sec': timeout})
+            assert node.fail_workflow.called is should_fail
+            self.assertEqual(node.follow_tracking_seconds, 3.)
+
 
 class LineFollowSpeedLaunchTests(unittest.TestCase):
     def test_recording_speed_is_independent_of_normal_cruise(self):
@@ -66,7 +75,7 @@ class LineFollowSpeedLaunchTests(unittest.TestCase):
         from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
         from launch.utilities import normalize_to_list_of_substitutions, perform_substitutions
 
-        path = Path(__file__).resolve().parents[1]/'launch'/'line_follow_only.launch.py'
+        path = Path(__file__).resolve().parents[1]/'archive'/'launch'/'line_follow_only.launch.py'
         spec = importlib.util.spec_from_file_location('line_speed_launch', path)
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
