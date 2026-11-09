@@ -1,0 +1,1 @@
+../../eli_cs_robot_serial/device/industrial_pc/src/industrial_pc_hk_receiver.py

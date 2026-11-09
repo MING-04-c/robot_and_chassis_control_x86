@@ -1,0 +1,53 @@
+# 联合测试：到站、过渡、拍照位、本地相机点触碰测厚、过渡、行车位、原路返回。
+# 笛卡尔 XYZ 为 base_link 下的米，RPY 为度。
+workflow:
+  name: line_robot_camer_detect_test
+  auto_start: true
+  arm_postures_before_chassis: true
+  steps:
+  - &wait_stopped
+    action: wait_chassis_stopped
+    stable_seconds: 1.0
+    step_timeout_sec: 15.0
+  - action: line_follow
+    drive_direction: forward
+    finish_at_first_marker: true
+    until_untrusted: true
+    require_final_marker: true
+    boundary_wait_sec: 5.0
+    progress_timeout_sec: 5.0
+    step_timeout_sec: 900.0
+  - *wait_stopped
+  - action: save_line_route
+    step_timeout_sec: 10.0
+  - action: arm_posture
+    posture: detection_ready
+    step_timeout_sec: 600.0
+  - action: arm_move
+    control_mode: moveit
+    frame_id: base_link
+    end_effector_frame: tool0
+    max_position_distance: 1.0
+    arrival_tolerance: 0.005
+    arrival_orientation_tolerance_deg: 1.0
+    after_arrival_delay_sec: 0.5
+    step_timeout_sec: 180.0
+    target_pose:
+      position_mode: absolute
+      position: [0.375, 0.360, 0.590]
+      orientation: [-175.0, 0.0, -90.0]
+  - action: camera_detection
+    step_timeout_sec: 1200.0
+  - action: arm_posture
+    posture: detection_ready
+    step_timeout_sec: 600.0
+  - action: line_follow
+    drive_direction: reverse
+    skip_intermediate_markers: true
+    return_to_start: true
+    until_untrusted: true
+    require_final_marker: true
+    boundary_wait_sec: 5.0
+    progress_timeout_sec: 5.0
+    step_timeout_sec: 900.0
+  - *wait_stopped

@@ -1,0 +1,53 @@
+import os
+
+from ament_index_python.packages import get_package_share_directory
+from launch import LaunchDescription
+from launch.actions import DeclareLaunchArgument
+from launch.conditions import IfCondition, UnlessCondition
+from launch.substitutions import LaunchConfiguration
+from launch_ros.actions import Node
+from launch_ros.parameter_descriptions import ParameterValue
+
+
+def generate_launch_description():
+    share = get_package_share_directory("ruier_camer_diver")
+    namespace = LaunchConfiguration("namespace")
+    return LaunchDescription([
+        DeclareLaunchArgument("namespace", default_value="camera"),
+        DeclareLaunchArgument(
+            "video_device",
+            default_value=(
+                "/dev/v4l/by-id/"
+                "usb-Sonix_Technology_Co.__Ltd._USB_2.0_Camera_SN0001-video-index0"
+            ),
+        ),
+        DeclareLaunchArgument("camera_frame", default_value="camera_optical_frame"),
+        DeclareLaunchArgument("camera_params", default_value=os.path.join(share, "config", "camera.yaml")),
+        DeclareLaunchArgument("tracker_params", default_value=os.path.join(share, "config", "line_tracker.yaml")),
+        DeclareLaunchArgument("show_window", default_value="true", description="Local desktop OpenCV window"),
+        DeclareLaunchArgument("max_processing_fps", default_value="0.0"),
+        DeclareLaunchArgument("opencv_threads", default_value="2"),
+        DeclareLaunchArgument("publish_compressed", default_value="false",
+                              description="Publish /image_raw/compressed; disabled by default for control runs"),
+        DeclareLaunchArgument("demo", default_value="false", description="Synthetic images, not a real camera"),
+        Node(
+            package="ruier_camer_diver", executable="camera_node", name="camera_node",
+            namespace=namespace, condition=UnlessCondition(LaunchConfiguration("demo")),
+            parameters=[LaunchConfiguration("camera_params"), {"publish_raw": True, "video_device": LaunchConfiguration("video_device"),
+                         "publish_compressed": ParameterValue(LaunchConfiguration("publish_compressed"), value_type=bool),
+                         "frame_id": LaunchConfiguration("camera_frame")}], output="screen",
+        ),
+        Node(
+            package="ruier_camer_diver", executable="line_demo.py", name="line_demo",
+            namespace=namespace, condition=IfCondition(LaunchConfiguration("demo")), output="screen",
+        ),
+        Node(
+            package="ruier_camer_diver", executable="line_tracker_node", name="line_tracker",
+            namespace=namespace,
+            parameters=[LaunchConfiguration("tracker_params"), {
+                "show_window": ParameterValue(LaunchConfiguration("show_window"), value_type=bool),
+                "max_processing_fps": ParameterValue(LaunchConfiguration("max_processing_fps"), value_type=float),
+                "opencv_threads": ParameterValue(LaunchConfiguration("opencv_threads"), value_type=int),
+            }], output="screen",
+        ),
+    ])

@@ -1,0 +1,45 @@
+camera_detection_task:
+  ros__parameters:
+    joint_postures_enabled: false
+    camera_frame: terminal_link_1
+    probe_frame: terminal_link_2
+    base_frame: base_link
+    target_source: local
+    # 暂代工控机点：相机光学坐标系中的 (1, 1, 14) cm，转换为毫米。
+    camera_points_mm: [10.0, 10.0, 140.0]
+    auto_start: false
+    capture_local: true
+    status_topic: /camera_detection_task/status
+    stop_service: /camera_detection_task/stop
+    startup_timeout: 300.0
+    capture_timeout: 240.0
+    result_timeout: 300.0
+    contact_timeout: 600.0
+    hold_position_tolerance: 0.001
+    hold_angle_tolerance_deg: 0.5
+    report_directory: ~/.ros/line_robot_camer_detect_test
+
+detect_controller:
+  ros__parameters:
+    touch_control_mode: moveit_force_guard
+    joint_postures_enabled: false
+    initial_position_enabled: false
+    workspace_min: [-1.0, -1.0, 0.08]
+    target_source: camera
+    targets_file: ~/.ros/detect_control/line_robot_camera_targets.yaml
+    approach_axis: tool_positive_z
+    continue_until_contact: true
+    lock_tool_orientation: false
+    orientation_tolerance_deg: 1.0
+    phase_timeout: 120.0
+    approach_clearance: 0.02
+    approach_speed: 0.002
+    max_penetration: 0.05
+    recover_approach_failure: true
+    recovery_settle_seconds: 0.5
+    require_thickness_measurement: true
+    contact_force: 20.0
+    overload_force: 40.0
+    hold_seconds: 5.0
+    velocity_scaling: 0.1
+    acceleration_scaling: 0.1

@@ -1,0 +1,37 @@
+# 已验证联合往返任务的冻结副本：行车位 -> 首条有效横线 -> 过渡位 -> 0.5s -> 行车位 -> 原路返回。
+workflow:
+  name: line_robot_test
+  auto_start: true
+  arm_postures_before_chassis: true
+  steps:
+  - &wait_stopped
+    action: wait_chassis_stopped
+    stable_seconds: 1.0
+    step_timeout_sec: 15.0
+  - action: line_follow
+    drive_direction: forward
+    finish_at_first_marker: true
+    until_untrusted: true
+    require_final_marker: true
+    boundary_wait_sec: 5.0
+    progress_timeout_sec: 5.0
+    step_timeout_sec: 900.0
+  - *wait_stopped
+  - action: save_line_route
+    step_timeout_sec: 10.0
+  - action: arm_posture
+    posture: detection_ready
+    step_timeout_sec: 600.0
+  - action: delay
+    seconds: 0.5
+    step_timeout_sec: 10.0
+  - action: line_follow
+    drive_direction: reverse
+    skip_intermediate_markers: true
+    return_to_start: true
+    until_untrusted: true
+    require_final_marker: true
+    boundary_wait_sec: 5.0
+    progress_timeout_sec: 5.0
+    step_timeout_sec: 900.0
+  - *wait_stopped

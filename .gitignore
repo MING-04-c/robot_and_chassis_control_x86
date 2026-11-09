@@ -1,0 +1,23 @@
+build/
+log/
+install/
+.vscode/
+.codex/
+.aws/
+
+# Python runtime caches
+__pycache__/
+.pytest_cache/
+*.py[cod]
+
+# Shared TCP communication key
+industrial_pc.key
+
+# Local source/runtime baselines
+backups/
+
+# Workspace-local native SDK build/install
+ros_ws/build_elite_sdk/*
+!ros_ws/build_elite_sdk/COLCON_IGNORE
+ros_ws/local/*
+!ros_ws/local/COLCON_IGNORE

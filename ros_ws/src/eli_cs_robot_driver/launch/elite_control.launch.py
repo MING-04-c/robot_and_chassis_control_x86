@@ -1,0 +1,595 @@
+from launch_ros.actions import Node
+from launch_ros.parameter_descriptions import ParameterFile, ParameterValue
+from launch_ros.substitutions import FindPackageShare
+
+from launch import LaunchDescription
+from launch.actions import DeclareLaunchArgument, OpaqueFunction, RegisterEventHandler, EmitEvent, LogInfo, GroupAction, SetEnvironmentVariable
+from launch.event_handlers import OnProcessExit
+from launch.events import Shutdown
+from launch.conditions import IfCondition, UnlessCondition
+from launch.substitutions import Command, FindExecutable, LaunchConfiguration, PathJoinSubstitution
+
+
+def spawn_controllers(specifications, manager_timeout, parameter_file):
+    """Restore the independent spawners used by the working 66f897c launch.
+
+    Start all spawners together; controller_manager's spawner owns its lock.
+    Keep startup failure shutdown rather than continuing a partial startup.
+    """
+    spawners = [Node(
+        package="controller_manager", executable="spawner", output="screen",
+        arguments=[name, "--controller-manager", "/controller_manager",
+                   "--controller-manager-timeout", manager_timeout,
+                   "--param-file", parameter_file] + ([] if active else ["--inactive"]),
+    ) for name, active in specifications]
+    handlers = []
+    for (name, _), spawner in zip(specifications, spawners):
+        def finished(event, context, controller_name=name):
+            if context.is_shutdown:
+                return []
+            if event.returncode != 0:
+                return [LogInfo(msg=f"机械臂控制器 {controller_name} 加载/配置失败，终止启动；"
+                                    "检查此前的controller_manager/spawner日志。"),
+                        EmitEvent(event=Shutdown(reason=f"Controller startup failed: {controller_name}"))]
+            return []
+
+        handlers.append(RegisterEventHandler(OnProcessExit(target_action=spawner, on_exit=finished)))
+    return handlers + spawners
+
+
+def launch_setup(context, *args, **kwargs):
+
+    # Initialize Arguments
+    cs_type = LaunchConfiguration("cs_type")
+    robot_ip = LaunchConfiguration("robot_ip")
+    safety_limits = LaunchConfiguration("safety_limits")
+    safety_pos_margin = LaunchConfiguration("safety_pos_margin")
+    safety_k_position = LaunchConfiguration("safety_k_position")
+    # General arguments
+    runtime_config_package = LaunchConfiguration("runtime_config_package")
+    controllers_file = LaunchConfiguration("controllers_file")
+    description_package = LaunchConfiguration("description_package")
+    description_file = LaunchConfiguration("description_file")
+    tf_prefix = LaunchConfiguration("tf_prefix")
+    use_fake_hardware = LaunchConfiguration("use_fake_hardware")
+    fake_sensor_commands = LaunchConfiguration("fake_sensor_commands")
+    controller_spawner_timeout = LaunchConfiguration("controller_spawner_timeout")
+    log_level = LaunchConfiguration("controller_manager_log_level").perform(context)
+    # Match the original default command line; add diagnostic arguments only on request.
+    manager_log_arguments = ([] if log_level == "info" else
+                             ["--ros-args", "--log-level", f"controller_manager:={log_level}"])
+    initial_joint_controller = LaunchConfiguration("initial_joint_controller")
+    activate_joint_controller = LaunchConfiguration("activate_joint_controller")
+    launch_rviz = LaunchConfiguration("launch_rviz")
+    headless_mode = LaunchConfiguration("headless_mode")
+    use_tool_communication = LaunchConfiguration("use_tool_communication")
+    tool_parity = LaunchConfiguration("tool_parity")
+    tool_baud_rate = LaunchConfiguration("tool_baud_rate")
+    tool_stop_bits = LaunchConfiguration("tool_stop_bits")
+    tool_tcp_port = LaunchConfiguration("tool_tcp_port")
+    tool_voltage = LaunchConfiguration("tool_voltage")
+    local_ip = LaunchConfiguration("local_ip")
+    script_command_port = LaunchConfiguration("script_command_port")
+    reverse_port = LaunchConfiguration("reverse_port")
+    script_sender_port = LaunchConfiguration("script_sender_port")
+    trajectory_port = LaunchConfiguration("trajectory_port")
+
+    cs_type_value = cs_type.perform(context)
+    is_5_axis = cs_type_value.endswith("h")
+    controllers_file_value = controllers_file.perform(context)
+    description_file_value = description_file.perform(context)
+    description_subdir = "urdf"
+    if is_5_axis and controllers_file_value == "elite_cs_controllers.yaml":
+        controllers_file_value = "elite_cs_controllers_5f.yaml"
+    if is_5_axis and description_file_value == "cs.urdf.xacro":
+        description_subdir = "urdf_5f"
+
+    joint_limit_params = PathJoinSubstitution(
+        [FindPackageShare(description_package), "config", cs_type, "joint_limits.yaml"]
+    )
+    kinematics_params = PathJoinSubstitution(
+        [FindPackageShare(description_package), "config", cs_type, "default_kinematics.yaml"]
+    )
+    physical_params = PathJoinSubstitution(
+        [FindPackageShare(description_package), "config", cs_type, "physical_parameters.yaml"]
+    )
+    visual_params = PathJoinSubstitution(
+        [FindPackageShare(description_package), "config", cs_type, "visual_parameters.yaml"]
+    )
+    script_filename = PathJoinSubstitution(
+        [FindPackageShare("eli_cs_robot_driver"), "resources", "external_control.script"]
+    )
+    input_recipe_filename = PathJoinSubstitution(
+        [FindPackageShare("eli_cs_robot_driver"), "resources", "input_recipe.txt"]
+    )
+    output_recipe_filename = PathJoinSubstitution(
+        [FindPackageShare("eli_cs_robot_driver"), "resources", "output_recipe.txt"]
+    )
+
+    robot_description_content = Command(
+        [
+            PathJoinSubstitution([FindExecutable(name="xacro")]),
+            " ",
+            PathJoinSubstitution(
+                [FindPackageShare(description_package), description_subdir, description_file_value]
+            ),
+            " ",
+            "robot_ip:=",
+            robot_ip,
+            " ",
+            "joint_limit_params:=",
+            joint_limit_params,
+            " ",
+            "kinematics_params:=",
+            kinematics_params,
+            " ",
+            "physical_params:=",
+            physical_params,
+            " ",
+            "visual_params:=",
+            visual_params,
+            " ",
+            "safety_limits:=",
+            safety_limits,
+            " ",
+            "safety_pos_margin:=",
+            safety_pos_margin,
+            " ",
+            "safety_k_position:=",
+            safety_k_position,
+            " ",
+            "name:=",
+            # MoveIt 的 URDF 和 SRDF 都使用机器人名称 "cs"。真机驱动也必须
+            # 使用相同名称，否则订阅 /robot_description 的节点可能把名称为
+            # ls65 的 URDF 与名称为 cs 的 SRDF 混合起来，导致语义模型不匹配。
+            "cs",
+            " ",
+            "script_filename:=",
+            script_filename,
+            " ",
+            "input_recipe_filename:=",
+            input_recipe_filename,
+            " ",
+            "output_recipe_filename:=",
+            output_recipe_filename,
+            " ",
+            "tf_prefix:=",
+            tf_prefix,
+            " ",
+            "use_fake_hardware:=",
+            use_fake_hardware,
+            " ",
+            "initial_positions_file:=",
+            LaunchConfiguration("initial_positions_file"),
+            " ",
+            "fake_sensor_commands:=",
+            fake_sensor_commands,
+            " ",
+            "headless_mode:=",
+            headless_mode,
+            " ",
+            "use_tool_communication:=",
+            use_tool_communication,
+            " ",
+            "tool_parity:=",
+            tool_parity,
+            " ",
+            "tool_baud_rate:=",
+            tool_baud_rate,
+            " ",
+            "tool_stop_bits:=",
+            tool_stop_bits,
+            " ",
+            "tool_tcp_port:=",
+            tool_tcp_port,
+            " ",
+            "tool_voltage:=",
+            tool_voltage,
+            " ",
+            "local_ip:=",
+            local_ip,
+            " ",
+            "script_command_port:=",
+            script_command_port,
+            " ",
+            "reverse_port:=",
+            reverse_port,
+            " ",
+            "script_sender_port:=",
+            script_sender_port,
+            " ",
+            "trajectory_port:=",
+            trajectory_port,
+            " ",
+        ]
+    )
+    robot_description = {"robot_description": robot_description_content}
+
+    
+    initial_joint_controllers = PathJoinSubstitution(
+        [FindPackageShare(runtime_config_package), "config", controllers_file_value]
+    )
+    # Controllers no longer inherit the manager's global arguments in Jazzy.
+    # Resolve substitutions once and pass this same file to every spawner.
+    controller_parameters = ParameterFile(initial_joint_controllers, allow_substs=True)
+    controller_parameters_path = str(controller_parameters.evaluate(context))
+
+    rviz_config_file = PathJoinSubstitution(
+        [FindPackageShare(description_package), "rviz", "view_robot.rviz"]
+    )
+
+    # define update rate
+    update_rate_config_file = PathJoinSubstitution(
+        [
+            FindPackageShare(runtime_config_package),
+            "config",
+            "cs_update_rate.yaml",
+        ]
+    )
+
+    control_node = Node(
+        package="controller_manager",
+        executable="ros2_control_node",
+        arguments=manager_log_arguments,
+        parameters=[
+            robot_description,
+            update_rate_config_file,
+            controller_parameters,
+        ],
+        output="screen",
+        condition=IfCondition(use_fake_hardware),
+    )
+
+    
+    eli_control_node = Node(
+        # Use the installed ros2_control loop (clock, overrun handling and FIFO
+        # setup) with our hardware plugin, rather than the old Humble loop.
+        package="controller_manager",
+        executable="ros2_control_node",
+        arguments=manager_log_arguments,
+        parameters=[
+            robot_description,
+            update_rate_config_file,
+            controller_parameters,
+        ],
+        output="screen",
+        condition=UnlessCondition(use_fake_hardware),
+    )
+
+    components_loader = Node(
+        package="eli_cs_robot_driver",
+        executable="eli_components_loader",
+        parameters=[{"robot_ip": robot_ip}],
+        condition=UnlessCondition(use_fake_hardware)
+    )
+      
+    controller_stopper_node = Node(
+        package="eli_cs_robot_driver",
+        executable="controller_stopper_node",
+        name="controller_stopper",
+        output="screen",
+        emulate_tty=True,
+        condition=UnlessCondition(use_fake_hardware),
+        parameters=[
+            {"headless_mode": headless_mode},
+            {"joint_controller_active": activate_joint_controller},
+            {
+                "consistent_controllers": [
+                    "io_and_status_controller",
+                    "force_torque_sensor_broadcaster",
+                    "joint_state_broadcaster",
+                    "speed_scaling_state_broadcaster",
+                    "tcp_pose_broadcaster",
+                ]
+            },
+        ],
+    )
+
+    robot_state_publisher_node = Node(
+        package="robot_state_publisher",
+        executable="robot_state_publisher",
+        output="both",
+        parameters=[robot_description],
+    )
+
+    rviz_node = Node(
+        package="rviz2",
+        condition=IfCondition(launch_rviz),
+        executable="rviz2",
+        name="rviz2",
+        output="log",
+        arguments=["-d", rviz_config_file],
+    )
+
+    # 恢复66f897c：初始关节控制器及其余独立spawner在同一批launch动作中启动。
+    active_names = [
+        "joint_state_broadcaster", "io_and_status_controller",
+        "speed_scaling_state_broadcaster", "force_torque_sensor_broadcaster",
+        "tcp_pose_broadcaster",
+    ]
+    inactive_names = ["forward_position_controller", "freedrive_controller"]
+    initial_name = initial_joint_controller.perform(context)
+    activate_initial = activate_joint_controller.perform(context).lower() in ('true', '1')
+    # 初始控制器可能由调用者覆盖为forward_position_controller，不能重复加载或错误激活。
+    active_names = [name for name in active_names if name != initial_name]
+    inactive_names = [name for name in inactive_names if name != initial_name]
+    controller_startup = spawn_controllers(
+        [(initial_name, activate_initial)] + [(name, True) for name in active_names]
+        + [(name, False) for name in inactive_names],
+        controller_spawner_timeout.perform(context), controller_parameters_path)
+    nodes_to_start = [
+        control_node, eli_control_node, controller_stopper_node,
+        robot_state_publisher_node, rviz_node, *controller_startup,
+    ]
+
+    if use_fake_hardware.perform(context).lower() != 'true':
+        nodes_to_start.append(Node(
+            package='eli_cs_robot_driver', executable='protective_stop_guard.py',
+            name='protective_stop_guard', output='screen',
+            parameters=[{'recovery_force_limit_n': ParameterValue(
+                LaunchConfiguration('recovery_force_limit_n'), value_type=float)}]))
+
+    auto_power = LaunchConfiguration('auto_power_on').perform(context).lower() == 'true'
+    fake_hardware = use_fake_hardware.perform(context).lower() == 'true'
+    if auto_power and not fake_hardware:
+        # 嵌套launch的参数作用域可能在异步上电结束前退出，保留本次驱动参数。
+        driver_configurations = dict(context.launch_configurations)
+        power_startup = Node(
+            package='eli_cs_robot_driver', executable='auto_power_on.py',
+            name='elite_auto_power_on', output='screen',
+            parameters=[{
+                'startup_timeout_sec': ParameterValue(LaunchConfiguration('power_on_timeout'), value_type=float),
+                'command_timeout_sec': ParameterValue(LaunchConfiguration('power_command_timeout'), value_type=float),
+            }],
+        )
+
+        def power_finished(event, launch_context):
+            if launch_context.is_shutdown:
+                return []
+            if event.returncode == 0:
+                return [GroupAction(actions=nodes_to_start, scoped=True,
+                                    launch_configurations=driver_configurations)]
+            return [LogInfo(msg='机器人自动上电/释放抱闸失败，取消 ROS 控制器启动'),
+                    EmitEvent(event=Shutdown(reason='Robot power/brake startup failed'))]
+
+        return [components_loader,
+                RegisterEventHandler(OnProcessExit(target_action=power_startup, on_exit=power_finished)),
+                power_startup]
+    return [components_loader]+nodes_to_start
+
+
+def generate_launch_description():
+    declared_arguments = []
+    declared_arguments.extend([
+        DeclareLaunchArgument('ros_discovery_range', default_value='LOCALHOST',
+                             choices=['LOCALHOST', 'SUBNET', 'SYSTEM_DEFAULT', 'OFF'],
+                             description='ROS发现范围；默认仅本机，厂商TCP/RTSI网口通信不受影响'),
+        DeclareLaunchArgument('recovery_force_limit_n', default_value='5.0',
+                             description='Maximum unbiased force norm allowed before confirmed recovery, in N'),
+        DeclareLaunchArgument('auto_power_on', default_value='true', choices=['true', 'false'],
+                             description='Automatically power on and release brakes before real robot controllers start'),
+        DeclareLaunchArgument('power_on_timeout', default_value='240.0',
+                             description='Total dashboard service/state startup timeout in seconds'),
+    ])
+    declared_arguments.append(DeclareLaunchArgument(
+        'power_command_timeout', default_value='120.0',
+        description='Maximum wait for each blocking power_on/brake_release service in seconds'))
+    # Elite CS robots specific arguments
+    declared_arguments.append(
+        DeclareLaunchArgument(
+            "cs_type",
+            default_value="ls65",
+            description="Type/series of used Elite robot CS series.",
+            choices=["cs63", "cs66", "cs68", "cs612", "cs616", "cs618f", "cs620", "cs625", "cs66a", "cs520h", "ls65"],
+        )
+    )
+    declared_arguments.append(
+        DeclareLaunchArgument(
+            "robot_ip",
+            default_value="169.254.199.150", 
+            description="IP address by which the robot can be reached."
+        )
+    )
+    declared_arguments.append(
+        DeclareLaunchArgument(
+            "local_ip",
+            default_value = "0.0.0.0",
+            description="IP that will be used for the robot controller to communicate back to the driver.",
+        )
+    )
+    declared_arguments.append(
+        DeclareLaunchArgument(
+            "safety_limits",
+            default_value="true",
+            description="Enables the safety limits controller if true.",
+        )
+    )
+    declared_arguments.append(
+        DeclareLaunchArgument(
+            "safety_pos_margin",
+            default_value="0.15",
+            description="The margin to lower and upper limits in the safety controller.",
+        )
+    )
+    declared_arguments.append(
+        DeclareLaunchArgument(
+            "safety_k_position",
+            default_value="20",
+            description="k-position factor in the safety controller.",
+        )
+    )
+    # General arguments
+    declared_arguments.append(
+        DeclareLaunchArgument(
+            "runtime_config_package",
+            default_value="eli_cs_robot_driver",
+            description='Package with the controller\'s configuration in "config" folder. \
+        Usually the argument is not set, it enables use of a custom setup.',
+        )
+    )
+    
+    declared_arguments.append(
+        DeclareLaunchArgument(
+            "controllers_file",
+            default_value="elite_cs_controllers.yaml",
+            description="YAML file with the controllers configuration. Defaults to the 5-axis config for cs_type values ending with 'h'.",
+        )
+    )
+    
+    declared_arguments.append(
+        DeclareLaunchArgument(
+            "description_package",
+            default_value="eli_cs_robot_description",
+            description="Description package with robot URDF/XACRO files. Usually the argument \
+        is not set, it enables use of a custom description.",
+        )
+    )
+    declared_arguments.append(
+        DeclareLaunchArgument(
+            "description_file",
+            default_value="cs.urdf.xacro",
+            description="URDF/XACRO description file with the robot. The default switches to urdf_5f for cs_type values ending with 'h'.",
+        )
+    )
+    declared_arguments.append(
+        DeclareLaunchArgument(
+            "tf_prefix",
+            default_value="",
+            description="tf_prefix of the joint names, useful for \
+        multi-robot setup. If changed, also joint names in the controllers' configuration \
+        have to be updated.",
+        )
+    )
+    declared_arguments.append(
+        DeclareLaunchArgument(
+            "use_fake_hardware",
+            default_value="false",
+            description="Start robot with fake hardware mirroring command to its states.",
+        )
+    )
+    declared_arguments.append(
+        DeclareLaunchArgument(
+            "fake_sensor_commands",
+            default_value="false",
+            description="Enable fake command interfaces for sensors used for simple simulations. \
+            Used only if 'use_fake_hardware' parameter is true.",
+        )
+    )
+    declared_arguments.append(
+        DeclareLaunchArgument(
+            "headless_mode",
+            default_value="true",
+            description="Enable headless mode for robot control",
+        )
+    )
+    declared_arguments.append(
+        DeclareLaunchArgument(
+            "controller_manager_log_level", default_value="info",
+            choices=["debug", "info", "warn", "error", "fatal"],
+            description="controller_manager日志级别；启动失败时可设debug定位原因",
+        )
+    )
+    declared_arguments.append(
+        DeclareLaunchArgument(
+            "controller_spawner_timeout",
+            default_value="10",
+            description="Timeout used when spawning controllers.",
+        )
+    )
+    declared_arguments.append(
+        DeclareLaunchArgument(
+            "initial_joint_controller",
+            default_value="scaled_joint_trajectory_controller",
+            description="Initially loaded robot controller.",
+        )
+    )
+    declared_arguments.append(
+        DeclareLaunchArgument(
+            "activate_joint_controller",
+            default_value="true",
+            description="Activate loaded joint controller.",
+        )
+    )
+    declared_arguments.append(DeclareLaunchArgument("initial_positions_file", default_value=PathJoinSubstitution([
+        FindPackageShare("eli_cs_robot_description"), "config", "initial_positions.yaml"])))
+    declared_arguments.append(
+        DeclareLaunchArgument("launch_rviz", default_value="true", description="Launch RViz?")
+    )
+    declared_arguments.append(
+        DeclareLaunchArgument(
+            "use_tool_communication",
+            default_value="false",
+            description="Temporarily unavailable.", # TODO
+        )
+    )
+    declared_arguments.append(
+        DeclareLaunchArgument(
+            "tool_parity",
+            default_value="0",
+            description="Temporarily unavailable. Parity configuration for serial communication. Only effective, if \
+            use_tool_communication is set to True.", # TODO
+        )
+    )
+    declared_arguments.append(
+        DeclareLaunchArgument(
+            "tool_baud_rate",
+            default_value="115200",
+            description="Temporarily unavailable. Baud rate configuration for serial communication. Only effective, if \
+            use_tool_communication is set to True.", #TODO
+        )
+    )
+    declared_arguments.append(
+        DeclareLaunchArgument(
+            "tool_stop_bits",
+            default_value="1",
+            description="Temporarily unavailable. Stop bits configuration for serial communication. Only effective, if \
+            use_tool_communication is set to True.", # TODO
+        )
+    )
+
+    declared_arguments.append(
+        DeclareLaunchArgument(
+            "tool_tcp_port",
+            default_value="54321",
+            description="Temporarily unavailable. Remote port that will be used for bridging the tool's serial device. \
+            Only effective, if use_tool_communication is set to True.", #TODO
+        )
+    )
+    declared_arguments.append(
+        DeclareLaunchArgument(
+            "tool_voltage",
+            default_value="0",  # 0 being a conservative value that won't destroy anything
+            description="Tool voltage that will be setup.",
+        )
+    )
+    declared_arguments.append(
+        DeclareLaunchArgument(
+            "script_command_port",
+            default_value="50004",
+            description="Port that will be opened to forward script commands to the robot.",
+        )
+    )
+    declared_arguments.append(
+        DeclareLaunchArgument(
+            "reverse_port",
+            default_value="50001",
+            description="Port that will be opened to send cyclic instructions from the driver to the robot controller.",
+        )
+    )
+    declared_arguments.append(
+        DeclareLaunchArgument(
+            "script_sender_port",
+            default_value="50002",
+            description="The driver will offer an interface to query the ExternalControl script on this port.",
+        )
+    )
+    declared_arguments.append(
+        DeclareLaunchArgument(
+            "trajectory_port",
+            default_value="50003",
+            description="Port that will be opened for trajectory control.",
+        )
+    )
+    return LaunchDescription(declared_arguments + [
+        SetEnvironmentVariable('ROS_AUTOMATIC_DISCOVERY_RANGE', LaunchConfiguration('ros_discovery_range')),
+        OpaqueFunction(function=launch_setup)])

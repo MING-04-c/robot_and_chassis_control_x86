@@ -1,0 +1,35 @@
+sensor_node:
+  ros__parameters:
+    transport: tcp
+    # 485 转网口设备应配置为 TCP Server，本节点作为 TCP Client 主动连接。
+    host: 169.254.199.80
+    port: 9001
+    reconnect_period_ms: 1000
+    tcp_keepalive: true
+    tcp_no_delay: true
+    auto_start: true
+    zero_before_request: true
+    request_period: 0.0
+    command_delay_ms: 300
+    zero_wait_ms: 1000
+    unit_switch_delay_ms: 300
+    # 停止采集 01 与退出 debug 31 之间等待 1 秒，避免设备漏收停止命令。
+    stop_exit_delay_ms: 1000
+    # 厂家确认：重新上电默认 kg 档。异常退出后先重新上电再启动。
+    unit: "kg"
+    auto_calibrate_unit: false         # 不再用两组数据比较单位
+    switch_unit_on_startup: true       # 已知 kg 档启动，35 切换一次到 N
+    restore_kg_on_shutdown: true       # 正常退出时从 N 切回 kg
+    target_unit: "N"                  # 控制期间硬件用 N，ROS 始终输出 N/N·m
+    baud_code: 0
+    publish_wrench: true
+    data_format: float32_be
+    data_offset: 3
+    frame_size: 29
+    # 这里必须是传感器自身坐标系，不能在轴向不一致时冒充 tool0。
+    frame_id: force_sensor
+    raw_topic: /sensor/rx_bytes
+    raw_rx_topic: /sensor/raw_rx_bytes
+    raw_rx_hex_topic: /sensor/raw_rx
+    hex_topic: /sensor/rx
+    wrench_topic: /sensor/wrench
