@@ -111,27 +111,6 @@ def generate_launch_description():
         condition=IfCondition(LaunchConfiguration("start_hk_camera")),
         launch_arguments={"show_image": "false"}.items(),
     )
-    hk_capture = Node(
-        package="hik_camera_ros2_driver",
-        executable="dataset_capture_node.py",
-        name="dataset_capture",
-        output="screen",
-        condition=IfCondition(LaunchConfiguration("start_hk_camera")),
-        parameters=[
-            PathJoinSubstitution(
-                [
-                    FindPackageShare("robot_task_control"),
-                    "config",
-                    "capture",
-                    "hk_capture.yaml",
-                ]
-            ),
-            {
-                "interactive_input": False,
-                "output_dir": LaunchConfiguration("hk_output_dir"),
-            },
-        ],
-    )
     hk_transfer = Node(
         package="eli_cs_robot_serial",
         executable="industrial_pc_hk_transfer.py",
@@ -503,7 +482,6 @@ def generate_launch_description():
             velocity_mux,
             chassis,
             hk_camera,
-            hk_capture,
             hk_transfer,
             OpaqueFunction(function=start_line_devices),
             arm_driver,

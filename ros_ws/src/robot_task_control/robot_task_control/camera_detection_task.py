@@ -66,7 +66,7 @@ class CameraDetectionTask(Node):
         if self.target_source == 'local':
             frozen_probe_targets(np.eye(4), np.eye(4), self.points_mm)
         self.capture_config_file = str(param('capture_config_file', str(
-            Path(get_package_share_directory('robot_task_control'))/'config/capture/final_capture.yaml')))
+            Path(get_package_share_directory('robot_task_control'))/'config/robot_task.yaml')))
         from robot_task_control.final_capture import load_config
         self.storage = Path(load_config(self.capture_config_file)['output_dir']).expanduser()
         self.capture_local = bool(param('capture_local', False))

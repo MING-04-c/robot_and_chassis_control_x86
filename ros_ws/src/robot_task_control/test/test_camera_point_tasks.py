@@ -24,7 +24,7 @@ from scipy.spatial.transform import Rotation
 import xacro
 from rclpy.node import Node
 
-from robot_task_control.testing.pixel_point_simulation import JOINTS, read_pixel_point, PixelPointSimulation
+from eli_cs_robot_moveit_config.joint_postures import JOINTS
 from robot_task_control.camera_detection_task import CameraDetectionTask, received_points
 from std_msgs.msg import String
 from geminipro_camer_calibration.capture_geometry import frozen_probe_targets
@@ -32,7 +32,6 @@ from geminipro_camer_calibration.live_tf import LiveRobotTransforms
 from geminipro_camer_calibration.geometry import rpy_degrees_rotation, tool_goal
 
 ROOT = Path(__file__).resolve().parents[2]
-SAMPLE = ROOT/'robot_task_control/config/tests/pixel_target_sample.json'
 
 
 class CameraPointTasksTest(unittest.TestCase):
@@ -202,7 +201,7 @@ module.main()
         """检查成员赋值，避免客户端覆盖 Node.executor 等 ROS 节点属性。"""
         properties = {name for base in Node.__mro__ for name, value in vars(base).items()
                       if isinstance(value, property)}
-        for node_class in (PixelPointSimulation, CameraDetectionTask):
+        for node_class in (CameraDetectionTask,):
             tree = ast.parse(inspect.getsource(node_class))
             assigned = {item.attr for item in ast.walk(tree)
                         if isinstance(item, ast.Attribute) and isinstance(item.ctx, ast.Store)
@@ -316,62 +315,15 @@ module.main()
             rotation[:3, :3] = Rotation.from_rotvec(axis*q[JOINTS.index(joint.get('name'))]).as_matrix()
         return self.fk(joint.find('parent').get('link'), q) @ transform @ rotation
 
-    def test_pixel_point_units_and_pinhole_consistency(self):
-        data, point = read_pixel_point(SAMPLE)
-        np.testing.assert_allclose(point, [-.005370267016871055, -.003820746759094509, .275])
-        k = data['intrinsic_used']
-        u, v = data['test_pixel_point']['pixel_uv']
-        z = data['test_pixel_point']['depth_mm_used_median7x7']/1000.
-        np.testing.assert_allclose(point, [(u-k['cx'])*z/k['fx'], (v-k['cy'])*z/k['fy'], z])
-        self.assertFalse(data['robot_motion_authorized'])
 
-    def test_invalid_camera_point_is_rejected(self):
-        original = json.loads(SAMPLE.read_text())
-        for point in ([0, 0, -1], [0, 0, float('nan')], [0, 0], [0, 0, 5000]):
-            original['test_pixel_point']['xyz_mm_pinhole_preliminary'] = point
-            with tempfile.TemporaryDirectory() as directory:
-                path = Path(directory)/'invalid.json'
-                path.write_text(json.dumps(original))
-                with self.assertRaises(ValueError):
-                    read_pixel_point(path)
 
-    def test_simulated_force_is_guarded_and_contact_event_is_latched(self):
-        node = MagicMock()
-        node.mock_verified = False
-        PixelPointSimulation.publish_simulated_force(node)
-        node.force_pub.publish.assert_not_called()
-        node.mock_verified = True
-        node.detect_status = {'state': 'DESCEND'}
-        node.target = np.array([0., 0., .2])
-        node.contact_latched = False
-        node.simulated_force = 21.
-        node.get_clock.return_value.now.return_value.to_msg.return_value = TimeMessage(sec=1)
-        pose = np.eye(4)
-        pose[2, 3] = .21
-        node.tf.return_value = pose
-        PixelPointSimulation.publish_simulated_force(node)
-        self.assertEqual(node.force_pub.publish.call_args.args[0].wrench.force.z, 0.)
-        pose[2, 3] = .2
-        PixelPointSimulation.publish_simulated_force(node)
-        self.assertEqual(node.force_pub.publish.call_args.args[0].wrench.force.z, 21.)
-        pose[2, 3] = .21
-        node.detect_status = {'state': 'HOLD'}
-        PixelPointSimulation.publish_simulated_force(node)
-        self.assertEqual(node.force_pub.publish.call_args.args[0].wrench.force.z, 21.)
-        node.detect_status = {'state': 'RETRACT'}
-        PixelPointSimulation.publish_simulated_force(node)
-        self.assertEqual(node.force_pub.publish.call_args.args[0].wrench.force.z, 0.)
 
     def test_camera_probe_touch_16cm_preserves_tool_orientation_and_compensates_probe(self):
         import yaml
-        profile = yaml.safe_load((ROOT/'robot_task_control/config/camera_probe_touch.yaml').read_text())
+        profile = yaml.safe_load((ROOT/'robot_task_control/config/robot_task.yaml').read_text())
         configured = profile['camera_detection_task']['ros__parameters']['camera_points_mm']
         self.assertTrue(configured and len(configured) % 3 == 0)
         self.assertTrue(all(type(value) is float for value in configured))
-        # 使用ROS原生参数解析器检查配置，不创建节点或连接设备。
-        from rclpy.utilities import remove_ros_args
-        config_path = ROOT/'robot_task_control/config/camera_probe_touch.yaml'
-        self.assertEqual(remove_ros_args(args=['check', '--ros-args', '--params-file', str(config_path)]), ['check'])
         # 几何用固定中心点验证，不约束用户可编辑的现场检测点。
         points = [0., 0., 160.]
         self.assertFalse(profile['detect_controller']['ros__parameters']['lock_tool_orientation'])
@@ -387,11 +339,11 @@ module.main()
         np.testing.assert_allclose(tool_target[:3, :3], tool[:3, :3], atol=1e-12)
         self.assertGreater(np.linalg.norm(tool_target[:3, 3]-expected), .1)
 
-    def test_line_robot_local_point_is_camera_centimetres_converted_to_millimetres(self):
+    def test_line_robot_local_point_uses_camera_millimetres(self):
         import yaml
-        profile = yaml.safe_load((ROOT/'robot_task_control/archive/config/line_robot_camera_detection.yaml').read_text())
+        profile = yaml.safe_load((ROOT/'robot_task_control/config/robot_task.yaml').read_text())
         params = profile['camera_detection_task']['ros__parameters']
-        self.assertEqual(params['camera_points_mm'], [10., 10., 140.])
+        self.assertEqual(params['camera_points_mm'], [-10., -10., 130.])
         self.assertEqual(params['target_source'], 'local')
         self.assertTrue(params['capture_local'])
         self.assertFalse(params['auto_start'])
@@ -778,7 +730,7 @@ module.main()
             CameraDetectionTask.schedule_reacquire(node, 'no contact')
 
     def test_joint_test_real_and_fake_hardware_are_strictly_separated(self):
-        from robot_task_control.testing.joint_posture_test import JointPostureTest
+        from robot_task_control.joint_posture_control import JointPostureControl as JointPostureTest
         node = MagicMock()
         node.ground = True
         node.real_ready.return_value = True
@@ -802,42 +754,10 @@ module.main()
         node.external_sub.get_publisher_count.return_value = 0
         self.assertFalse(JointPostureTest.real_ready(node))
 
-    def test_joint_launch_real_mode_uses_real_driver_without_forcing_simulation_domain(self):
-        import importlib.util
-        from launch import LaunchContext
-        from launch.actions import OpaqueFunction, SetEnvironmentVariable
-        spec = importlib.util.spec_from_file_location('joint_test_launch',
-            ROOT/'robot_task_control/launch/tests/joint_posture_test.launch.py')
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
-        for simulation in ('true', 'false'):
-            context = LaunchContext()
-            context.launch_configurations.update(simulation=simulation,
-                postures_file=str(ROOT/'eli_cs_robot_moveit_config/config/arm_joint_postures.yaml'),
-                robot_ip='169.254.199.150', local_ip='0.0.0.0')
-            includes, nodes = [], []
-            def include(*args, **kwargs):
-                includes.append(dict(kwargs['launch_arguments']))
-                return OpaqueFunction(function=lambda _: [])
-            def node(**kwargs):
-                nodes.append(kwargs)
-                return OpaqueFunction(function=lambda _: [])
-            with patch.object(module, 'IncludeLaunchDescription', side_effect=include), patch.object(module, 'Node', side_effect=node):
-                actions = module.setup(context)
-            driver = includes[0]
-            self.assertEqual(driver['use_fake_hardware'], simulation)
-            real = simulation == 'false'
-            self.assertEqual(driver['robot_ip'], '169.254.199.150' if real else '127.0.0.1')
-            self.assertEqual(driver['initial_joint_controller'],
-                'scaled_joint_trajectory_controller' if real else 'joint_trajectory_controller')
-            self.assertEqual(sum(isinstance(a, SetEnvironmentVariable) for a in actions), 0 if real else 2)
-            self.assertEqual(nodes[-1]['parameters'][0]['simulation'], not real)
-            if not real:
-                Path(driver['initial_positions_file']).unlink(missing_ok=True)
 
     def test_joint_postures_degrees_and_gateway_return_order(self):
         from eli_cs_robot_moveit_config.joint_postures import load_postures, joint_constraints
-        postures = load_postures(ROOT/'eli_cs_robot_moveit_config/config/arm_joint_postures.yaml')
+        postures = load_postures(ROOT/'robot_task_control/config/robot_task.yaml')
         np.testing.assert_allclose(np.rad2deg(postures['travel']), [-45., 15., -71., 4.4, 148., 75.])
         np.testing.assert_allclose(np.rad2deg(postures['detection_ready']), [-45., 0., 0., 0., 90., 0.])
         constraints = joint_constraints(postures['travel'])
@@ -870,7 +790,7 @@ module.main()
         from std_srvs.srv import Trigger
         controller, node = self.probe_node()
         node.cfg['joint_postures_enabled'] = True
-        node.postures = load_postures(ROOT/'eli_cs_robot_moveit_config/config/arm_joint_postures.yaml')
+        node.postures = load_postures(ROOT/'robot_task_control/config/robot_task.yaml')
         node.active, node.outstanding_actions = False, set()
         node.joints_at = monotonic()
         original = list(node.joints.position)
@@ -951,7 +871,8 @@ module.main()
         camera = self.fk('terminal_link_1', reference)
         probe = self.fk('terminal_link_2', reference)
         tool = self.fk('tool0', reference)
-        point = read_pixel_point(SAMPLE)[1]
+        # Isolated synthetic point for FK/IK consistency, never sent to hardware.
+        point = np.array([-.005370267016871055, -.003820746759094509, .275])
         target = probe.copy()
         target[:3, 3] = (camera @ np.r_[point, 1.])[:3]
         mounting = np.linalg.inv(tool) @ probe

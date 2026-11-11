@@ -783,7 +783,7 @@ class WorkflowController(Node):
         if self.phase == "ready":
             from ament_index_python.packages import get_package_share_directory
             config = Path(step.get("config_file") or self.capture_config_file or (
-                Path(get_package_share_directory("robot_task_control")) / "config/capture/final_capture.yaml")).expanduser()
+                Path(get_package_share_directory("robot_task_control")) / "config/robot_task.yaml")).expanduser()
             if not config.is_absolute():
                 config = self.workflow_path.parent / config
             # 相机仅在这个步骤启动；重编码、保存和TCP不阻塞控制器ROS回调。

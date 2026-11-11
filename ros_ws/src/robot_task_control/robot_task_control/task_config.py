@@ -40,6 +40,28 @@ def launch_arguments(values):
             for name, value in values.items()}
 
 
+def load_station_config(path):
+    """Read diagnostic point overrides; device and safety settings remain production-owned."""
+    path = Path(path).expanduser().resolve(strict=True)
+    document = yaml.safe_load(path.read_text(encoding='utf-8'))
+    if not isinstance(document, dict) or set(document) != {
+            'workflow', 'travel', 'detection_ready', 'camera_detection_task'}:
+        raise ValueError('Station YAML requires workflow, travel, detection_ready, camera_detection_task')
+    workflow = document['workflow']
+    if not isinstance(workflow, dict) or type(workflow.get('auto_start', False)) is not bool:
+        raise ValueError('Station workflow.auto_start must be boolean')
+    if workflow.get('station_steps') or workflow.get('task_table'):
+        raise ValueError('Station diagnostic cannot schedule chassis tasks or nested station actions')
+    camera = node_parameters(document, 'camera_detection_task')
+    if set(camera) != {'target_source', 'camera_points_mm'} or camera['target_source'] != 'local':
+        raise ValueError('Station diagnostic requires local camera_points_mm only')
+    points = camera['camera_points_mm']
+    if (not isinstance(points, list) or not points or len(points) % 3
+            or not all(type(v) in (int, float) and math.isfinite(v) for v in points)):
+        raise ValueError('Station camera_points_mm must contain finite xyz triples in millimetres')
+    return path, document
+
+
 def load_task_config(path):
     path = Path(path).expanduser().resolve(strict=True)
     document = yaml.safe_load(path.read_text(encoding='utf-8'))
@@ -115,6 +137,15 @@ def load_task_config(path):
     positive(detect.get('overload_force'), 'overload_force')
     if not detect['initial_force_limit'] < detect['contact_force'] < detect['overload_force']:
         raise ValueError('Require initial_force_limit < contact_force < overload_force')
+    limits = detect.get('preposition_rp_tolerance_deg', [0., 0.])
+    if (not isinstance(limits, list) or len(limits) != 2 or not all(
+            type(v) in (int, float) and math.isfinite(v) and 0. <= v <= 45. for v in limits)):
+        raise ValueError('preposition_rp_tolerance_deg requires two limits in [0, 45] degrees')
+    step = detect.get('preposition_angle_step_deg', 15.)
+    if type(step) not in (int, float) or not math.isfinite(step) or not 0. < step <= 45.:
+        raise ValueError('preposition_angle_step_deg must be in (0, 45] degrees')
+    if any(limits) and detect.get('lock_tool_orientation', False):
+        raise ValueError('Rx/Ry selection conflicts with lock_tool_orientation')
     for name, params in (('arm_joint_postures', node_parameters(document, 'arm_joint_postures')),
                          ('detect_controller', detect)):
         for key in ('velocity_scaling', 'acceleration_scaling'):

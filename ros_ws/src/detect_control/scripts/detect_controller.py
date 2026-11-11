@@ -64,6 +64,32 @@ class RetryableApproachError(RuntimeError):
         self.code = code
 
 
+def preposition_orientations(final, mounting, limits, step):
+    """Sample base-frame tool Rx/Ry; preserve tool Rz and the probe contact XYZ."""
+    rotation = final[:3, :3]
+    horizontal = math.hypot(rotation[0, 0], rotation[1, 0])
+    if horizontal < 1e-6:
+        raise ValueError('Cannot preserve Euler Rz at an Rx/Ry singularity')
+    roll = math.degrees(math.atan2(rotation[2, 1], rotation[2, 2]))
+    pitch = math.degrees(math.atan2(-rotation[2, 0], horizontal))
+    yaw = math.degrees(math.atan2(rotation[1, 0], rotation[0, 0]))
+    tip = (final @ mounting)[:3, 3].copy()
+
+    def offsets(limit):
+        values = list(np.arange(step, limit, step)) + ([limit] if limit else [])
+        return [0.] + [sign * value for value in values for sign in (1., -1.)]
+
+    pairs = [(rx, ry) for rx in offsets(limits[0]) for ry in offsets(limits[1])]
+    for rx, ry in sorted(pairs, key=lambda pair: pair[0]**2 + pair[1]**2):
+        # Do not cross the Euler pitch singularity and silently change Rz by 180 deg.
+        if not -90. < pitch + ry < 90.:
+            continue
+        candidate = final.copy()
+        candidate[:3, :3] = rpy_degrees_rotation([roll + rx, pitch + ry, yaw])
+        candidate[:3, 3] = tip - candidate[:3, :3] @ mounting[:3, 3]
+        yield rx, ry, candidate
+
+
 class DetectController(Node):
     def __init__(self):
         super().__init__("detect_controller")
@@ -111,6 +137,8 @@ class DetectController(Node):
             "max_tracking_error": 0.005,
             "lateral_tolerance": 0.002,
             "orientation_tolerance": 0.03,
+            "preposition_rp_tolerance_deg": [0.0, 0.0],
+            "preposition_angle_step_deg": 15.0,
             "pose_tolerance": 0.003,
             "data_timeout": 0.3,
             "target_max_age": 30.0,
@@ -143,6 +171,14 @@ class DetectController(Node):
         if not math.isfinite(degrees) or not 0 < degrees <= 180:
             raise ValueError("orientation_tolerance_deg 必须在 (0, 180] 度范围内")
         self.cfg["orientation_tolerance"] = math.radians(degrees)
+        limits = self.cfg['preposition_rp_tolerance_deg']
+        if (len(limits) != 2 or not all(
+                math.isfinite(v) and 0. <= v <= 45. for v in limits)):
+            raise ValueError('preposition_rp_tolerance_deg requires Rx/Ry limits in [0, 45] degrees')
+        if not 0. < self.cfg['preposition_angle_step_deg'] <= 45.:
+            raise ValueError('preposition_angle_step_deg must be in (0, 45] degrees')
+        if any(limits) and self.cfg['lock_tool_orientation']:
+            raise ValueError('Rx/Ry selection cannot be combined with lock_tool_orientation')
         if self.cfg["initial_orientation_mode"] not in ("current", "fixed"):
             raise ValueError("initial_orientation_mode 必须为 current 或 fixed")
         if self.cfg['approach_axis'] not in ('base_negative_z', 'tool_positive_z'):
@@ -357,6 +393,9 @@ class DetectController(Node):
                 not self.cartesian.service_is_ready() or
                 not self.execute.server_is_ready()):
             return False, "等待 MoveIt 规划和执行接口"
+        if (any(self.cfg.get('preposition_rp_tolerance_deg', [0., 0.]))
+                and not self.ik.service_is_ready()):
+            return False, '等待 Rx/Ry 候选姿态碰撞检查 IK 接口'
         return True, "关节、力数据和运动接口已就绪"
 
     def publish_status(self):
@@ -845,7 +884,8 @@ class DetectController(Node):
             if np.linalg.norm(self.force) >= self.cfg["initial_force_limit"]:
                 raise ValueError("启动前外力过大；请在探头未接触时正确清零")
             planning_services = [self.cartesian]
-            if self.touch_control_mode == "admittance":
+            if (self.touch_control_mode == "admittance"
+                    or any(self.cfg['preposition_rp_tolerance_deg'])):
                 planning_services.append(self.ik)
             if (
                 (self.touch_control_mode == "admittance" and
@@ -887,7 +927,9 @@ class DetectController(Node):
                 pre[:3, 3] -= direction*self.cfg["approach_clearance"]
                 far = final.copy()
                 far[:3, 3] += direction*self.cfg["max_penetration"]
-                if not all(self.in_workspace(t) for t in (target, final, pre, far, pre @ mounting, far @ mounting)):
+                checks = ((target,) if any(self.cfg['preposition_rp_tolerance_deg'])
+                          else (target, final, pre, far, pre @ mounting, far @ mounting))
+                if not all(self.in_workspace(t) for t in checks):
                     raise ValueError(
                         "TARGET_UNREACHABLE: 某检测点、预接近点或最大探入点超过工作空间；整组不执行"
                     )
@@ -1171,7 +1213,81 @@ class DetectController(Node):
         goal.planning_options.planning_scene_diff.robot_state.is_diff = True
         return goal
 
-    def plan_pose(self, transform, on_reached=None, phase="PREPOSITION"):
+    def select_preposition(self, callback):
+        """Choose collision-checked IK, without moving, before the original OMPL request."""
+        if not self.ik.service_is_ready():
+            raise RuntimeError('Rx/Ry selection requires the collision-checking IK service')
+        self.state('SELECT_PREPOSITION', '检查允许的 Rx/Ry 候选；保持 Rz 和探针接触点不变')
+        candidates = iter(preposition_orientations(
+            self.final, self.mounting, self.cfg['preposition_rp_tolerance_deg'],
+            self.cfg['preposition_angle_step_deg']))
+
+        def solve(pose, joints, done):
+            request = GetPositionIK.Request()
+            request.ik_request.group_name = self.cfg['planning_group']
+            request.ik_request.ik_link_name = self.cfg['tool_frame']
+            request.ik_request.robot_state.joint_state = deepcopy(joints)
+            request.ik_request.pose_stamped.header.frame_id = self.cfg['base_frame']
+            request.ik_request.pose_stamped.pose = to_pose(pose)
+            request.ik_request.avoid_collisions = True
+            request.ik_request.timeout.nanosec = 150000000
+            self.wait(self.ik.call_async(request), done)
+
+        def valid(result):
+            code = result.error_code.val
+            if code == MoveItErrorCodes.SUCCESS:
+                joints = result.solution.joint_state
+                if (len(joints.name) != len(joints.position)
+                        or not all(j in joints.name for j in JOINTS)
+                        or not all(math.isfinite(p) for p in joints.position)):
+                    raise RuntimeError('IK returned an invalid joint solution')
+                return True
+            if code not in (MoveItErrorCodes.NO_IK_SOLUTION,
+                            MoveItErrorCodes.GOAL_IN_COLLISION, MoveItErrorCodes.TIMED_OUT):
+                raise RuntimeError(f'Rx/Ry IK service failed: {code}')
+            return False
+
+        def next_candidate():
+            for rx, ry, final in candidates:
+                direction = self.direction_for(final)
+                pre, far = final.copy(), final.copy()
+                pre[:3, 3] -= direction * self.cfg['approach_clearance']
+                far[:3, 3] += direction * self.cfg['max_penetration']
+                if all(self.in_workspace(t) for t in (
+                        pre, final, far, pre @ self.mounting, final @ self.mounting, far @ self.mounting)):
+                    break
+            else:
+                raise RetryableApproachError('target_unreachable',
+                    '允许的 Rx/Ry 候选未找到有效无碰撞 IK；不代表完整连续角度范围不可达')
+
+            def pre_checked(result):
+                if not valid(result):
+                    next_candidate()
+                    return
+
+                def final_checked(final_result):
+                    if not valid(final_result):
+                        next_candidate()
+                        return
+                    self.pre, self.final = pre, final
+                    self.batch[self.point_index] = (pre, final)
+                    self.get_logger().info(
+                        f'选定 tool0 姿态偏移 Rx={rx:g}°, Ry={ry:g}°；Rz 目标不变；'
+                        f'距探针目标 {self.cfg["approach_clearance"]*1000:g}mm 开始低速接近')
+                    callback(result.solution.joint_state)
+
+                solve(final, result.solution.joint_state, final_checked)
+
+            solve(pre, self.joints, pre_checked)
+
+        next_candidate()
+
+    def plan_pose(self, transform, on_reached=None, phase="PREPOSITION", selected_joints=None):
+        if (phase == 'PREPOSITION' and selected_joints is None
+                and any(self.cfg.get('preposition_rp_tolerance_deg', [0., 0.]))):
+            self.select_preposition(lambda joints: self.plan_pose(
+                self.pre, on_reached, phase, selected_joints=joints))
+            return
         self.state(
             phase,
             (
@@ -1207,6 +1323,9 @@ class DetectController(Node):
         oc.weight = 1.0
         constraints.position_constraints = [pc]
         constraints.orientation_constraints = [oc]
+        if selected_joints is not None:
+            positions = [selected_joints.position[selected_joints.name.index(j)] for j in JOINTS]
+            constraints.joint_constraints = joint_constraints(positions).joint_constraints
         goal.request.goal_constraints = [constraints]
         self.action(self.move, goal, on_reached or self.verify_preposition)
 

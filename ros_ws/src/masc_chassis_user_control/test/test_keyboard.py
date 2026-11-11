@@ -66,7 +66,8 @@ def main():
     with tempfile.TemporaryFile(mode='w+') as log:
         child = subprocess.Popen([
             'ros2', 'launch', 'masc_chassis_user_control', 'keyboard_teleop.launch.py',
-            'start_driver:=false', 'cmd_vel_topic:=/keyboard_test/cmd_vel', 'linear_speed:=0.05',
+            'start_driver:=false', 'show_window:=false',
+            'cmd_vel_topic:=/keyboard_test/cmd_vel', 'linear_speed:=0.05',
         ], stdin=slave, stdout=log, stderr=log, start_new_session=True)
         try:
             wait(lambda: bool(messages))

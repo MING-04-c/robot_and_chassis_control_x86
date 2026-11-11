@@ -1,0 +1,68 @@
+Panels:
+  - Class: rviz_common/Displays
+    Name: Displays
+  - Class: rviz_common/Views
+    Name: Views
+Visualization Manager:
+  Class: ""
+  Displays:
+    - Class: rviz_default_plugins/Grid
+      Name: Grid
+      Enabled: true
+      Cell Size: 0.1
+      Plane Cell Count: 30
+      Color: 110; 110; 110
+      Alpha: 0.3
+      Reference Frame: <Fixed Frame>
+    - Class: moveit_rviz_plugin/PlanningScene
+      Name: Collision Scene
+      Enabled: true
+      Robot Description: robot_description
+      Planning Scene Topic: /monitored_planning_scene
+      Scene Geometry:
+        Show Scene Geometry: true
+        Scene Alpha: 0.4
+      Scene Robot:
+        Show Robot Visual: false
+        Show Robot Collision: false
+        Robot Alpha: 0.25
+    - Class: moveit_rviz_plugin/Trajectory
+      Name: Planned Motion
+      Enabled: true
+      Robot Description: robot_description
+      Trajectory Topic: /display_planned_path
+      Loop Animation: true
+      Interrupt Display: false
+      Show Robot Visual: true
+      Show Robot Collision: false
+      Robot Alpha: 0.9
+      Show Trail: false
+      State Display Time: 0.05 s
+      Trail Step Size: 5
+  Enabled: true
+  Global Options:
+    Fixed Frame: world
+    Background Color: 35; 38; 40
+    Frame Rate: 30
+  Name: root
+  Tools:
+    - Class: rviz_default_plugins/Interact
+    - Class: rviz_default_plugins/MoveCamera
+    - Class: rviz_default_plugins/Select
+  Views:
+    Current:
+      Class: rviz_default_plugins/Orbit
+      Distance: 2.2
+      Focal Point:
+        X: 0.1
+        Y: 0.1
+        Z: 0.4
+      Pitch: 0.4
+      Yaw: 0.8
+      Target Frame: <Fixed Frame>
+      Near Clip Distance: 0.01
+Window Geometry:
+  Width: 1280
+  Height: 800
+  Hide Left Dock: false
+  Hide Right Dock: false

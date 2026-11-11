@@ -376,9 +376,12 @@ source ~/project/robot_and_chassis_control/ros_ws/install/setup.bash
 ros2 launch masc_chassis_user_control keyboard_teleop.launch.py linear_speed:=0.05 angular_speed:=0.2
 ```
 
-默认一起启动底盘驱动，不启动相机或距离PID；`linear_speed` 单位m/s，
+默认一起启动底盘驱动及底盘 Sonix USB 相机预览，不启动自动循迹或距离PID；`linear_speed` 单位m/s，
 0.05表示5cm/s；`angular_speed` 单位rad/s。
 已有独立驱动时加 `start_driver:=false`，不要重复启动驱动。
+关闭画面和预览相机加 `show_window:=false`，默认 `true`；指定其他底盘相机可用
+`camera_device:=/dev/v4l/by-id/设备名`，不会自动切到笔记本摄像头。
+操作按键仍在启动命令的终端输入，不要把焦点切到相机窗口。
 该驱动须正常启用运动帧发送；拖车专用的 `command.transmit_enabled=false` 配置无法控制运动。
 等待 `KEYBOARD READY` 后，在启动该命令的终端内操作：
 
@@ -403,7 +406,7 @@ ros2 launch masc_chassis_user_control keyboard_teleop.launch.py linear_speed:=0.
 
 ## 本机机械臂与底盘统一工作区
 
-统一任务入口、USB `/line_camera/*` 话题映射和三种独立流程见 `robot_task_control/README.md`。统一工作流中的循迹默认关闭，由任务控制器开启；本文件独立 line_follow.launch.py 默认自动循迹。键盘也可通过 `ros2 launch robot_task_control keyboard_teleop.launch.py` 启动。请先退出其他底盘启动会话，再启动键盘控制。
+统一任务入口和 USB `/line_camera/*` 话题映射见 `robot_task_control/README.md`。统一工作流中的循迹由任务控制器开启，预览默认关闭；本文件独立 line_follow.launch.py 默认自动循迹。键盘使用 `ros2 launch masc_chassis_user_control keyboard_teleop.launch.py`，预览默认开启。请先退出其他底盘启动会话，再启动键盘控制。
 ## 连续可信段循迹
 
 循迹每帧从车身近端开始，仅使用第一段连续实测中线，纵向缺口超过

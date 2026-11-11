@@ -22,13 +22,12 @@ import yaml
 from robot_task_control import final_capture as capture
 from robot_task_control.workflow_controller import WorkflowController
 
-CONFIG = Path(__file__).resolve().parents[1]/'config/capture/final_capture.yaml'
-LOCAL_CONFIG = Path(__file__).resolve().parents[1]/'archive/config/capture/line_robot_local_capture.yaml'
+CONFIG = Path(__file__).resolve().parents[1]/'config/robot_task.yaml'
 
 
 class FinalCaptureTest(unittest.TestCase):
     def test_line_robot_capture_is_local_only_on_desktop(self):
-        config = capture.load_config(LOCAL_CONFIG)
+        config = capture.load_config(CONFIG)
         self.assertTrue(config['local_only'])
         self.assertEqual(config['output_dir'], '/home/robot/Desktop/line_robot_camer_detect_test')
 
@@ -85,7 +84,7 @@ class FinalCaptureTest(unittest.TestCase):
             self.assertTrue((node.output/'hk.jpg').is_file())
             self.assertEqual(events, ['hk_open', 'hk_closed', 'depth_open', 'depth_closed'])
             node.pause_line_camera.assert_called_once()
-            node.wait.assert_called_once_with(3.)
+            node.wait.assert_called_once_with(node.config['robot_settle_sec'])
             self.assertEqual(node.report['rgbd'], str(saved.relative_to(node.output)))
             self.assertEqual(node.write_state.call_args.args[0], 'all_cameras_closed')
 
@@ -308,7 +307,7 @@ class FinalCaptureTest(unittest.TestCase):
     def test_invalid_config_rejected(self):
         for changes in ({'stable_frames': 1}, {'hk_port': 0}, {'camera_warmup_sec': float('nan')},
                         {'pause_line_camera': 'false'}, {'receiver_ip': 'not-an-ip'}):
-            config = yaml.safe_load(CONFIG.read_text())
+            config = capture.load_config(CONFIG)
             config.update(changes)
             with tempfile.TemporaryDirectory() as directory:
                 path = Path(directory)/'config.yaml'

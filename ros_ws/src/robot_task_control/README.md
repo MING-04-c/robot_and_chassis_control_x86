@@ -19,6 +19,37 @@ ros2 launch robot_task_control robot_task.launch.py
 两条命令分别执行。实机启动前关闭独立相机预览和其他占用机械臂、底盘、相机或 TCP 9010 的任务。
 也可以通过 `config_file:=/绝对路径/robot_task.yaml` 指定同格式文件。
 
+底盘相机画面默认不显示。需要查看时将 YAML 的 `system.line_show_window` 改为
+`true` 后重新启动任务；`false` 只关闭预览，不影响相机采集和循迹。
+
+### 到站拍照测厚诊断
+
+点位文件为 `config/diagnostics/arrival_detect.yaml`，复用同一执行器，不是另一套正式联动任务。
+顺序：当前位到过渡位、拍照位、拍照并触碰测厚回拍照原位、过渡位、行车位。
+不启动底盘驱动、速度选择器或循迹相机，不执行小车往返。先关闭原任务及键盘遥控，
+固定小车并确认运动区域安全；不允许与正式任务并行启动。
+
+```bash
+ros2 launch robot_task_control robot_task.launch.py station_workflow_file:=$(ros2 pkg prefix robot_task_control)/share/robot_task_control/config/diagnostics/arrival_detect.yaml
+```
+
+该模式默认等待手动开始。在另一个已加载相同 ROS 环境的终端，确认安全恢复完成后执行：
+
+```bash
+ros2 service call /task_controller/start std_srvs/srv/Trigger "{}"
+```
+
+在启动命令末尾加 `validate_only:=true` 可仅检查配置，不启动设备。
+诊断 YAML 中 `travel`、`detection_ready` 是六轴角度（度）；`target_pose.position` 是
+`base_link` 下 `tool0` 的米制目标，`orientation` 是 RPY 度；`camera_points_mm` 是相机坐标系
+的毫米点，不是机械臂基座坐标。默认 `[10, 10, 140]` 只是原任务测试点，必须核对实物再触碰。
+只排查规划时可暂时删掉 `capture_and_thickness` 整个步骤。
+
+拍照目录、测厚串口、限力阈值及相机配置仍来自 `config_file` 指定的正式 YAML。
+照片默认只存桌面。诊断保留外控、控制器就绪、地面与碰撞检查、保护锁及真实限力测厚；
+任何一步失败都会停止，不跳过失败去强行回位或测量。查看 `/task_controller/status` 的
+`step_index`（从0开始）、`phase`、`failure_reason` 可定位失败阶段。
+
 ## 当前工作流
 
 1. 设备就绪、底盘停稳，机械臂到行车位。
@@ -84,13 +115,24 @@ ros2 launch robot_task_control robot_task.launch.py
 - `robot_task_control/joint_posture_control.py`：共用关节姿态执行服务。
 - `robot_task_control/velocity_mux.py`：速度仲裁，禁止过期命令持续驱动。
 - `launch/internal/`：共用驱动控制栈，不是另一套正式任务。
-- `launch/tests/`、`config/tests/`、`test/`：仿真和回归测试，不连接实机运动硬件。
-- `archive/`：旧 `line_follow_*`、`line_robot_*` 入口及配置，保留作历史与回归夹具；不安装到 ROS 包。
+- `simulation/`：独立域、仅规划的 RViz 路径预览；不连接真实设备，详见该目录 README。
+- `test/`：当前实现的回归测试及隔离测试夹具，不安装到 ROS 包，不连接实机运动硬件。
 
-`arm_admittance_only`、`keyboard_teleop`、`camera_capture_remote`、`camera_detection_real`
-保留为独立调试工具，不是另一版联合工作流，不应与正式任务同时运行。
+旧任务归档、独立调试入口、像素仿真程序及配套配置/RViz 文件已删除。
+正式任务只保留 `robot_task.launch.py` 一个入口、内部设备栈和一份正式任务配置。
+`config/diagnostics/arrival_detect.yaml` 仅用于到站点位排查，不是另一套联动任务版本。
 主机 TCP 唯一实现在 `eli_cs_robot_serial/device/industrial_pc/`，本包不复制通讯代码。
 
 安全停机、真实硬件审计、地面/碰撞检查、力数据新鲜度和人工恢复要求保留。
 正常工作流由控制器自动调度，不需要手工调用逐步服务；真正保护停机后必须检查并按安全流程恢复。
 旧任务名称已退休，请用上面的统一启动命令，历史任务文档中的旧命令不再作为正式入口。
+
+## 仅预览规划路径
+
+```bash
+ros2 launch robot_task_control path_preview.launch.py
+```
+
+该仿真入口自动读取到站排查 YAML，显示行车位、过渡位、拍照位及返回路径。
+独立 ROS 域 190 / LOCALHOST，仅做运动学规划，不执行真机运动；显示名义检测位置，但不仿真拍照、力触碰或厚度结果。
+点位在 `config/diagnostics/arrival_detect.yaml`，预览参数和 RViz 配置集中在 `simulation/`。

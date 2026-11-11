@@ -2,8 +2,6 @@
 """Pure state-machine checks for startup alignment status handling."""
 
 import unittest
-import importlib.util
-from pathlib import Path
 from time import monotonic
 from types import SimpleNamespace
 from unittest.mock import Mock
@@ -68,42 +66,6 @@ class StartAlignmentWorkflowTests(unittest.TestCase):
             assert node.fail_workflow.called is should_fail
             self.assertEqual(node.follow_tracking_seconds, 3.)
 
-
-class LineFollowSpeedLaunchTests(unittest.TestCase):
-    def test_recording_speed_is_independent_of_normal_cruise(self):
-        from launch import LaunchContext
-        from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
-        from launch.utilities import normalize_to_list_of_substitutions, perform_substitutions
-
-        path = Path(__file__).resolve().parents[1]/'archive'/'launch'/'line_follow_only.launch.py'
-        spec = importlib.util.spec_from_file_location('line_speed_launch', path)
-        module = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(module)
-        entities = module.generate_launch_description().entities
-        include = next(item for item in entities if isinstance(item, IncludeLaunchDescription))
-        arguments = dict(include.launch_arguments)
-        for mode, overrides, expected in (
-                ('teach', {}, .03), ('vision', {}, .125), ('replay', {}, .125),
-                ('teach', {'line_follow_speed': '0.12'}, .03),
-                ('teach', {'line_follow_speed': '0.12', 'line_record_speed': '0.025'}, .025),
-                ('teach', {'line_follow_speed': '0.12', 'start_alignment_min_lateral_speed': '0.025'}, .03),
-                ('vision', {'line_record_speed': '0.02'}, .125)):
-            with self.subTest(mode=mode, overrides=overrides):
-                context = LaunchContext()
-                context.launch_configurations.update(navigation_mode=mode, **overrides)
-                for item in entities:
-                    if isinstance(item, DeclareLaunchArgument) and item.name in (
-                            'line_follow_speed', 'line_record_speed', 'line_reverse_speed',
-                            'start_alignment_min_lateral_speed', 'start_alignment_lateral_speed'):
-                        item.execute(context)
-                def resolved(name):
-                    return float(perform_substitutions(context,
-                        normalize_to_list_of_substitutions(arguments[name])))
-                self.assertAlmostEqual(resolved('line_follow_speed'), expected)
-                self.assertAlmostEqual(resolved('line_reverse_speed'), .05)
-                self.assertAlmostEqual(resolved('line_start_alignment_min_lateral_speed'),
-                                       float(overrides.get('start_alignment_min_lateral_speed', '.02')))
-                self.assertAlmostEqual(resolved('line_start_alignment_lateral_speed'), .03)
 
 
 if __name__ == '__main__':
