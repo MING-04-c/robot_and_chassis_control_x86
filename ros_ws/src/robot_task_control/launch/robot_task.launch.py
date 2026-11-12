@@ -28,6 +28,10 @@ def launch_setup(context):
     load_postures(workflow_path)
     load_config(path)
     system = dict(config['system'])
+    oline = LaunchConfiguration('oline_mode', default='false').perform(context).lower() == 'true'
+    if oline and (station is not None or system['auto_start'] or not config['tcp']['enabled']
+                  or not workflow.get('remote_detection_cycles')):
+        raise ValueError('oline requires its remote recipe, manual start, TCP and no station override')
     if station is not None:
         for step in workflow['steps']:
             if (step['action'] not in ('arm_posture', 'arm_move', 'camera_detection', 'delay')
@@ -96,7 +100,7 @@ def launch_setup(context):
                  FindPackageShare('detect_control'), 'config', 'detect.yaml']),
                  detect],
              sigterm_timeout='3.0', sigkill_timeout='2.0'),
-        Node(package='robot_task_control', executable='camera_detection_task',
+        Node(package='robot_task_control', executable='camera_detection_oline' if oline else 'camera_detection_task',
              name='camera_detection_task', output='screen', parameters=[camera],
              sigterm_timeout='3.0', sigkill_timeout='2.0'),
     ]
@@ -104,6 +108,7 @@ def launch_setup(context):
     if tcp.pop('enabled'):
         actions.append(include('eli_cs_robot_serial', 'industrial_pc.launch.py', {
             **tcp, 'start_hk_transfer': False,
+            'oline_mode': oline,
             'config_file': str(serial_share/'device/industrial_pc/config/industrial_pc.yaml'),
         }))
     return actions
@@ -116,5 +121,6 @@ def generate_launch_description():
         DeclareLaunchArgument('station_workflow_file', default_value='',
                               description='Optional arrival diagnostic YAML; no chassis or line camera'),
         DeclareLaunchArgument('validate_only', default_value='false', choices=['true', 'false']),
+        DeclareLaunchArgument('oline_mode', default_value='false', choices=['true', 'false']),
         OpaqueFunction(function=launch_setup),
     ])

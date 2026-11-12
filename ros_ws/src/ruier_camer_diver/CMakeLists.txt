@@ -50,7 +50,7 @@ install(TARGETS camera_capture camera_node line_tracking line_tracker_node
   RUNTIME DESTINATION lib/${PROJECT_NAME})
 install(DIRECTORY include/ DESTINATION include)
 install(DIRECTORY launch config DESTINATION share/${PROJECT_NAME})
-install(FILES README.md LICENSE DESTINATION share/${PROJECT_NAME})
+install(FILES LICENSE DESTINATION share/${PROJECT_NAME})
 install(PROGRAMS scripts/line_demo.py DESTINATION lib/${PROJECT_NAME})
 
 if(BUILD_TESTING)

@@ -8,7 +8,7 @@ from robot_tcp_common import configuration, parser, request, status
 
 def main():
     cli = parser(__doc__)
-    cli.add_argument('--action', choices=('start', 'resume', 'stop', 'status'), default='start')
+    cli.add_argument('--action', choices=('start', 'resume', 'stop', 'status', 'detect', 'go_home'), default='start')
     cli.add_argument('--message-id', help='重发同一命令时复用ID；同ID不会再次执行')
     args = cli.parse_args()
     config = configuration(args)

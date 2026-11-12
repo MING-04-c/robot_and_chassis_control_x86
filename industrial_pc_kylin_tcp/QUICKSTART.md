@@ -1,93 +1,41 @@
-# 两端启动和收图
+# 麒麟 oline 快速启动
 
-当前版本默认无密钥。把新版整个工具目录复制给麒麟，两端程序一起更新，无需复制industrial_pc.key。
-
-## 1. 树莓派更新代码并加载环境
+机器人端在已构建的 ros_ws 加载 ROS 和工作区环境；先修改
+`src/robot_task_control/config/robot_task_oline.yaml` 的麒麟实际 IP，重新构建并加载安装环境。
 
 ```bash
-cd ~/project/robot_and_chassis_control/ros_ws
 source /opt/ros/jazzy/setup.bash
-colcon build --packages-select eli_cs_robot_serial robot_task_control
+colcon build --packages-select eli_cs_robot_serial robot_task_control --executor sequential
 source install/setup.bash
+ros2 launch robot_task_control robot_task_oline.launch.py validate_only:=true
+# 校验不是运动安全证明，确认现场就绪后再启动：
+ros2 launch robot_task_control robot_task_oline.launch.py
 ```
 
-只测相机：
-
-```bash
-ros2 launch robot_task_control camera_capture_remote.launch.py
-```
-
-完整循迹/机械臂任务：
-
-```bash
-# 本次开机CAN尚未配置时先执行一次，launch不会自动执行。
-sudo bash scripts/setup_can.sh auto
-ros2 launch robot_task_control line_follow_arm_test.launch.py remote_control:=true
-```
-
-这两种入口只选一种，都包含9010通讯。不另开工业PC通讯、HK传输或相机预览程序。完整入口沿用原robot_ip等参数，运动前仍进行原有就绪检查。
-
-## 2. 麒麟先监听
-
-进入工具目录，终端一保持运行：
+麒麟解压新版 `industrial_pc_kylin_tcp.zip`，进入包目录，核对 `config.json` 中的机器人 IP 和保存目录。
+开放/连通 9010、9002、9030，先启动一个常驻终端：
 
 ```bash
 python3 listen_robot.py
 ```
 
-默认Pi地址169.254.199.100，麒麟网口169.254.199.120。control=connected、capture_service=True表示采集接口已就绪；末尾发送前hk=waiting_sender正常。
-
-终端二，单独拍照：
+另一终端依次操作：
 
 ```bash
-python3 start_capture.py
+python3 start_task.py --action start
+# 到站三图保存确认后 WAIT_DETECT：
+python3 start_task.py --action detect
+# WAIT_RESULT：发送本批真实三维点，result.json 不是包内 DEMO 文件。
+python3 send_points.py --file result.json
+# 本轮测完回拍照原位 WAIT_NEXT，可再发 detect：
+python3 start_task.py --action detect
+# 等新三图确认、WAIT_RESULT 后，发送新结果：
+python3 send_points.py --file next_result.json
+# WAIT_NEXT 时回家；也允许首次 WAIT_DETECT 时不测直接回家：
+python3 start_task.py --action go_home
 ```
 
-完整运动任务则用：
-
-```bash
-python3 start_task.py
-```
-
-独立拍照不执行运动；若运动任务正在执行会明确拒绝。收到camera capture accepted和run_id表示已受理，后续phase=final_capture_running，发送完成为capture_complete。网络重发同一条命令用 `--message-id 上次编号`，不会重复执行。
-
-## 3. 找照片
-
-主机：`工具目录/received/2026.10.30.20.29/`（年月日时分示例）。
-树莓派：`~/robot_data/task_final/2026.10.30.20.29/`。
-
-此目录直接分为 `hk/`、`RGB/`：海康为 `hk/20.29.12_345_hk.jpg`，深度相机为 `RGB/20.29.12_345_rgb.png` 和 `RGB/20.29.12_345_depth.png`。同一分钟多次采集共用两个目录，秒/毫秒前缀保持配对并避免覆盖。深度保留原始16位。参数、深度比例和去重记录集中放在根目录隐藏索引 `.capture_index.json`，不再每张图生成一堆文件。
-
-树莓派会先等待机器人静止延时，再启动HK预热、检查画面稳定并采集，关闭HK后才启动深度相机，保存同一SDK FrameSet的RGB/原始深度和参数；关闭两台相机后依次发送。成功后清掉重复的临时ZIP、NPY和清单；失败保留 `.pending` 中的临时数据用于排查，已保存的照片不丢弃。
-
-主机看到[hk]保存完成、[rgbd]保存完成才是本轮收图证据。深度回ACK后Pi任务完成；HK保持旧通道，尚无落盘ACK。
-
-## 4. 排查
-
-```bash
-python3 industrial_pc_network_test.py interfaces
-python3 industrial_pc_network_test.py connect --host 169.254.199.100 --ports 9010
-python3 start_task.py --action status
-```
-
-- 连接失败：树莓派9010是否监听，IP/网线/端口是否正确；Pi可用 `ss -lntp | grep ':9010'` 查看。
-- 提示密钥/模式不匹配：旧版文件混用，替换整个新版目录。默认无需密钥；config.json中use_shared_key=false。
-- No camera found：SDK没有找到HK，检查相机连接和供电。
-- 画面未稳定：检查曝光/运动情况，参数见Pi的final_capture.yaml。
-- 不能监听9030：已有另一个监听程序占用，保持一个接收进程。
-- 任务运行中：不能重复启动或并发独立采集。
-
-途中站继续和停止沿用：
-
-```bash
-python3 start_task.py --action resume
-python3 start_task.py --action stop
-```
-
-旧照片目录可用 `python3 capture_storage.py --source received --output received_clean` 复制整理，原数据不删除。检测点仍用 `python3 send_points.py --file result.json` 返回，格式和坐标单位沿用原协议。
-
-## 相机点返回后真实探针触碰测试
-
-与前述两个入口二选一：麒麟先 `python3 listen_robot.py`，Pi运行 `ros2 launch robot_task_control camera_detection_real.launch.py`。就绪后自动采新图并发送，等待主机检测结果；主机运行 `python3 send_points.py --file result.json`，匹配本次照片后真机会自动接近并限力触碰。不需要再发start_task或start_capture。
-
-直接给YAML点测试用 `ros2 launch robot_task_control camera_detection_real.launch.py target_source:=local`，该模式不加载相机和TCP。两模式共用20N停止推进、保持5秒、逐点返回原位。图像与拍照位姿在等待期间保持对应，旧图或DEMO不启动触碰。
+`python3 start_task.py --action status` 查询阶段；`--action stop` 请求中止，不自动回家。
+运动中 go_home 被拒绝；重发同一指令复用 message_id，新操作使用新 ID。
+不要把上述注释当固定延时，需要观察实际阶段。
+详细条件、坐标报文、三图保存确认及故障字段见 [OLINE流程与协议](OLINE流程与协议.md)。

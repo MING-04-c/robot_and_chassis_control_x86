@@ -11,6 +11,7 @@ ERROR_CODES = {
     'E2102': '机械臂任务状态失联', 'E3001': '循迹或倒车异常',
     'E3002': '循迹状态失联', 'E3101': '倒车充电异常',
     'E4001': '底盘故障', 'E4002': '底盘通讯异常', 'E4003': '底盘状态失联',
+    'E5001': '漆膜检测故障', 'E5002': '漆膜检测需重试', 'E5003': '漆膜检测状态失联',
     'E9001': 'ROS错误日志', 'E9901': '工控机TCP连接失败', 'E9902': '异常事件历史超出缓冲',
 }
 HEALTHY_LINE_STATES = {
@@ -68,6 +69,7 @@ class RuntimeMonitor:
         inhibit, inhibit_fresh, _ = sample('inhibit')
         chassis, chassis_fresh, _ = sample('chassis', 1.)
         comm, comm_fresh, _ = sample('comm')
+        camera, camera_fresh, _ = sample('camera_detection')
         faults = {}
         def fault(code, source, message, native=None, detail_code=None):
             faults[(code, source)] = dict(error_code=code, error_name=ERROR_CODES[code],
@@ -105,6 +107,13 @@ class RuntimeMonitor:
         if ('comm' in self.samples and not comm_fresh or
                 'chassis' in self.samples and not chassis_fresh):
             fault('E4003', 'chassis', '底盘反馈过期')
+        if camera.get('state') == 'FAULT':
+            fault('E5001', 'camera_detection', camera.get('message', '检测失败'))
+        if camera.get('last_cycle_error'):
+            fault('E5002', 'camera_detection', camera['last_cycle_error'])
+        if (active_task and task.get('action') == 'camera_detection' and phase == 'camera_detection_running'
+                and phase_stale and not camera_fresh):
+            fault('E5003', 'camera_detection', '检测状态超过3秒未更新')
         stamp = self.timestamp()
         for key, value in faults.items():
             old = self.active.get(key)
@@ -123,7 +132,8 @@ class RuntimeMonitor:
                     task.get('step_index', 0) >= task['step_count'])
         running = ('exception' if faults else 'unknown' if not task_fresh else 'stopped' if stopped_by_user else 'completed' if complete else
                    'initializing' if active_task and task.get('devices_ready') is False else
-                   'waiting' if phase in ('waiting_delay', 'station_wait_start', 'waiting_stationary') else
+                   'waiting' if phase in ('waiting_delay', 'station_wait_start', 'waiting_stationary') or
+                   camera_fresh and camera.get('state') in ('WAIT_DETECT', 'WAIT_NEXT', 'WAIT_SAVED', 'WAIT_RESULT') else
                    'running' if active_task else 'idle')
         recent_logs = [entry['data'] for entry in self.logs if now-entry['received'] < 15.]
         if recent_logs and running not in ('exception', 'unknown'):
@@ -139,6 +149,7 @@ class RuntimeMonitor:
             charging_dock=line.get('charging_dock') if line_fresh else None,
             arm_state=arm.get('state') if arm_fresh else 'unknown',
             wait_seconds_remaining=task.get('wait_seconds_remaining'), power=power,
+            camera_detection=camera if camera_fresh else None,
             freshness=dict(task=task_fresh, line_follow=line_fresh, arm=arm_fresh,
                            safety=safety_fresh or inhibit_fresh),
             ages_seconds=dict(task=task_age, line_follow=line_age, arm=arm_age))

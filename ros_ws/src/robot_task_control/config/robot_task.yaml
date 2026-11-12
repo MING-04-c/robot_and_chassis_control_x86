@@ -1,5 +1,7 @@
 # Main task. Distances: metres; Cartesian RPY and joint postures: degrees.
 # Fixed waits and timeout limits are separate. Restart the launch after editing.
+# 点位约定：下方 arm_move 是 base_link 下 tool0 的位姿，不是相机光心或探针尖端。
+# XYZ 单位米，orientation 为固定轴 RPY 度；安装外参由 URDF/TF 提供，勿直接混用。
 system:
   ros_discovery_range: LOCALHOST
   robot_ip: 169.254.199.150
@@ -36,7 +38,9 @@ thickness_detector:
   data_directory: ~/.ros/eli_cs_robot_serial/detactor
 
 # Six joints: base, shoulder, elbow, wrist1, wrist2, wrist3.
+# 行车关节位：底盘运动前自动确认；不是下方两个笛卡尔中间点。
 travel: [-45.0, 15.0, -71.0, 4.4, 148.0, 75.0]
+# 过渡关节位：行车位与拍照路径之间的六轴姿态。
 detection_ready: [-45.0, 0.0, 0.0, 0.0, 90.0, 0.0]
 arm_joint_postures:
   ros__parameters:
@@ -71,7 +75,10 @@ workflow:
   - action: arm_posture
     posture: detection_ready
     step_timeout_sec: 600.0
-  - name: to_camera_via
+  # 中间点一（原点位）：去程先经过这里；回程最后经过这里，再回过渡关节位。
+  # 相对 base_link 的 tool0 XYZ（米）与 RPY（度），回程通过 YAML 锚点复用。
+  - &camera_via
+    name: to_camera_via
     action: arm_move
     control_mode: moveit
     frame_id: base_link
@@ -85,7 +92,9 @@ workflow:
       position_mode: absolute
       position: [0.150, 0.530, 0.810]
       orientation: [75.0, 20.0, 170.0]
-  - name: to_camera_intermediate
+  # 中间点二（原点位）：位于中间点一与拍照位之间，去回程共用位置及朝向。
+  - &camera_intermediate
+    name: to_camera_intermediate
     action: arm_move
     control_mode: moveit
     frame_id: base_link
@@ -99,6 +108,8 @@ workflow:
       position_mode: absolute
       position: [0.300, 0.410, 0.795]
       orientation: [-90.0, 45.0, -45.0]
+  # 拍照位：仍是 tool0 位姿，不是镜头位置；到位后冻结实际相机/探针 TF。
+  # 检测记录实际六轴关节作为拍照原位，每点测完先返回该原位。
   - action: arm_move
     control_mode: moveit
     frame_id: base_link
@@ -114,6 +125,13 @@ workflow:
       orientation: [-175.0, 0.0, -90.0]
   - action: camera_detection
     step_timeout_sec: 1200.0
+  # Reverse the outbound waypoints, including orientation, before transition.
+  # 回程顺序：拍照原位 -> 中间点二 -> 中间点一 -> 过渡关节位 -> 行车位。
+  # 每段重新进行碰撞规划，不是逐帧倒放去程轨迹；oline 等 go_home 才进入此段。
+  - <<: *camera_intermediate
+    name: return_camera_intermediate
+  - <<: *camera_via
+    name: return_camera_via
   - action: arm_posture
     posture: detection_ready
     step_timeout_sec: 600.0
@@ -132,10 +150,12 @@ workflow:
 camera_detection_task:
   ros__parameters:
     joint_postures_enabled: false
+    # 模型相机安装坐标；输入点必须与其原点/轴向一致。
+    # 它不自动等于深度相机 optical frame；不一致时必须先标定并补齐变换。
     camera_frame: terminal_link_1
-    probe_frame: terminal_link_2
+    probe_frame: terminal_link_2  # 探针尖端，非 tool0；安装补偿读取 URDF/TF。
     base_frame: base_link
-    target_source: local
+    target_source: local  # 自动单轮用下面测试点；oline 覆盖为 tcp，等待本批真实坐标。
     camera_points_mm: [-10.0, -10.0, 130.0]  # TEST camera-frame point (mm); verify before touch.
     auto_start: false  # Triggered by workflow, never races the photo-pose move.
     capture_local: true
@@ -163,11 +183,13 @@ detect_controller:
     workspace_max: [1.0, 1.0, 1.5]
     target_source: camera
     targets_file: ~/.ros/detect_control/line_robot_camera_targets.yaml
-    approach_axis: tool_positive_z
+    approach_axis: tool_positive_z  # 最后触碰沿实际 tool0 局部 +Z，不是基座竖直方向。
     continue_until_contact: true
-    lock_tool_orientation: false
+    lock_tool_orientation: false  # 不锁整段绕障路径；终点及最后接触段仍检查朝向。
     orientation_tolerance_deg: 1.0
-    preposition_rp_tolerance_deg: [0.0, 0.0]  # Keep the nominal contact orientation; no Rx/Ry search.
+    preposition_rp_tolerance_deg: [0.0, 0.0]  # No base-frame Rx/Ry search.
+    preposition_tool_z_spin: false  # Original direct pose planning; no candidate IK/joint locking.
+    # 仿真 path_preview 的局部 X/Y 倾角搜索没有同步启用到真机；这里保留拍照目标朝向。
     preposition_angle_step_deg: 15.0
     phase_timeout: 120.0
     approach_clearance: 0.02  # Start slow contact approach 20 mm before the target.
@@ -194,10 +216,11 @@ detect_controller:
     acceleration_scaling: 0.05
 
 capture:
+  # HK 海康 + 深度相机 RGB/原始深度三图；与 system.line_camera_device 循迹 USB 相机不同。
   output_dir: /home/robot/Desktop/line_robot_camer_detect_test
   local_only: true
-  receiver_ip: 169.254.199.250
-  hk_bind_ip: 169.254.199.250
+  receiver_ip: 169.254.199.250  # 远端麒麟 IP，供 RGB-D 主动发送；local_only:false 时使用。
+  hk_bind_ip: 169.254.199.250  # HK 服务本机绑定地址，不能填远端 IP；oline 覆盖为 0.0.0.0。
   hk_port: 9002
   rgbd_port: 9030
   transfer_timeout_sec: 60.0

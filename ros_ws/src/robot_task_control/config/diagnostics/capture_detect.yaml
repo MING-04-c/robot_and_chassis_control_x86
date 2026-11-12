@@ -1,0 +1,32 @@
+# Final-stage diagnostic only. Secure chassis and start at the intended photo pose.
+# Auto-starts after readiness/safety checks; camera_detection CAN MOVE THE ARM.
+# No transition/photo-position move and no chassis motion are scheduled here.
+# Capture freezes the CURRENT camera/probe pose, not a hard-coded base-frame pose.
+# Detector records current joints, touches each point, retracts and returns there.
+# 本文件不包含中间点或到拍照位的动作；不会测完自动经过中间点回过渡位。
+# 当前相机位姿用 terminal_link_1 的实际 TF，不能把 tool0 位姿当作镜头位置。
+# Device, capture, force, speed and tool-Z selection settings come from robot_task.yaml.
+
+# Required shared posture definitions; not scheduled by this workflow.
+# Joint angles: degrees, base/shoulder/elbow/wrist1/wrist2/wrist3.
+travel: [-45.0, 15.0, -71.0, 4.4, 148.0, 75.0]
+detection_ready: [-45.0, 0.0, 0.0, 0.0, 90.0, 0.0]
+
+workflow:
+  name: capture_detect
+  auto_start: true
+  arm_postures_before_chassis: true  # Retain common cancellation/safety handling.
+  device_check_timeout_sec: 120.0
+  device_ready_stable_sec: 1.0
+  steps:
+  - name: capture_and_thickness
+    action: camera_detection
+    step_timeout_sec: 1200.0
+
+camera_detection_task:
+  ros__parameters:
+    target_source: local
+    # CAMERA-frame xyz in millimetres, NOT base_link/tool0 coordinates.
+    # Flat triples allow multiple points: [x1, y1, z1, x2, y2, z2].
+    # TEST point copied from current arrival diagnostic; verify before touching.
+    camera_points_mm: [0.0, 0.0, 130.0]

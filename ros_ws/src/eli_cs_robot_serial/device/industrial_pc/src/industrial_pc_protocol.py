@@ -61,6 +61,18 @@ def validate_command(payload):
     if not isinstance(identity, str) or not re.fullmatch(r"[A-Za-z0-9_.-]{1,128}", identity):
         raise ProtocolError("message_id 缺失或无效")
     schema = payload.get("schema")
+    if schema == 'paint_robot_capture_saved_v1':
+        if set(payload) != {'schema', 'message_id', 'capture_set_id', 'capture_manifest_sha256', 'files_sha256'}:
+            raise ProtocolError('照片保存确认字段无效')
+        if not isinstance(payload['capture_set_id'], str) or not re.fullmatch(r'[A-Za-z0-9_.-]{1,128}', payload['capture_set_id']):
+            raise ProtocolError('照片保存批次无效')
+        files = payload['files_sha256']
+        if not isinstance(files, dict) or set(files) != {'hk.jpg', 'rgb.png', 'depth.png'}:
+            raise ProtocolError('必须确认HK、RGB、深度三图')
+        for value in [payload['capture_manifest_sha256'], *files.values()]:
+            if not isinstance(value, str) or not re.fullmatch(r'[0-9a-f]{64}', value):
+                raise ProtocolError('照片保存SHA256无效')
+        return 'capture_saved'
     if schema == "paint_robot_status_request_v1":
         if set(payload) == {"schema", "message_id"}:
             return 'status'
@@ -69,8 +81,8 @@ def validate_command(payload):
         raise ProtocolError('状态查询channel仅支持normal/abnormal')
     if (schema != "paint_robot_task_request_v1" or
             set(payload) != {"schema", "message_id", "action"} or
-            payload.get("action") not in ("start", "stop", "resume", "capture")):
-        raise ProtocolError("任务请求仅支持 start/stop/resume/capture")
+            payload.get("action") not in ("start", "stop", "resume", "capture", "detect", "go_home")):
+        raise ProtocolError("任务请求仅支持 start/stop/resume/capture/detect/go_home")
     return payload["action"]
 
 

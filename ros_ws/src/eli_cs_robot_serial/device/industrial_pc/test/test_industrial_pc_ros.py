@@ -314,7 +314,7 @@ class IndustrialPCTest(unittest.TestCase):
                 'ROS_DOMAIN_ID': '192', 'ROS_AUTOMATIC_DISCOVERY_RANGE': 'LOCALHOST'}):
             root = Path(directory)
             config_file = root/'capture.yaml'
-            config = load_config(Path(get_package_share_directory('robot_task_control'))/'config/capture/final_capture.yaml')
+            config = load_config(Path(get_package_share_directory('robot_task_control'))/'config/robot_task.yaml')
             config['output_dir'] = str(root/'images')
             config_file.write_text(yaml.safe_dump(config))
             with socket.socket() as probe:

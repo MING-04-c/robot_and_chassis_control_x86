@@ -1,6 +1,8 @@
 # Arrival diagnostic: secure the chassis; do not run the main task concurrently.
 # Joint angles and Cartesian RPY: degrees. Cartesian XYZ: metres.
 # Device, capture and force limits are inherited from config/robot_task.yaml.
+# 下列中间/拍照点都是 base_link 下 tool0 的目标，不是镜头或探针尖端坐标。
+# travel 是行车关节位，detection_ready 是过渡关节位；均非笛卡尔中间点。
 travel: [-45.0, 15.0, -71.0, 4.4, 148.0, 75.0]
 detection_ready: [-45.0, 0.0, 0.0, 0.0, 90.0, 0.0]
 
@@ -15,7 +17,9 @@ workflow:
     action: arm_posture
     posture: detection_ready
     step_timeout_sec: 600.0
-  - name: to_camera_via
+  # 中间点一：原去程第一个笛卡尔点，返回时在中间点二之后经过。
+  - &camera_via
+    name: to_camera_via
     action: arm_move
     control_mode: moveit
     frame_id: base_link
@@ -29,7 +33,9 @@ workflow:
       position_mode: absolute
       position: [0.150, 0.530, 0.810]
       orientation: [75.0, 20.0, 170.0]
-  - name: to_camera_intermediate
+  # 中间点二：原去程第二个笛卡尔点；返回时先经过它，锚点复用同一朝向。
+  - &camera_intermediate
+    name: to_camera_intermediate
     action: arm_move
     control_mode: moveit
     frame_id: base_link
@@ -43,6 +49,7 @@ workflow:
       position_mode: absolute
       position: [0.300, 0.410, 0.795]
       orientation: [-90.0, 45.0, -45.0]
+  # 拍照 tool0 位姿：实际相机位置由安装 TF 决定；检测原位记录实际关节。
   - name: to_photo_pose
     action: arm_move
     control_mode: moveit
@@ -60,6 +67,11 @@ workflow:
   - name: capture_and_thickness
     action: camera_detection
     step_timeout_sec: 1200.0
+  # Retrace waypoint order after the detector returns to the photo posture.
+  - <<: *camera_intermediate
+    name: return_camera_intermediate
+  - <<: *camera_via
+    name: return_camera_via
   - name: return_transition
     action: arm_posture
     posture: detection_ready
@@ -71,5 +83,7 @@ workflow:
 
 camera_detection_task:
   ros__parameters:
+    # 相机安装 frame 为主配置 terminal_link_1；不要当作 base_link 下的坐标。
+    # 本诊断自己的测试点，不修改主任务测试点，也不替代 oline 的远端真实取点。
     target_source: local
-    camera_points_mm: [-10.0, -10.0, 130.0]  # TEST point in camera frame, millimetres; verify before touch.
+    camera_points_mm: [0.0, 0.0, 130.0]  # TEST point in camera frame, millimetres; verify before touch.

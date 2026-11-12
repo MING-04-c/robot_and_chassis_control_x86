@@ -8,5 +8,4 @@ install(PROGRAMS scripts/rgbd_view_node.py scripts/capture_batch.py scripts/capt
   DESTINATION lib/${PROJECT_NAME})
 install(FILES scripts/rgb_calibration.py scripts/capture_v54.py DESTINATION lib/${PROJECT_NAME})
 install(DIRECTORY config launch DESTINATION share/${PROJECT_NAME})
-install(FILES README.md DESTINATION share/${PROJECT_NAME})
 ament_package()

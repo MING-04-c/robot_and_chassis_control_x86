@@ -322,6 +322,7 @@ class WorkflowController(Node):
             "posture": step.get('posture') if step else None,
             "drive_direction": step.get('drive_direction') if step else None,
             "devices_ready": self.devices_checked,
+            "camera_detection": self.camera_detection_status,
             "wait_seconds_remaining": (max(0., (self.deadline_ns-self.get_clock().now().nanoseconds)/1e9)
                                        if self.phase == 'waiting_delay' else None),
             "route_checkpoint_file": self.route_checkpoint_file,
@@ -1314,6 +1315,17 @@ class WorkflowController(Node):
             return
         action = step["action"]
         now_ns = self.get_clock().now().nanoseconds
+
+        if (action == 'camera_detection' and self.workflow.get('remote_detection_cycles', False)
+                and self.phase == 'camera_detection_running'):
+            fresh = (self.camera_detection_status_time is not None
+                     and monotonic()-self.camera_detection_status_time <= 3.)
+            if not fresh and monotonic()-self.step_started > 3.:
+                self.fail_workflow('远程检测状态断流，停止后续运动')
+                return
+            status = self.camera_detection_status or {}
+            if fresh and status.get('oline_mode') and status.get('state') in ('WAIT_DETECT', 'WAIT_NEXT'):
+                self.step_started = monotonic()  # Human waits do not consume motion timeouts.
 
         if (action == "line_follow" and self.phase == "follow_tracking"
                 and self.follow_status in (

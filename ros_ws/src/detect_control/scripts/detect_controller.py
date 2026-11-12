@@ -64,6 +64,25 @@ class RetryableApproachError(RuntimeError):
         self.code = code
 
 
+def preposition_selection_enabled(config):
+    return (config.get('preposition_tool_z_spin', False)
+            or any(config.get('preposition_rp_tolerance_deg', [0., 0.])))
+
+
+def tool_z_orientations(final, mounting, step):
+    """Rotate about nominal local +Z, preserving its base direction and probe XYZ."""
+    tip = (final @ mounting)[:3, 3].copy()
+    angles = [0.]
+    for angle in np.arange(step, 180., step):
+        angles.extend([float(angle), -float(angle)])
+    angles.append(180.)
+    for angle in angles:
+        candidate = final.copy()
+        candidate[:3, :3] = final[:3, :3] @ rpy_degrees_rotation([0., 0., angle])
+        candidate[:3, 3] = tip - candidate[:3, :3] @ mounting[:3, 3]
+        yield angle, 0., candidate
+
+
 def preposition_orientations(final, mounting, limits, step):
     """Sample base-frame tool Rx/Ry; preserve tool Rz and the probe contact XYZ."""
     rotation = final[:3, :3]
@@ -138,6 +157,7 @@ class DetectController(Node):
             "lateral_tolerance": 0.002,
             "orientation_tolerance": 0.03,
             "preposition_rp_tolerance_deg": [0.0, 0.0],
+            "preposition_tool_z_spin": False,
             "preposition_angle_step_deg": 15.0,
             "pose_tolerance": 0.003,
             "data_timeout": 0.3,
@@ -177,8 +197,13 @@ class DetectController(Node):
             raise ValueError('preposition_rp_tolerance_deg requires Rx/Ry limits in [0, 45] degrees')
         if not 0. < self.cfg['preposition_angle_step_deg'] <= 45.:
             raise ValueError('preposition_angle_step_deg must be in (0, 45] degrees')
-        if any(limits) and self.cfg['lock_tool_orientation']:
-            raise ValueError('Rx/Ry selection cannot be combined with lock_tool_orientation')
+        spin = self.cfg['preposition_tool_z_spin']
+        if not isinstance(spin, bool):
+            raise ValueError('preposition_tool_z_spin must be boolean')
+        if spin and (any(limits) or self.cfg['approach_axis'] != 'tool_positive_z'):
+            raise ValueError('Tool Z spin requires tool_positive_z and disabled Rx/Ry search')
+        if preposition_selection_enabled(self.cfg) and self.cfg['lock_tool_orientation']:
+            raise ValueError('Orientation selection cannot be combined with lock_tool_orientation')
         if self.cfg["initial_orientation_mode"] not in ("current", "fixed"):
             raise ValueError("initial_orientation_mode 必须为 current 或 fixed")
         if self.cfg['approach_axis'] not in ('base_negative_z', 'tool_positive_z'):
@@ -393,9 +418,9 @@ class DetectController(Node):
                 not self.cartesian.service_is_ready() or
                 not self.execute.server_is_ready()):
             return False, "等待 MoveIt 规划和执行接口"
-        if (any(self.cfg.get('preposition_rp_tolerance_deg', [0., 0.]))
+        if (preposition_selection_enabled(self.cfg)
                 and not self.ik.service_is_ready()):
-            return False, '等待 Rx/Ry 候选姿态碰撞检查 IK 接口'
+            return False, '等待候选姿态碰撞检查 IK 接口'
         return True, "关节、力数据和运动接口已就绪"
 
     def publish_status(self):
@@ -885,7 +910,7 @@ class DetectController(Node):
                 raise ValueError("启动前外力过大；请在探头未接触时正确清零")
             planning_services = [self.cartesian]
             if (self.touch_control_mode == "admittance"
-                    or any(self.cfg['preposition_rp_tolerance_deg'])):
+                    or preposition_selection_enabled(self.cfg)):
                 planning_services.append(self.ik)
             if (
                 (self.touch_control_mode == "admittance" and
@@ -927,7 +952,7 @@ class DetectController(Node):
                 pre[:3, 3] -= direction*self.cfg["approach_clearance"]
                 far = final.copy()
                 far[:3, 3] += direction*self.cfg["max_penetration"]
-                checks = ((target,) if any(self.cfg['preposition_rp_tolerance_deg'])
+                checks = ((target,) if preposition_selection_enabled(self.cfg)
                           else (target, final, pre, far, pre @ mounting, far @ mounting))
                 if not all(self.in_workspace(t) for t in checks):
                     raise ValueError(
@@ -1216,11 +1241,16 @@ class DetectController(Node):
     def select_preposition(self, callback):
         """Choose collision-checked IK, without moving, before the original OMPL request."""
         if not self.ik.service_is_ready():
-            raise RuntimeError('Rx/Ry selection requires the collision-checking IK service')
-        self.state('SELECT_PREPOSITION', '检查允许的 Rx/Ry 候选；保持 Rz 和探针接触点不变')
-        candidates = iter(preposition_orientations(
-            self.final, self.mounting, self.cfg['preposition_rp_tolerance_deg'],
-            self.cfg['preposition_angle_step_deg']))
+            raise RuntimeError('Orientation selection requires the collision-checking IK service')
+        spin = self.cfg.get('preposition_tool_z_spin', False)
+        detail = ('固定拍照时 tool0 Z 轴方向和探针接触点，检查绕自身 Z 轴的候选角度'
+                  if spin else '检查允许的 Rx/Ry 候选；保持 Rz 和探针接触点不变')
+        self.state('SELECT_PREPOSITION', detail)
+        candidates = iter(tool_z_orientations(
+            self.final, self.mounting, self.cfg['preposition_angle_step_deg']) if spin
+            else preposition_orientations(
+                self.final, self.mounting, self.cfg['preposition_rp_tolerance_deg'],
+                self.cfg['preposition_angle_step_deg']))
 
         def solve(pose, joints, done):
             request = GetPositionIK.Request()
@@ -1244,7 +1274,7 @@ class DetectController(Node):
                 return True
             if code not in (MoveItErrorCodes.NO_IK_SOLUTION,
                             MoveItErrorCodes.GOAL_IN_COLLISION, MoveItErrorCodes.TIMED_OUT):
-                raise RuntimeError(f'Rx/Ry IK service failed: {code}')
+                raise RuntimeError(f'Orientation IK service failed: {code}')
             return False
 
         def next_candidate():
@@ -1258,7 +1288,7 @@ class DetectController(Node):
                     break
             else:
                 raise RetryableApproachError('target_unreachable',
-                    '允许的 Rx/Ry 候选未找到有效无碰撞 IK；不代表完整连续角度范围不可达')
+                    '允许的姿态候选未找到有效无碰撞 IK；不代表完整连续角度范围不可达')
 
             def pre_checked(result):
                 if not valid(result):
@@ -1271,8 +1301,9 @@ class DetectController(Node):
                         return
                     self.pre, self.final = pre, final
                     self.batch[self.point_index] = (pre, final)
-                    self.get_logger().info(
-                        f'选定 tool0 姿态偏移 Rx={rx:g}°, Ry={ry:g}°；Rz 目标不变；'
+                    selected = (f'选定 tool0 自身 Z 轴旋转 {rx:g}°；拍照 Z 轴方向不变；'
+                                if spin else f'选定 tool0 姿态偏移 Rx={rx:g}°, Ry={ry:g}°；Rz 目标不变；')
+                    self.get_logger().info(selected +
                         f'距探针目标 {self.cfg["approach_clearance"]*1000:g}mm 开始低速接近')
                     callback(result.solution.joint_state)
 
@@ -1284,7 +1315,7 @@ class DetectController(Node):
 
     def plan_pose(self, transform, on_reached=None, phase="PREPOSITION", selected_joints=None):
         if (phase == 'PREPOSITION' and selected_joints is None
-                and any(self.cfg.get('preposition_rp_tolerance_deg', [0., 0.]))):
+                and preposition_selection_enabled(self.cfg)):
             self.select_preposition(lambda joints: self.plan_pose(
                 self.pre, on_reached, phase, selected_joints=joints))
             return

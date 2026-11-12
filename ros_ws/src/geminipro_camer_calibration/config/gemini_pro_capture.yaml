@@ -1,5 +1,7 @@
 /**:
   ros__parameters:
+    # 对齐 Orbbec_Portable_TEST/capture_orbbec_v54_windows.py 的采集规格。
+    # 不照搬 Windows 的宽松有效性检查，也不更改现有麒麟传输清单格式。
     camera_name: camera
     # 拍照从同一 SDK FrameSet 提取原始深度和参数，不使用 ROS 近似配对。
     enable_v54_capture: true
@@ -19,11 +21,23 @@
     depth_format: Y11
     depth_registration: true
     align_mode: SW
+    align_target_stream: COLOR
     frame_aggregate_mode: full_frame
-    # 当前 SV1301S_U3 不支持 SDK 帧同步；使用 ROS 时间戳近似配对。
+    # 当前 SV1301S_U3 不支持 SDK 帧同步；拍照仍取同一 SDK FrameSet，非 ROS 近似配对。
     enable_frame_sync: false
+    # 此项用于 ROS 显示流；拍照在换算前复制原始 uint16，并保存当次 getValueScale()。
     enable_depth_scale: true
     color_flip: false
     depth_flip: false
-    # 主机原程序未固定曝光/增益/白平衡；保持驱动默认，不填造曝光数值。
+    color_rotation: -1  # 不额外旋转（驱动的 -1 表示不设置旋转角度）。
+    depth_rotation: -1
+    # Windows 没有写入/记录曝光、增益、白平衡，不能据此推断实际设备值。
+    # 显式保留当前 ROS 的自动模式，不依赖驱动默认值；不是复制 Windows 实测曝光。
+    enable_color_auto_exposure: true
+    enable_color_auto_white_balance: true
+    enable_color_auto_exposure_priority: false
+    # -1 表示不写入手动值，不是负曝光/负增益；后续实测确定前不编造数值。
+    color_exposure: -1
+    color_gain: -1
+    color_white_balance: -1
     time_domain: system

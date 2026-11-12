@@ -102,5 +102,5 @@ python3 -m pytest -q \
 | USB 循迹相机 | `ruier_camer_diver/config/camera.yaml`：`/dev/video0` |
 | 力传感器／测厚串口 | 各自配置默认 `/dev/ttyCH341USB0`，同时接入时需分别指定实际设备 |
 
-CAN 配置、设备权限及正式任务命令参见工作空间已有的《机械臂与底盘ROS控制命令》。
+CAN 配置与设备权限见 [CAN 使用说明](chassis/can_usage.md)，正式任务命令见[任务操作指南](tasks/ROBOT_TASK_GUIDE.md)。
 先核对实际设备，再按原有流程逐个联调，最后验证联合任务。

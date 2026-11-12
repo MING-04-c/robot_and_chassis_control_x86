@@ -350,7 +350,10 @@ class CameraDetectionTask(Node):
         if self.target_source == 'local':
             self.prepare_targets()
         else:
-            self.transition('WAIT_RESULT', '照片已发送；等待主机返回本次清单哈希对应的相机毫米点')
+            self.after_capture()
+
+    def after_capture(self):
+        self.transition('WAIT_RESULT', '照片已发送；等待主机返回本次清单哈希对应的相机毫米点')
 
     def consume_result(self):
         while self.results:
@@ -565,7 +568,7 @@ class CameraDetectionTask(Node):
         }, ensure_ascii=False)))
 
 
-def main():
+def main(node_factory=None):
     rclpy.init(signal_handler_options=SignalHandlerOptions.NO)
     stopping, expedite = False, False
 
@@ -579,7 +582,7 @@ def main():
     node = None
     executor = SingleThreadedExecutor()
     try:
-        node = CameraDetectionTask()
+        node = (node_factory or CameraDetectionTask)()
         executor.add_node(node)
         while rclpy.ok() and not stopping:
             executor.spin_once(timeout_sec=.05)

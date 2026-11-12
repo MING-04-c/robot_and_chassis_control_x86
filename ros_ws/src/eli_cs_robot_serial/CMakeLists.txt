@@ -64,17 +64,11 @@ install(DIRECTORY config launch
 install(DIRECTORY device/detactor/config/
   DESTINATION share/${PROJECT_NAME}/device/detactor/config
 )
-install(FILES device/detactor/README.md
-  DESTINATION share/${PROJECT_NAME}/device/detactor
-)
 install(FILES device/detactor/launch/detactor.launch.py
   DESTINATION share/${PROJECT_NAME}/launch
 )
 install(DIRECTORY device/sensor/config/
   DESTINATION share/${PROJECT_NAME}/device/sensor/config
-)
-install(FILES device/sensor/README.md
-  DESTINATION share/${PROJECT_NAME}/device/sensor
 )
 install(FILES
   device/sensor/launch/sensor_usb.launch.py
@@ -115,9 +109,6 @@ install(DIRECTORY device/industrial_pc/config/
 install(FILES device/industrial_pc/launch/industrial_pc.launch.py
   DESTINATION share/${PROJECT_NAME}/launch
 )
-install(FILES device/industrial_pc/README.md
-  DESTINATION share/${PROJECT_NAME}/device/industrial_pc
-)
 install(FILES
   device/industrial_pc/src/industrial_pc_client.py
   device/industrial_pc/src/industrial_pc_heartbeat.py
@@ -128,6 +119,14 @@ install(FILES
 install(DIRECTORY device/industrial_pc/host_tools/
   DESTINATION share/${PROJECT_NAME}/device/industrial_pc/host_tools
   USE_SOURCE_PERMISSIONS PATTERN "__pycache__" EXCLUDE
+)
+# 可独立使用的已安装主机工具直接携带集中维护的正文，不安装跳转占位文件。
+install(FILES
+  ../../docs/tcp/README.md
+  ../../docs/tcp/QUICKSTART.md
+  ../../docs/tcp/TCP通讯协议_麒麟工控机.md
+  ../../docs/tcp/OLINE流程与协议.md
+  DESTINATION share/${PROJECT_NAME}/device/industrial_pc/host_tools
 )
 # 主机工具沿用深度包唯一编解码实现，导出时与发送端保持一致。
 install(FILES ../geminipro_camer_calibration/scripts/capture_transfer.py

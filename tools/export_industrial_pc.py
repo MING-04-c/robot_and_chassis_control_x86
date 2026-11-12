@@ -19,6 +19,11 @@ def main():
     files.update({
         'capture_transfer.py': root/'ros_ws/src/geminipro_camer_calibration/scripts/capture_transfer.py',
     })
+    # 文档只维护 ros_ws/docs/tcp 这一份；源码工具目录不留 README 占位文件。
+    # 导出的工具包必须自包含，直接携带集中维护的正文。
+    documentation = root/'ros_ws/docs/tcp'
+    for name in ('README.md', 'QUICKSTART.md', 'TCP通讯协议_麒麟工控机.md', 'OLINE流程与协议.md'):
+        files[name] = documentation/name
     previous = root/'industrial_pc_kylin_tcp.zip'
     for name, source in files.items():
         destination = output/name

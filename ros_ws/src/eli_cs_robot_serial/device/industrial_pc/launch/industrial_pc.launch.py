@@ -16,6 +16,7 @@ def setup(context):
             overrides[name] = int(value) if name == "port" else value
     overrides["use_shared_key"] = LaunchConfiguration("use_shared_key").perform(context).lower() == "true"
     overrides["enable_status_monitor"] = LaunchConfiguration("enable_status_monitor").perform(context).lower() == "true"
+    overrides['oline_mode'] = LaunchConfiguration('oline_mode').perform(context).lower() == 'true'
     hk_overrides = {}
     for argument, parameter in (("hk_bind_host", "listen_ip"),
                                 ("industrial_pc_ip", "allowed_client_ip"),
@@ -46,6 +47,7 @@ def generate_launch_description():
         *[DeclareLaunchArgument(name, default_value="", description="留空使用 YAML 配置")
           for name in ("bind_host", "port", "key_file", "output_dir", "charging_status_layout")],
         DeclareLaunchArgument("use_shared_key", default_value="false"),
+        DeclareLaunchArgument('oline_mode', default_value='false', choices=['true', 'false']),
         DeclareLaunchArgument("enable_status_monitor", default_value="true",
                               description="启用额外状态汇总与故障日志订阅；false仍保留9010通信和基础任务查询"),
         DeclareLaunchArgument("start_hk_transfer", default_value="false",

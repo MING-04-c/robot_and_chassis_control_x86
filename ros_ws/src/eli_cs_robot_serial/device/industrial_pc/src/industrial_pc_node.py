@@ -100,17 +100,23 @@ class IndustrialPC(Node):
         self.create_subscription(CommStatus, '/masc_chassis/comm_status',
                                  lambda msg: self.cache_power('comm', msg), 10)
         self.last_result = None
+        self.oline_mode = bool(param('oline_mode', False))
+        self.capture_saved_pub = self.create_publisher(String, '~/capture_saved', 10)
         self.pending_controls = {}
         self.command_dir = self.output / "commands"
         self.command_dir.mkdir(exist_ok=True)
         self.start_task = self.create_client(Trigger, "/task_controller/start")
         self.stop_task = self.create_client(Trigger, "/task_controller/stop")
         self.capture_camera = self.create_client(Trigger, "/task_controller/capture")
+        self.detect_camera = self.create_client(Trigger, '/camera_detection_task/detect')
+        self.go_home = self.create_client(Trigger, '/camera_detection_task/go_home')
         self.resume_pub = self.create_publisher(Empty, "/line_follow/resume", 10)
         self.create_subscription(String, "/task_controller/status",
                                  lambda msg: self.cache_status("task", msg), retained)
         self.create_subscription(String, "/line_follow/status",
                                  lambda msg: self.cache_status("line_follow", msg), 10)
+        self.create_subscription(String, '/camera_detection_task/status',
+                                 lambda msg: self.cache_status('camera_detection', msg), retained)
         self.create_subscription(String, "/detactor/measurement", self.on_thickness, retained)
         self.create_subscription(String, "/task_controller/detection_result", self.on_detection_result,
                                  QoSProfile(depth=100, durability=DurabilityPolicy.TRANSIENT_LOCAL))
@@ -168,7 +174,7 @@ class IndustrialPC(Node):
     def robot_status(self):
         """缓存不存在或过期时明确显示，不用旧状态冒充当前就绪。"""
         output = {}
-        for name in ("task", "line_follow"):
+        for name in ("task", "line_follow", "camera_detection"):
             value, received = self.observations.get(name, (None, None))
             age = time.monotonic()-received if received is not None else None
             output[name] = {"available": value is not None, "fresh": age is not None and age < 2,
@@ -341,6 +347,23 @@ class IndustrialPC(Node):
         self.pending_controls[identity] = {"job": job, "record": record, "path": path,
                                            "deadline": time.monotonic()+3}
         job["deferred"] = True
+        if action in ('detect', 'go_home', 'capture_saved') and not self.oline_mode:
+            self.finish_command(identity, self.ack(False, message_id=identity, reason='请先启动robot_task_oline.launch.py'))
+            return True
+        if action == 'capture_saved':
+            camera = self.robot_status()['camera_detection']
+            data = camera['data'] or {}
+            if (not camera['fresh'] or data.get('state') != 'WAIT_SAVED'
+                    or data.get('run_id') != payload['capture_set_id']
+                    or data.get('capture_manifest_sha256') != payload['capture_manifest_sha256']):
+                self.finish_command(identity, self.ack(False, message_id=identity, reason='照片保存确认与当前等待批次不匹配'))
+            else:
+                self.capture_saved_pub.publish(String(data=canonical(payload).decode()))
+                self.finish_command(identity, self.ack(True, message_id=identity, action=action, disposition='published'))
+            return True
+        if action == 'capture' and self.oline_mode:
+            self.finish_command(identity, self.ack(False, message_id=identity, reason='oline由detect管理拍照，禁止独立capture并发占用相机'))
+            return True
         if action == "resume":
             line = self.robot_status()["line_follow"]
             data = line["data"] or {}
@@ -354,7 +377,7 @@ class IndustrialPC(Node):
                                     message="继续消息已发布，执行进展请查看状态"))
             return True
         client = {"start": self.start_task, "stop": self.stop_task,
-                  "capture": self.capture_camera}[action]
+                  "capture": self.capture_camera, 'detect': self.detect_camera, 'go_home': self.go_home}[action]
         if not client.service_is_ready():
             self.finish_command(identity, self.ack(False, message_id=identity,
                                 reason="任务服务未启动；请先在树莓派启动对应任务launch"))
@@ -455,7 +478,7 @@ class IndustrialPC(Node):
                     heartbeat=dict(session_id=payload['session_id'], sequence=payload['sequence'],
                                    server_id=self.heartbeat_server_id), robot_status=self.robot_status())
                 return
-            if payload.get("schema") in ("paint_robot_task_request_v1", "paint_robot_status_request_v1"):
+            if payload.get("schema") in ("paint_robot_task_request_v1", "paint_robot_status_request_v1", 'paint_robot_capture_saved_v1'):
                 identity = payload.get("message_id", "")
                 self.handle_command(job, packet, payload)
                 return
@@ -477,6 +500,13 @@ class IndustrialPC(Node):
                                       kind=kind, point_count=len(points), published=False)
                 self.status("DUPLICATE", message_id=identity)
                 return
+            if self.oline_mode:
+                camera = self.robot_status()['camera_detection']
+                data = camera['data'] or {}
+                if (not camera['fresh'] or data.get('state') != 'WAIT_RESULT'
+                        or payload.get('capture_manifest_sha256') != data.get('capture_manifest_sha256')
+                        or kind == 'demo'):
+                    raise ProtocolError('oline只在检测指令后接收当前照片的坐标；请查询camera_detection状态和清单哈希')
             record = {
                 "received_at_pi": datetime.now(timezone.utc).isoformat(),
                 "peer": job["peer"], "kind": kind, "message": packet,

@@ -61,6 +61,24 @@ def test_euler_singularity_does_not_silently_change_yaw():
         assert yaw == pytest.approx(35.)
 
 
+@pytest.mark.parametrize('rpy', [[-175., 0., -90.], [20., 90., 35.], [25., -30., 60.]])
+def test_local_z_candidates_preserve_photo_axis_and_probe_xyz(rpy):
+    final, mounting = poses()
+    final[:3, :3] = rpy_degrees_rotation(rpy)
+    candidates = list(MODULE.tool_z_orientations(final, mounting, 15.))
+    assert len(candidates) == 24
+    assert [item[0] for item in candidates[:5]] == [0., 15., -15., 30., -30.]
+    np.testing.assert_allclose(candidates[0][2], final, atol=1e-12)
+    for angle, _, candidate in candidates:
+        np.testing.assert_allclose(candidate[:3, 2], final[:3, 2], atol=1e-12)
+        np.testing.assert_allclose((candidate @ mounting)[:3, 3],
+                                   (final @ mounting)[:3, 3], atol=1e-12)
+        np.testing.assert_allclose(final[:3, :3].T @ candidate[:3, :3],
+                                   rpy_degrees_rotation([0., 0., angle]), atol=1e-12)
+    assert not np.allclose(candidates[1][2][:3, 3], final[:3, 3])
+    assert len({tuple(np.round(item[2][:3, :3].ravel(), 8)) for item in candidates}) == 24
+
+
 def node():
     result = MagicMock()
     result.final, result.mounting = poses()
@@ -124,6 +142,53 @@ def test_rejected_contact_pose_tries_another_orientation_without_moving():
     done.assert_not_called()
     np.testing.assert_array_equal(subject.final, original)
     subject.action.assert_not_called()
+
+
+def test_local_z_selection_rejects_original_and_preserves_photo_axis():
+    subject, done = node(), MagicMock()
+    subject.cfg.update(preposition_tool_z_spin=True, preposition_rp_tolerance_deg=[0., 0.])
+    original = subject.final.copy()
+    tip = (original @ subject.mounting)[:3, 3]
+    CONTROLLER.select_preposition(subject, done)
+    complete(subject, response(MoveItErrorCodes.GOAL_IN_COLLISION))
+    selected_pre = pose_matrix(subject.ik.call_async.call_args.args[0].ik_request.pose_stamped.pose)
+    complete(subject, response())
+    done.assert_not_called()
+    complete(subject, response())
+    done.assert_called_once()
+    np.testing.assert_allclose(subject.final[:3, 2], original[:3, 2], atol=1e-12)
+    np.testing.assert_allclose((subject.final @ subject.mounting)[:3, 3], tip, atol=1e-12)
+    np.testing.assert_allclose((subject.pre @ subject.mounting)[:3, 3], tip-original[:3, 2]*.02)
+    np.testing.assert_allclose(subject.pre, selected_pre, atol=1e-12)
+    for call in subject.ik.call_async.call_args_list:
+        assert call.args[0].ik_request.avoid_collisions
+    subject.action.assert_not_called()
+
+
+def test_local_z_selection_exhaustion_never_moves():
+    subject, done = node(), MagicMock()
+    subject.cfg.update(preposition_tool_z_spin=True, preposition_rp_tolerance_deg=[0., 0.])
+    CONTROLLER.select_preposition(subject, done)
+    for _ in range(23):
+        complete(subject, response(MoveItErrorCodes.NO_IK_SOLUTION))
+    with pytest.raises(MODULE.RetryableApproachError):
+        complete(subject, response(MoveItErrorCodes.NO_IK_SOLUTION))
+    assert subject.ik.call_async.call_count == 24
+    done.assert_not_called()
+    subject.action.assert_not_called()
+
+
+def test_local_z_mode_uses_selection_but_not_for_return_motion():
+    subject = node()
+    subject.cfg.update(preposition_tool_z_spin=True, preposition_rp_tolerance_deg=[0., 0.])
+    CONTROLLER.plan_pose(subject, subject.pre)
+    subject.select_preposition.assert_called_once()
+    subject.action.assert_not_called()
+    subject.select_preposition.reset_mock()
+    subject.motion_request.side_effect = lambda: MODULE.MoveGroup.Goal()
+    CONTROLLER.plan_pose(subject, subject.final, phase='RETURN_HOME')
+    subject.select_preposition.assert_not_called()
+    subject.action.assert_called_once()
 
 
 def test_all_failed_candidates_stop_without_execution():
@@ -195,6 +260,7 @@ def test_production_yaml_uses_requested_limits_and_slowdown():
     document = yaml.safe_load((ROOT/'robot_task_control/config/robot_task.yaml').read_text())
     config = document['detect_controller']['ros__parameters']
     assert config['preposition_rp_tolerance_deg'] == [0., 0.]
+    assert config['preposition_tool_z_spin'] is False
     assert config['preposition_angle_step_deg'] == 15.
     assert config['approach_clearance'] == .02
     assert config['approach_speed'] == .001

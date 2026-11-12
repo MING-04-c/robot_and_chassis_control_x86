@@ -3960,3 +3960,968 @@
 [11/11 21:32:28.604727][info][125538][Context.cpp:84] Context destroyed
 [11/11 21:32:28.604781][debug][125664][Pipeline.cpp:319] Frame received on pipeline! type=OB_FRAME_COLOR [**53 logs in 1889ms, last: 21:32:28.450999**]
 [11/11 21:32:28.604884][debug][125663][Pipeline.cpp:319] Frame received on pipeline! type=OB_FRAME_DEPTH [**58 logs in 2295ms, last: 21:32:28.236443**]
+[11/11 21:43:36.931777][debug][129350][Context.cpp:30] Context creating, work_dir=/home/robot/project/robot_and_chassis_control-main/ros_ws
+[11/11 21:43:36.931810][debug][129350][Context.cpp:49] Config file version=1.1
+[11/11 21:43:36.931818][debug][129350][FrameBufferManager.cpp:23] Max global frame buffer size updated! size=2048.000MB
+[11/11 21:43:36.931821][info][129350][Context.cpp:68] Context created with config: /home/robot/project/robot_and_chassis_control-main/ros_ws/install/orbbec_camera/share/orbbec_camera/config/OrbbecSDKConfig_v1.0.xml
+[11/11 21:43:36.931835][info][129350][Context.cpp:73] Work directory=/home/robot/project/robot_and_chassis_control-main/ros_ws, SDK version=v1.10.35-20260128-fa838f5
+[11/11 21:43:36.931839][debug][129350][DeviceManager.cpp:30] DeviceManager init ...
+[11/11 21:43:36.931841][info][129350][LinuxPal.cpp:32] createObPal: create LinuxPal!
+[11/11 21:43:36.932298][debug][129350][DeviceManager.cpp:34] Enable USB Device Enumerator ...
+[11/11 21:43:37.006682][debug][129350][EnumeratorLibusb.cpp:324] queryDevicesInfo done!
+[11/11 21:43:37.006728][debug][129350][UsbDeviceEnumerator.cpp:163] Current usb device port list:
+[11/11 21:43:37.006739][debug][129350][UsbDeviceEnumerator.cpp:166]  - 3-1.1.2-30.0 | Orbbec(R) Astra(TM) 3D Camera(F) Depth
+[11/11 21:43:37.006743][debug][129350][UsbDeviceEnumerator.cpp:166]  - 3-1.1.1-29.0 | USB Camera
+[11/11 21:43:37.006796][warning][129350][OpenNIDeviceInfo.cpp:190] New openni device matched.
+[11/11 21:43:37.006893][info][129350][LinuxPal.cpp:166] Create PollingDeviceWatcher!
+[11/11 21:43:37.006915][debug][129350][UsbDeviceEnumerator.cpp:71] Found 1 device(s):
+[11/11 21:43:37.006921][debug][129350][UsbDeviceEnumerator.cpp:74]   - Name: SV1301S_U3, PID: 0x0614, SN/ID: , connection: USB2.0
+[11/11 21:43:37.006927][info][129350][DeviceManager.cpp:15] Current found device(s): (1)
+[11/11 21:43:37.006934][info][129350][DeviceManager.cpp:24] 	- Name: SV1301S_U3, PID: 0x0614, SN/ID: , Connection: USB2.0
+[11/11 21:43:37.006938][debug][129350][DeviceManager.cpp:52] DeviceManager construct done!
+[11/11 21:43:37.010491][info][129350][DeviceManager.cpp:304] Enable net device enumeration: false
+[11/11 21:43:37.111202][debug][129367][DeviceManager.cpp:109] DeviceManager  createDevice...
+[11/11 21:43:37.111238][debug][129367][UsbDeviceEnumerator.cpp:297] UsbDeviceEnumerator createDevice...
+[11/11 21:43:37.111711][info][129367][OpenNIHostProtocol.cpp:722] Hardware versions: FW=5.8.23 (14), HW=0, Chip=7, Sensor=0, SYS=12
+[11/11 21:43:37.111945][warning][129367][OpenNIHostProtocol.cpp:739] Get usb core type failed!
+[11/11 21:43:37.111947][debug][129367][OpenNIHostProtocol.cpp:820] Requesting KeepAlive...
+[11/11 21:43:37.112184][debug][129367][OpenNIHostProtocol.cpp:827] Got KeepAlive Reply.
+[11/11 21:43:37.113568][debug][129367][OpenNIHostProtocol.cpp:820] Requesting KeepAlive...
+[11/11 21:43:37.113851][debug][129367][OpenNIHostProtocol.cpp:827] Got KeepAlive Reply.
+[11/11 21:43:37.113862][debug][129367][OpenNIHostProtocol.cpp:845] Getting the fixed params...
+[11/11 21:43:37.114199][debug][129367][OpenNIHostProtocol.cpp:885] Reading sensor serial number...
+[11/11 21:43:37.114461][info][129367][OpenNISensorFirmware.cpp:1190] Sensor serial number:AY23B52001Y
+[11/11 21:43:37.114752][debug][129367][OpenNIHostProtocol.cpp:957] Reading sensor platform string...
+[11/11 21:43:37.114993][info][129367][OpenNISensorFirmware.cpp:1218] Firmware version RD3013
+[11/11 21:43:37.115263][info][129367][OpenNISensorFirmware.cpp:1224] Device frequency 50
+[11/11 21:43:37.115277][debug][129367][OpenNIHostProtocol.cpp:1034] Update supported depth video modes from firmware
+[11/11 21:43:37.115288][debug][129367][OpenNIHostProtocol.cpp:1070] Reading CMOS 1 supported presets...
+[11/11 21:43:37.115583][debug][129367][OpenNIHostProtocol.cpp:1034] Update supported depth video modes from firmware
+[11/11 21:43:37.115595][debug][129367][OpenNIHostProtocol.cpp:1070] Reading CMOS 2 supported presets...
+[11/11 21:43:37.122701][debug][129367][OpenNISensorParams.cpp:110] set property DepthMirror(0)
+[11/11 21:43:37.122961][debug][129367][OpenNISensorParams.cpp:121] DepthMirror(0)was successfully set.
+[11/11 21:43:37.122978][debug][129367][OpenNISensorFirmware.cpp:1236] OpenNI camera params read.
+[11/11 21:43:37.178350][debug][129367][OpenNISensorFirmware.cpp:2103] OpenNI camera params read end.
+[11/11 21:43:37.178757][warning][129367][OpenNIHostProtocol.cpp:1112] Host Protocol sub cmd not supported!
+[11/11 21:43:37.178761][warning][129367][OpenNISensorFirmware.cpp:153] OpenNI2 camera don't support Watchdog function!
+[11/11 21:43:37.178763][debug][129367][OpenNISensorIO.cpp:29] Opening endpoint 0x81 for depth...
+[11/11 21:43:37.178769][debug][129367][OpenNISensorIO.cpp:41] Depth endpoint(0x81) was successfully opened.
+[11/11 21:43:37.178772][debug][129367][OpenNISensorIO.cpp:48] Opening endpoint 0x82 for IR...
+[11/11 21:43:37.178773][debug][129367][OpenNISensorIO.cpp:54] IR endpoint(0x82) was successfully opened.
+[11/11 21:43:37.178774][debug][129367][OpenNISensorIO.cpp:60] Opening endpoint 0x84  for image...
+[11/11 21:43:37.178775][debug][129367][OpenNISensorIO.cpp:65] Image endpoint is not supported...
+[11/11 21:43:37.178777][debug][129367][OpenNISensorIO.cpp:75] Opening endpoint 0x83 for misc...
+[11/11 21:43:37.178778][debug][129367][OpenNISensorIO.cpp:80] Misc endpoint is not supported...
+[11/11 21:43:37.178782][debug][129367][OpenNISensorIO.cpp:87] Endpoints open end.
+[11/11 21:43:37.178805][debug][129367][VendorCommand.cpp:205] VendorCommand constructor 7ac384004730
+[11/11 21:43:37.178810][debug][129367][OpenNIDevice.cpp:205] init sensor map start!
+[11/11 21:43:37.178814][debug][129367][OpenNIDevice.cpp:219] init sensor map done!
+[11/11 21:43:37.178841][debug][129367][PropertyAccessor.cpp:50] get firmware data success! propertyId: 1000, dataLen: 164
+[11/11 21:43:37.178846][info][129367][AbstractDevice.cpp:120] 	- Firmware version: RD3013
+[11/11 21:43:37.178897][debug][129367][OpenNIDevice.cpp:259] Init depth process param start!
+[11/11 21:43:37.178904][debug][129367][OpenNIDevice.cpp:274] Device baseline: 39.921974, fx:955.5443725585938
+[11/11 21:43:37.178906][debug][129367][OpenNIDevice.cpp:305] Init depth process param done!
+[11/11 21:43:37.179028][info][129367][OpenNIDevice.cpp:821] Init depth filter params.
+[11/11 21:43:37.179032][info][129367][OpenNIDevice.cpp:40] OpenNI device created! PID: 0x0614, SN: AY23B52001Y
+[11/11 21:43:37.179035][debug][129367][UsbDeviceEnumerator.cpp:371] Device created successfully! Name: SV1301S_U3, PID: 0x0614, SN/ID: 
+[11/11 21:43:37.179038][info][129367][DeviceManager.cpp:150] Device created successfully! Name: SV1301S_U3, PID: 0x0614, SN/ID: 
+[11/11 21:43:37.179123][debug][129367][FrameProcessingBlock.cpp:26] Block created with frame queue size: 10
+[11/11 21:43:37.179140][debug][129367][FrameProcessingBlock.cpp:26] Block created with frame queue size: 10
+[11/11 21:43:37.180696][debug][129367][FrameProcessor.cpp:90] FrameProcessor init with 5 blocks! @134980151983328
+[11/11 21:43:37.180708][debug][129367][FrameProcessingBlock.cpp:26] Block created with frame queue size: 10
+[11/11 21:43:37.180710][debug][129367][FrameProcessor.cpp:98]  - block: FrameUnpacker, status: enable
+[11/11 21:43:37.180716][debug][129367][FrameProcessingBlock.cpp:26] Block created with frame queue size: 10
+[11/11 21:43:37.180718][debug][129367][FrameProcessor.cpp:98]  - block: FrameSoftFilter, status: enable
+[11/11 21:43:37.180720][debug][129367][FrameProcessingBlock.cpp:26] Block created with frame queue size: 10
+[11/11 21:43:37.180722][debug][129367][FrameProcessor.cpp:98]  - block: Disparity2DepthConverter, status: enable
+[11/11 21:43:37.180725][debug][129367][FrameProcessingBlock.cpp:26] Block created with frame queue size: 10
+[11/11 21:43:37.180727][debug][129367][FrameProcessor.cpp:98]  - block: D2CFilter, status: disable
+[11/11 21:43:37.180729][debug][129367][FrameProcessingBlock.cpp:26] Block created with frame queue size: 10
+[11/11 21:43:37.180733][debug][129367][FrameProcessor.cpp:98]  - block: PostProcessFilter, status: disable
+[11/11 21:43:37.180836][info][129367][OpenNIDevice.cpp:395] Depth sensor has been created!
+[11/11 21:43:37.180860][debug][129367][PropertyAccessor.cpp:17] set property value success! propertyId: 24, value: {intValue: 0, floatValue: 0}
+[11/11 21:43:37.180872][debug][129367][FrameProcessor.cpp:90] FrameProcessor init with 2 blocks! @108383014620336
+[11/11 21:43:37.180875][debug][129367][FrameProcessingBlock.cpp:26] Block created with frame queue size: 10
+[11/11 21:43:37.180878][debug][129367][FrameProcessor.cpp:98]  - block: FrameUnpacker, status: enable
+[11/11 21:43:37.180884][debug][129367][FrameProcessingBlock.cpp:26] Block created with frame queue size: 10
+[11/11 21:43:37.180886][debug][129367][FrameProcessor.cpp:98]  - block: FrameMirror, status: disable
+[11/11 21:43:37.180890][info][129367][OpenNIDevice.cpp:689] IR sensor has been created!
+[11/11 21:43:37.180906][debug][129367][OpenNIVideoSensor.cpp:864] Query stream profile! size= 12, sensorType=OB_SENSOR_IR
+[11/11 21:43:37.180910][debug][129367][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_IR, format: OB_FORMAT_Y10, width: 640, height: 400, fps: 30}
+[11/11 21:43:37.180912][debug][129367][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_IR, format: OB_FORMAT_Y10, width: 320, height: 200, fps: 5}
+[11/11 21:43:37.180914][debug][129367][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_IR, format: OB_FORMAT_Y10, width: 320, height: 200, fps: 10}
+[11/11 21:43:37.180916][debug][129367][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_IR, format: OB_FORMAT_Y10, width: 320, height: 200, fps: 15}
+[11/11 21:43:37.180917][debug][129367][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_IR, format: OB_FORMAT_Y10, width: 320, height: 200, fps: 30}
+[11/11 21:43:37.180919][debug][129367][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_IR, format: OB_FORMAT_Y10, width: 320, height: 200, fps: 60}
+[11/11 21:43:37.180921][debug][129367][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_IR, format: OB_FORMAT_Y10, width: 640, height: 400, fps: 5}
+[11/11 21:43:37.180923][debug][129367][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_IR, format: OB_FORMAT_Y10, width: 640, height: 400, fps: 10}
+[11/11 21:43:37.180924][debug][129367][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_IR, format: OB_FORMAT_Y10, width: 640, height: 400, fps: 15}
+[11/11 21:43:37.180926][debug][129367][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_IR, format: OB_FORMAT_Y10, width: 640, height: 400, fps: 60}
+[11/11 21:43:37.180928][debug][129367][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_IR, format: OB_FORMAT_Y10, width: 1280, height: 800, fps: 15}
+[11/11 21:43:37.180929][debug][129367][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_IR, format: OB_FORMAT_Y10, width: 1280, height: 800, fps: 30}
+[11/11 21:43:37.180945][debug][129367][LinuxPal.cpp:296] Uvc backend have been set to LibUVC(1)
+[11/11 21:43:37.201278][debug][129367][ObLibuvcDevicePort.cpp:58] uvc_open success
+[11/11 21:43:37.201324][debug][129367][LinuxPal.cpp:127] UVC device have been create with LibUVC backend! dev: 3-1.1.1-29, inf: 3-1.1.1-29.0
+[11/11 21:43:37.201336][debug][129367][FrameProcessor.cpp:90] FrameProcessor init with 1 blocks! @134980152013248
+[11/11 21:43:37.201361][debug][129367][FrameProcessingBlock.cpp:26] Block created with frame queue size: 10
+[11/11 21:43:37.201366][debug][129367][FrameProcessor.cpp:98]  - block: FormatConverter, status: disable
+[11/11 21:43:37.201388][debug][129367][VideoSensor.cpp:252] VideoSensor construct!
+[11/11 21:43:37.201420][debug][129367][VideoSensor.cpp:263] stream profile size= 21, SensorType=OB_SENSOR_COLOR
+[11/11 21:43:37.201428][debug][129367][VideoSensor.cpp:265]  - {type: OB_STREAM_COLOR, format: OB_FORMAT_MJPG, width: 640, height: 480, fps: 30}
+[11/11 21:43:37.201432][debug][129367][VideoSensor.cpp:265]  - {type: OB_STREAM_COLOR, format: OB_FORMAT_MJPG, width: 1920, height: 1080, fps: 30}
+[11/11 21:43:37.201436][debug][129367][VideoSensor.cpp:265]  - {type: OB_STREAM_COLOR, format: OB_FORMAT_MJPG, width: 1280, height: 720, fps: 30}
+[11/11 21:43:37.201440][debug][129367][VideoSensor.cpp:265]  - {type: OB_STREAM_COLOR, format: OB_FORMAT_MJPG, width: 640, height: 480, fps: 60}
+[11/11 21:43:37.201468][debug][129367][VideoSensor.cpp:265]  - {type: OB_STREAM_COLOR, format: OB_FORMAT_MJPG, width: 640, height: 480, fps: 15}
+[11/11 21:43:37.201471][debug][129367][VideoSensor.cpp:265]  - {type: OB_STREAM_COLOR, format: OB_FORMAT_MJPG, width: 640, height: 480, fps: 10}
+[11/11 21:43:37.201475][debug][129367][VideoSensor.cpp:265]  - {type: OB_STREAM_COLOR, format: OB_FORMAT_MJPG, width: 640, height: 480, fps: 5}
+[11/11 21:43:37.201479][debug][129367][VideoSensor.cpp:265]  - {type: OB_STREAM_COLOR, format: OB_FORMAT_RGB888, width: 1920, height: 1080, fps: 30}
+[11/11 21:43:37.201483][debug][129367][VideoSensor.cpp:265]  - {type: OB_STREAM_COLOR, format: OB_FORMAT_RGB888, width: 1280, height: 720, fps: 30}
+[11/11 21:43:37.201486][debug][129367][VideoSensor.cpp:265]  - {type: OB_STREAM_COLOR, format: OB_FORMAT_RGB888, width: 640, height: 480, fps: 60}
+[11/11 21:43:37.201491][debug][129367][VideoSensor.cpp:265]  - {type: OB_STREAM_COLOR, format: OB_FORMAT_RGB888, width: 640, height: 480, fps: 30}
+[11/11 21:43:37.201494][debug][129367][VideoSensor.cpp:265]  - {type: OB_STREAM_COLOR, format: OB_FORMAT_RGB888, width: 640, height: 480, fps: 15}
+[11/11 21:43:37.201498][debug][129367][VideoSensor.cpp:265]  - {type: OB_STREAM_COLOR, format: OB_FORMAT_RGB888, width: 640, height: 480, fps: 10}
+[11/11 21:43:37.201501][debug][129367][VideoSensor.cpp:265]  - {type: OB_STREAM_COLOR, format: OB_FORMAT_RGB888, width: 640, height: 480, fps: 5}
+[11/11 21:43:37.201505][debug][129367][VideoSensor.cpp:265]  - {type: OB_STREAM_COLOR, format: OB_FORMAT_BGRA, width: 1920, height: 1080, fps: 30}
+[11/11 21:43:37.201509][debug][129367][VideoSensor.cpp:265]  - {type: OB_STREAM_COLOR, format: OB_FORMAT_BGRA, width: 1280, height: 720, fps: 30}
+[11/11 21:43:37.201513][debug][129367][VideoSensor.cpp:265]  - {type: OB_STREAM_COLOR, format: OB_FORMAT_BGRA, width: 640, height: 480, fps: 60}
+[11/11 21:43:37.201516][debug][129367][VideoSensor.cpp:265]  - {type: OB_STREAM_COLOR, format: OB_FORMAT_BGRA, width: 640, height: 480, fps: 30}
+[11/11 21:43:37.201520][debug][129367][VideoSensor.cpp:265]  - {type: OB_STREAM_COLOR, format: OB_FORMAT_BGRA, width: 640, height: 480, fps: 15}
+[11/11 21:43:37.201523][debug][129367][VideoSensor.cpp:265]  - {type: OB_STREAM_COLOR, format: OB_FORMAT_BGRA, width: 640, height: 480, fps: 10}
+[11/11 21:43:37.201528][debug][129367][VideoSensor.cpp:265]  - {type: OB_STREAM_COLOR, format: OB_FORMAT_BGRA, width: 640, height: 480, fps: 5}
+[11/11 21:43:37.201541][debug][129367][VideoSensor.cpp:278] VideoSensor created, @OB_SENSOR_COLOR
+[11/11 21:43:37.201545][info][129367][OpenNIDevice.cpp:641] Color sensor has been created!
+[11/11 21:43:37.201654][debug][129367][OpenNIVideoSensor.cpp:864] Query stream profile! size= 24, sensorType=OB_SENSOR_DEPTH
+[11/11 21:43:37.201659][debug][129367][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y11, width: 640, height: 400, fps: 30}
+[11/11 21:43:37.201663][debug][129367][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y11, width: 320, height: 200, fps: 5}
+[11/11 21:43:37.201666][debug][129367][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y12, width: 320, height: 200, fps: 5}
+[11/11 21:43:37.201669][debug][129367][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y11, width: 320, height: 200, fps: 10}
+[11/11 21:43:37.201672][debug][129367][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y12, width: 320, height: 200, fps: 10}
+[11/11 21:43:37.201675][debug][129367][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y11, width: 320, height: 200, fps: 15}
+[11/11 21:43:37.201678][debug][129367][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y12, width: 320, height: 200, fps: 15}
+[11/11 21:43:37.201682][debug][129367][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y11, width: 320, height: 200, fps: 30}
+[11/11 21:43:37.201685][debug][129367][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y12, width: 320, height: 200, fps: 30}
+[11/11 21:43:37.201692][debug][129367][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y11, width: 320, height: 200, fps: 60}
+[11/11 21:43:37.201695][debug][129367][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y12, width: 320, height: 200, fps: 60}
+[11/11 21:43:37.201698][debug][129367][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y11, width: 640, height: 400, fps: 5}
+[11/11 21:43:37.201701][debug][129367][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y12, width: 640, height: 400, fps: 5}
+[11/11 21:43:37.201704][debug][129367][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y11, width: 640, height: 400, fps: 10}
+[11/11 21:43:37.201708][debug][129367][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y12, width: 640, height: 400, fps: 10}
+[11/11 21:43:37.201711][debug][129367][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y11, width: 640, height: 400, fps: 15}
+[11/11 21:43:37.201714][debug][129367][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y12, width: 640, height: 400, fps: 15}
+[11/11 21:43:37.201717][debug][129367][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y12, width: 640, height: 400, fps: 30}
+[11/11 21:43:37.201720][debug][129367][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y11, width: 640, height: 400, fps: 60}
+[11/11 21:43:37.201723][debug][129367][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y12, width: 640, height: 400, fps: 60}
+[11/11 21:43:37.201726][debug][129367][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y11, width: 1280, height: 800, fps: 15}
+[11/11 21:43:37.201729][debug][129367][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y12, width: 1280, height: 800, fps: 15}
+[11/11 21:43:37.201732][debug][129367][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y11, width: 1280, height: 800, fps: 30}
+[11/11 21:43:37.201735][debug][129367][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y12, width: 1280, height: 800, fps: 30}
+[11/11 21:43:37.201839][debug][129367][FrameProcessingBlock.cpp:26] Block created with frame queue size: 10
+[11/11 21:43:37.203446][debug][129367][PropertyAccessor.cpp:17] set property value success! propertyId: 2, value: {intValue: 1, floatValue: 1.4013e-45}
+[11/11 21:43:37.203482][debug][129367][ObLibuvcDevicePort.cpp:334] ObLibuvcDevicePort::uvcCtrlValueTranslate propertyId=1, action=2003, value=1
+[11/11 21:43:37.203748][debug][129367][ObLibuvcDevicePort.cpp:207] ObLibuvcDevicePort::setPu() propertyId = 2003 value = 
+[11/11 21:43:37.203753][debug][129367][PropertyAccessor.cpp:17] set property value success! propertyId: 2003, value: {intValue: 1, floatValue: 1.4013e-45}
+[11/11 21:43:37.203764][debug][129367][ObLibuvcDevicePort.cpp:334] ObLibuvcDevicePort::uvcCtrlValueTranslate propertyId=1, action=2012, value=0
+[11/11 21:43:37.203997][debug][129367][ObLibuvcDevicePort.cpp:207] ObLibuvcDevicePort::setPu() propertyId = 2012 value = 
+[11/11 21:43:37.204000][debug][129367][PropertyAccessor.cpp:17] set property value success! propertyId: 2012, value: {intValue: 0, floatValue: 0}
+[11/11 21:43:37.204242][debug][129367][ObLibuvcDevicePort.cpp:334] ObLibuvcDevicePort::uvcCtrlValueTranslate propertyId=129, action=2012, value=0
+[11/11 21:43:37.204246][debug][129367][PropertyAccessor.cpp:28] get property value success! propertyId: 2012, value: {intValue: 0, floatValue: 0}
+[11/11 21:43:37.204257][debug][129367][ObLibuvcDevicePort.cpp:334] ObLibuvcDevicePort::uvcCtrlValueTranslate propertyId=1, action=2000, value=1
+[11/11 21:43:37.204509][debug][129367][ObLibuvcDevicePort.cpp:366] UVC_SET_CUR: getAERes:9.
+[11/11 21:43:37.204511][debug][129367][ObLibuvcDevicePort.cpp:370] UVC_AE_MODE_D0_MANUAL:translated_value:8,value:1.
+[11/11 21:43:37.204819][debug][129367][ObLibuvcDevicePort.cpp:207] ObLibuvcDevicePort::setPu() propertyId = 2000 value = 
+[11/11 21:43:37.204831][debug][129367][PropertyAccessor.cpp:17] set property value success! propertyId: 2000, value: {intValue: 1, floatValue: 1.4013e-45}
+[11/11 21:43:37.204839][debug][129367][PropertyAccessor.cpp:28] get property value success! propertyId: 40, value: {intValue: 16, floatValue: 2.24208e-44}
+[11/11 21:43:37.204852][debug][129367][PropertyAccessor.cpp:28] get property value success! propertyId: 41, value: {intValue: 480, floatValue: 6.72623e-43}
+[11/11 21:43:37.205251][debug][129367][OpenNIVideoSensor.cpp:864] Query stream profile! size= 24, sensorType=OB_SENSOR_DEPTH
+[11/11 21:43:37.205258][debug][129367][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y11, width: 640, height: 400, fps: 30}
+[11/11 21:43:37.205260][debug][129367][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y11, width: 320, height: 200, fps: 5}
+[11/11 21:43:37.205261][debug][129367][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y12, width: 320, height: 200, fps: 5}
+[11/11 21:43:37.205262][debug][129367][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y11, width: 320, height: 200, fps: 10}
+[11/11 21:43:37.205264][debug][129367][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y12, width: 320, height: 200, fps: 10}
+[11/11 21:43:37.205265][debug][129367][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y11, width: 320, height: 200, fps: 15}
+[11/11 21:43:37.205266][debug][129367][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y12, width: 320, height: 200, fps: 15}
+[11/11 21:43:37.205267][debug][129367][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y11, width: 320, height: 200, fps: 30}
+[11/11 21:43:37.205269][debug][129367][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y12, width: 320, height: 200, fps: 30}
+[11/11 21:43:37.205270][debug][129367][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y11, width: 320, height: 200, fps: 60}
+[11/11 21:43:37.205271][debug][129367][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y12, width: 320, height: 200, fps: 60}
+[11/11 21:43:37.205272][debug][129367][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y11, width: 640, height: 400, fps: 5}
+[11/11 21:43:37.205273][debug][129367][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y12, width: 640, height: 400, fps: 5}
+[11/11 21:43:37.205275][debug][129367][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y11, width: 640, height: 400, fps: 10}
+[11/11 21:43:37.205276][debug][129367][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y12, width: 640, height: 400, fps: 10}
+[11/11 21:43:37.205277][debug][129367][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y11, width: 640, height: 400, fps: 15}
+[11/11 21:43:37.205278][debug][129367][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y12, width: 640, height: 400, fps: 15}
+[11/11 21:43:37.205279][debug][129367][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y12, width: 640, height: 400, fps: 30}
+[11/11 21:43:37.205281][debug][129367][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y11, width: 640, height: 400, fps: 60}
+[11/11 21:43:37.205282][debug][129367][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y12, width: 640, height: 400, fps: 60}
+[11/11 21:43:37.205283][debug][129367][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y11, width: 1280, height: 800, fps: 15}
+[11/11 21:43:37.205285][debug][129367][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y12, width: 1280, height: 800, fps: 15}
+[11/11 21:43:37.205286][debug][129367][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y11, width: 1280, height: 800, fps: 30}
+[11/11 21:43:37.205290][debug][129367][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y12, width: 1280, height: 800, fps: 30}
+[11/11 21:43:37.801375][debug][129367][Pipeline.cpp:29] Pipeline init ...
+[11/11 21:43:37.801418][debug][129367][Pipeline.cpp:168] loadFrameQueueSizeConfig() config queue size: 10
+[11/11 21:43:37.801429][warning][129367][ObException.cpp:5] Current device does not support frame sync!
+[11/11 21:43:37.801467][warning][129367][Pipeline.cpp:45] Execute failure! A libobsensor_exception has occurred!
+	 - where:45#Pipeline
+	 - msg:Current device does not support frame sync!
+	 - type:N11libobsensor31unsupported_operation_exceptionE
+[11/11 21:43:37.801476][info][129367][Pipeline.cpp:47] Pipeline created with device: {name: SV1301S_U3, sn: AY23B52001Y}, @0x7AC38451F790
+[11/11 21:43:37.801609][debug][129367][Pipeline.cpp:227] Pipeline start() start!
+[11/11 21:43:37.801616][info][129367][Pipeline.cpp:188] Check and set config start!
+[11/11 21:43:37.801632][debug][129367][OpenNIVideoSensor.cpp:864] Query stream profile! size= 24, sensorType=OB_SENSOR_DEPTH
+[11/11 21:43:37.801640][debug][129367][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y11, width: 640, height: 400, fps: 30}
+[11/11 21:43:37.801646][debug][129367][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y11, width: 320, height: 200, fps: 5}
+[11/11 21:43:37.801652][debug][129367][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y12, width: 320, height: 200, fps: 5}
+[11/11 21:43:37.801657][debug][129367][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y11, width: 320, height: 200, fps: 10}
+[11/11 21:43:37.801661][debug][129367][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y12, width: 320, height: 200, fps: 10}
+[11/11 21:43:37.801666][debug][129367][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y11, width: 320, height: 200, fps: 15}
+[11/11 21:43:37.801670][debug][129367][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y12, width: 320, height: 200, fps: 15}
+[11/11 21:43:37.801674][debug][129367][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y11, width: 320, height: 200, fps: 30}
+[11/11 21:43:37.801679][debug][129367][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y12, width: 320, height: 200, fps: 30}
+[11/11 21:43:37.801683][debug][129367][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y11, width: 320, height: 200, fps: 60}
+[11/11 21:43:37.801687][debug][129367][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y12, width: 320, height: 200, fps: 60}
+[11/11 21:43:37.801691][debug][129367][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y11, width: 640, height: 400, fps: 5}
+[11/11 21:43:37.801696][debug][129367][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y12, width: 640, height: 400, fps: 5}
+[11/11 21:43:37.801700][debug][129367][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y11, width: 640, height: 400, fps: 10}
+[11/11 21:43:37.801704][debug][129367][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y12, width: 640, height: 400, fps: 10}
+[11/11 21:43:37.801709][debug][129367][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y11, width: 640, height: 400, fps: 15}
+[11/11 21:43:37.801713][debug][129367][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y12, width: 640, height: 400, fps: 15}
+[11/11 21:43:37.801717][debug][129367][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y12, width: 640, height: 400, fps: 30}
+[11/11 21:43:37.801722][debug][129367][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y11, width: 640, height: 400, fps: 60}
+[11/11 21:43:37.801726][debug][129367][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y12, width: 640, height: 400, fps: 60}
+[11/11 21:43:37.801742][debug][129367][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y11, width: 1280, height: 800, fps: 15}
+[11/11 21:43:37.801748][debug][129367][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y12, width: 1280, height: 800, fps: 15}
+[11/11 21:43:37.801752][debug][129367][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y11, width: 1280, height: 800, fps: 30}
+[11/11 21:43:37.801756][debug][129367][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y12, width: 1280, height: 800, fps: 30}
+[11/11 21:43:37.801763][info][129367][Pipeline.cpp:223] Check and set config done!
+[11/11 21:43:37.802079][debug][129367][PropertyAccessor.cpp:28] get property value success! propertyId: 14, value: {intValue: 0, floatValue: 0}
+[11/11 21:43:37.802096][debug][129367][PropertyAccessor.cpp:17] set property value success! propertyId: 63, value: {intValue: 0, floatValue: 0}
+[11/11 21:43:37.802343][debug][129367][PropertyAccessor.cpp:28] get property value success! propertyId: 14, value: {intValue: 0, floatValue: 0}
+[11/11 21:43:37.802364][debug][129367][PropertyAccessor.cpp:17] set property value success! propertyId: 63, value: {intValue: 0, floatValue: 0}
+[11/11 21:43:37.802373][debug][129367][OpenNISensorParams.cpp:110] set property Registration(0)
+[11/11 21:43:37.802617][debug][129367][OpenNISensorParams.cpp:121] Registration(0)was successfully set.
+[11/11 21:43:37.802624][debug][129367][PropertyAccessor.cpp:17] set property value success! propertyId: 42, value: {intValue: 0, floatValue: 0}
+[11/11 21:43:37.802638][debug][129367][FrameProcessingBlockManager.cpp:75]  FrameProcessingBlockManager started, 0 blocks contained!
+[11/11 21:43:37.802641][info][129367][Pipeline.cpp:288] Try to start streams!
+[11/11 21:43:37.802645][debug][129367][VideoSensor.cpp:574] VideoSensor::start, @OB_SENSOR_COLOR
+[11/11 21:43:37.802650][debug][129367][FrameMemoryPool.cpp:35] FrameMemoryPool created!
+[11/11 21:43:37.802656][debug][129367][FrameBufferManager.hpp:65] FrameBufferManager created! frame type:N11libobsensor10ColorFrameE, obj addr:0x7ac3840701b0, frame obj total size:0.293MB
+[11/11 21:43:37.802658][debug][129367][FrameMemoryPool.cpp:76] ColorFrame bufferManager created!
+[11/11 21:43:37.802663][debug][129367][FrameProcessor.cpp:144] Frame processor active blocks chain update: input -> output
+[11/11 21:43:37.802666][debug][129367][FrameProcessor.cpp:155] FrameProcessor started, 1 blocks contained!
+[11/11 21:43:37.802671][info][129367][VideoSensor.cpp:653] start OB_SENSOR_COLOR stream with profile: {type: OB_STREAM_COLOR, format: OB_FORMAT_MJPG, width: 640, height: 480, fps: 30}, Backend Format: OB_FORMAT_MJPG
+[11/11 21:43:37.802673][debug][129367][ObLibuvcDevicePort.cpp:75] ObLibuvcDevicePort::startStream()...
+[11/11 21:43:37.802679][debug][129367][ObLibuvcDevicePort.cpp:90] playProfile: infIndex=0, selected_format.width=640, height=480, format=OB_FORMAT_MJPG
+[11/11 21:43:38.255684][debug][129367][ObLibuvcDevicePort.cpp:143] ObLibuvcDevicePort::startStream() done
+[11/11 21:43:38.255741][debug][129367][VideoSensor.cpp:680] Stream state changed to STREAM_STATE_STARTING. @OB_SENSOR_COLOR
+[11/11 21:43:38.255747][debug][129367][VideoSensor.cpp:682] Stream starting! @OB_SENSOR_COLOR
+[11/11 21:43:38.255751][debug][129367][Pipeline.cpp:299] Sensor stream started, sensorType=OB_SENSOR_COLOR
+[11/11 21:43:38.255766][debug][129367][FrameBufferManager.hpp:65] FrameBufferManager created! frame type:N11libobsensor10DepthFrameE, obj addr:0x7ac3844e7b60, frame obj total size:0.336MB
+[11/11 21:43:38.255769][debug][129367][FrameMemoryPool.cpp:60] DepthFrame bufferManager created!
+[11/11 21:43:38.255791][debug][129367][OpenNISensorStreams.cpp:79] Firmware stream Depth processor was replaced.
+[11/11 21:43:38.255809][debug][129367][FrameProcessor.cpp:144] Frame processor active blocks chain update: input ->FrameUnpacker -> Disparity2DepthConverter -> D2CFilter -> PostProcessFilter -> output
+[11/11 21:43:38.255812][debug][129367][FrameProcessor.cpp:155] FrameProcessor started, 5 blocks contained!
+[11/11 21:43:38.256354][debug][129367][OpenNIVideoSensor.cpp:774] Creating USB Depth read thread... 
+[11/11 21:43:38.256365][debug][129367][OpenNIUSBLinux.cpp:113] Starting a USB read thread...
+[11/11 21:43:38.258773][debug][129367][OpenNISensorParams.cpp:110] set property DepthFormat(3)
+[11/11 21:43:38.259435][debug][129367][OpenNISensorParams.cpp:121] DepthFormat(3)was successfully set.
+[11/11 21:43:38.259463][debug][129367][OpenNISensorParams.cpp:110] set property DepthResolution(17)
+[11/11 21:43:38.259870][debug][129367][OpenNISensorParams.cpp:121] DepthResolution(17)was successfully set.
+[11/11 21:43:38.259880][debug][129367][OpenNISensorParams.cpp:110] set property DepthFPS(30)
+[11/11 21:43:38.261594][debug][129367][OpenNISensorParams.cpp:121] DepthFPS(30)was successfully set.
+[11/11 21:43:38.261623][debug][129367][OpenNISensorParams.cpp:110] set property DepthHoleFilter(1)
+[11/11 21:43:38.261894][debug][129367][OpenNISensorParams.cpp:121] DepthHoleFilter(1)was successfully set.
+[11/11 21:43:38.261898][debug][129367][OpenNISensorParams.cpp:110] set property Registration(0)
+[11/11 21:43:38.262199][debug][129367][OpenNISensorParams.cpp:121] Registration(0)was successfully set.
+[11/11 21:43:38.262201][debug][129367][OpenNISensorParams.cpp:110] set property DepthMirror(0)
+[11/11 21:43:38.262456][debug][129367][OpenNISensorParams.cpp:121] DepthMirror(0)was successfully set.
+[11/11 21:43:38.262461][debug][129367][OpenNISensorParams.cpp:110] set property Stream1Mode(2)
+[11/11 21:43:38.265709][debug][129367][OpenNISensorParams.cpp:121] Stream1Mode(2)was successfully set.
+[11/11 21:43:38.265743][debug][129367][OpenNISensorParams.cpp:110] set property DepthCropEnabled(0)
+[11/11 21:43:38.268300][debug][129367][OpenNISensorParams.cpp:121] DepthCropEnabled(0)was successfully set.
+[11/11 21:43:38.268312][debug][129367][OpenNISensorParams.cpp:110] set property FrameSync(0)
+[11/11 21:43:38.268557][debug][129367][OpenNISensorParams.cpp:121] FrameSync(0)was successfully set.
+[11/11 21:43:38.268569][debug][129367][OpenNIVideoSensor.cpp:547] Stream state changed to STREAM_STATE_STARTING. @OB_SENSOR_DEPTH
+[11/11 21:43:38.268572][debug][129367][Pipeline.cpp:299] Sensor stream started, sensorType=OB_SENSOR_DEPTH
+[11/11 21:43:38.268575][info][129367][Pipeline.cpp:301] Start streams done!
+[11/11 21:43:38.268579][info][129367][Pipeline.cpp:277] Pipeline start done!
+[11/11 21:43:38.270346][debug][129367][PropertyAccessor.cpp:17] set property value success! propertyId: 2, value: {intValue: 1, floatValue: 1.4013e-45}
+[11/11 21:43:38.277242][debug][129452][OpenNIDataProcessor.cpp:28] Depth: Expected 1, got 16726
+[11/11 21:43:38.277290][debug][129452][OpenNIFrameProcessor.cpp:88] Depth frame is corrupt!
+[11/11 21:43:38.277295][debug][129452][OpenNIDataProcessor.cpp:28] Depth: Expected 16727, got 17017
+[11/11 21:43:38.311789][debug][129452][FrameBufferManager.cpp:35] New frame buffer allocated=0.336MB, total usage: allocated=0.336MB, max limit=2048.000MB
+[11/11 21:43:38.311827][debug][129452][OpenNIVideoSensor.cpp:723] Stream state changed to STREAM_STATE_STREAMING. @OB_SENSOR_DEPTH
+[11/11 21:43:38.312061][debug][129452][FrameProcessingBlock.cpp:59] FrameProcessingBlock@N11libobsensor13FrameUnpackerE process thread started!
+[11/11 21:43:38.312095][debug][129454][FrameBufferManager.hpp:65] FrameBufferManager created! frame type:N11libobsensor10DepthFrameE, obj addr:0x7ac3844e7c60, frame obj total size:0.489MB
+[11/11 21:43:38.312113][debug][129454][FrameMemoryPool.cpp:60] DepthFrame bufferManager created!
+[11/11 21:43:38.312141][debug][129454][FrameBufferManager.cpp:35] New frame buffer allocated=0.489MB, total usage: allocated=0.825MB, max limit=2048.000MB
+[11/11 21:43:38.312577][debug][129454][FrameProcessingBlock.cpp:59] FrameProcessingBlock@N11libobsensor24Disparity2DepthConverterE process thread started!
+[11/11 21:43:38.312852][debug][129455][FrameProcessingBlock.cpp:59] FrameProcessingBlock@N11libobsensor9D2CFilterE process thread started!
+[11/11 21:43:38.312896][debug][129456][FrameBufferManager.hpp:65] FrameBufferManager created! frame type:N11libobsensor10DepthFrameE, obj addr:0x7ac370000d30, frame obj total size:0.586MB
+[11/11 21:43:38.312914][debug][129456][FrameMemoryPool.cpp:60] DepthFrame bufferManager created!
+[11/11 21:43:38.314429][debug][129456][FrameBufferManager.cpp:35] New frame buffer allocated=0.586MB, total usage: allocated=1.411MB, max limit=2048.000MB
+[11/11 21:43:38.317015][debug][129456][FrameProcessingBlock.cpp:59] FrameProcessingBlock@N11libobsensor17PostProcessFilterE process thread started!
+[11/11 21:43:38.317072][debug][129457][FrameBufferManager.hpp:65] FrameBufferManager created! frame type:N11libobsensor8FrameSetE, obj addr:0x7ac364000d90, frame obj total size:0.000MB
+[11/11 21:43:38.317083][debug][129457][FrameMemoryPool.cpp:92] Frameset bufferManager created!
+[11/11 21:43:38.317106][debug][129457][Pipeline.cpp:319] Frame received on pipeline! type=OB_FRAME_DEPTH
+[11/11 21:43:38.345799][debug][129456][FrameBufferManager.cpp:35] New frame buffer allocated=0.586MB, total usage: allocated=1.998MB, max limit=2048.000MB
+[11/11 21:43:38.377729][debug][129456][FrameBufferManager.cpp:35] New frame buffer allocated=0.586MB, total usage: allocated=2.584MB, max limit=2048.000MB
+[11/11 21:43:38.383115][debug][129457][FrameBufferManager.cpp:35] New frame buffer allocated=0.000MB, total usage: allocated=2.584MB, max limit=2048.000MB
+[11/11 21:43:38.502296][debug][129451][FrameBufferManager.cpp:35] New frame buffer allocated=0.293MB, total usage: allocated=2.878MB, max limit=2048.000MB
+[11/11 21:43:38.502377][debug][129451][VideoSensor.cpp:462] Stream state changed to STREAM_STATE_STREAMING. @OB_SENSOR_COLOR
+[11/11 21:43:38.543498][debug][129456][FrameBufferManager.cpp:35] New frame buffer allocated=0.586MB, total usage: allocated=3.464MB, max limit=2048.000MB
+[11/11 21:43:38.578381][debug][129456][FrameBufferManager.cpp:35] New frame buffer allocated=0.586MB, total usage: allocated=4.051MB, max limit=2048.000MB
+[11/11 21:43:38.644065][debug][129456][FrameBufferManager.cpp:35] New frame buffer allocated=0.586MB, total usage: allocated=4.637MB, max limit=2048.000MB
+[11/11 21:43:38.677548][debug][129456][FrameBufferManager.cpp:35] New frame buffer allocated=0.586MB, total usage: allocated=5.223MB, max limit=2048.000MB
+[11/11 21:43:38.711477][debug][129456][FrameBufferManager.cpp:35] New frame buffer allocated=0.586MB, total usage: allocated=5.810MB, max limit=2048.000MB
+[11/11 21:43:38.743432][debug][129456][FrameBufferManager.cpp:35] New frame buffer allocated=0.586MB, total usage: allocated=6.396MB, max limit=2048.000MB
+[11/11 21:43:38.778710][debug][129456][FrameBufferManager.cpp:35] New frame buffer allocated=0.586MB, total usage: allocated=6.983MB, max limit=2048.000MB
+[11/11 21:43:38.779598][debug][129451][Pipeline.cpp:319] Frame received on pipeline! type=OB_FRAME_COLOR
+[11/11 21:43:40.457981][debug][129453][FrameBufferManager.hpp:65] FrameBufferManager created! frame type:N11libobsensor10ColorFrameE, obj addr:0x7ac35c000c70, frame obj total size:0.879MB
+[11/11 21:43:40.458008][debug][129453][FrameMemoryPool.cpp:76] ColorFrame bufferManager created!
+[11/11 21:43:40.458026][debug][129453][FrameBufferManager.cpp:35] New frame buffer allocated=0.879MB, total usage: allocated=7.862MB, max limit=2048.000MB
+[11/11 21:43:41.342056][debug][129457][Pipeline.cpp:319] Frame received on pipeline! type=OB_FRAME_DEPTH [**90 logs in 3024ms**]
+[11/11 21:43:41.780201][debug][129459][Pipeline.cpp:319] Frame received on pipeline! type=OB_FRAME_COLOR [**91 logs in 3000ms, last: 21:43:41.754066**]
+[11/11 21:43:43.513917][debug][129451][VideoSensor.cpp:427] OB_SENSOR_COLOR Streaming... frameRate=28.936338fps
+[11/11 21:43:43.514030][debug][129451][Pipeline.cpp:323] Pipeline streaming... frameset output rate=28.930567fps
+[11/11 21:43:44.179341][info][129350][Pipeline.cpp:411] Try to stop pipeline!
+[11/11 21:43:44.179372][info][129350][Pipeline.cpp:383] Try to stop streams!
+[11/11 21:43:44.179382][debug][129350][OpenNIVideoSensor.cpp:784] Shutting down USB Depth read thread...
+[11/11 21:43:44.179386][debug][129350][OpenNIUSBLinux.cpp:346] Shutdown read thread...
+[11/11 21:43:44.180326][debug][129452][OpenNIUSBLinux.cpp:218] Cancel request transfer(14)...
+[11/11 21:43:44.180461][debug][129365][RequestLibusb.cpp:21] transfer cancelled!
+[11/11 21:43:44.213810][debug][129451][FrameBufferManager.cpp:35] New frame buffer allocated=0.293MB, total usage: allocated=8.155MB, max limit=2048.000MB
+[11/11 21:43:44.280524][warning][129452][OpenNIUSBLinux.cpp:245] Endpoint  0x81, Buffer14: Failed waiting on asynch transfer event:OB_EVENT_TIMEOUT
+[11/11 21:43:44.280583][debug][129452][OpenNIUSBLinux.cpp:218] Cancel request transfer(3)...
+[11/11 21:43:44.280711][debug][129365][RequestLibusb.cpp:21] transfer cancelled!
+[11/11 21:43:44.380762][warning][129452][OpenNIUSBLinux.cpp:245] Endpoint  0x81, Buffer3: Failed waiting on asynch transfer event:OB_EVENT_TIMEOUT
+[11/11 21:43:44.380801][debug][129452][OpenNIDataProcessor.cpp:28] Depth: Expected 19433, got 19780
+[11/11 21:43:44.380806][debug][129452][OpenNIFrameProcessor.cpp:88] Depth frame is corrupt!
+[11/11 21:43:44.380810][warning][129452][OpenNIUSBLinux.cpp:204] exist(0) read thread(4)
+[11/11 21:43:44.380904][warning][129350][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:43:44.380946][warning][129350][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:43:44.380955][warning][129350][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:43:44.380962][warning][129350][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:43:44.380970][warning][129350][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:43:44.380977][warning][129350][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:43:44.380982][warning][129350][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:43:44.380988][warning][129350][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:43:44.380993][warning][129350][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:43:44.380999][warning][129350][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:43:44.381004][warning][129350][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:43:44.381009][warning][129350][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:43:44.381015][warning][129350][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:43:44.381021][warning][129350][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:43:44.381026][warning][129350][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:43:44.381031][warning][129350][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:43:44.381037][warning][129350][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:43:44.381042][warning][129350][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:43:44.381047][warning][129350][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:43:44.381067][warning][129350][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:43:44.381073][warning][129350][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:43:44.381078][warning][129350][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:43:44.381084][warning][129350][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:43:44.381089][warning][129350][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:43:44.381094][warning][129350][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:43:44.381100][warning][129350][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:43:44.381105][warning][129350][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:43:44.381111][warning][129350][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:43:44.381116][warning][129350][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:43:44.381122][warning][129350][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:43:44.381127][warning][129350][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:43:44.381132][warning][129350][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:43:44.381137][warning][129350][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:43:44.381143][warning][129350][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:43:44.381148][warning][129350][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:43:44.381154][warning][129350][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:43:44.381159][warning][129350][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:43:44.381165][warning][129350][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:43:44.381170][warning][129350][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:43:44.381176][warning][129350][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:43:44.381181][warning][129350][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:43:44.381186][warning][129350][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:43:44.381192][warning][129350][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:43:44.381198][warning][129350][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:43:44.381208][warning][129350][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:43:44.381214][warning][129350][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:43:44.381219][warning][129350][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:43:44.381225][warning][129350][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:43:44.381240][warning][129350][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:43:44.381255][warning][129350][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:43:44.381261][warning][129350][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:43:44.381270][warning][129350][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:43:44.381276][warning][129350][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:43:44.381281][warning][129350][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:43:44.381287][warning][129350][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:43:44.381293][warning][129350][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:43:44.381299][warning][129350][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:43:44.381304][warning][129350][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:43:44.381310][warning][129350][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:43:44.381315][warning][129350][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:43:44.381321][warning][129350][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:43:44.381326][warning][129350][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:43:44.381332][warning][129350][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:43:44.381337][warning][129350][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:43:44.381343][debug][129350][OpenNIUSBLinux.cpp:381] Shutdown read thread end...
+[11/11 21:43:44.381348][debug][129350][OpenNISensorParams.cpp:110] set property Stream1Mode(0)
+[11/11 21:43:44.382346][debug][129350][OpenNISensorParams.cpp:121] Stream1Mode(0)was successfully set.
+[11/11 21:43:44.382760][debug][129350][FrameProcessingBlock.cpp:74] Process thread stoped! N11libobsensor13FrameUnpackerE@0x7ac38402be30 
+[11/11 21:43:44.383526][debug][129350][FrameProcessingBlock.cpp:74] Process thread stoped! N11libobsensor24Disparity2DepthConverterE@0x7ac38402c220 
+[11/11 21:43:44.384602][debug][129350][FrameProcessingBlock.cpp:74] Process thread stoped! N11libobsensor9D2CFilterE@0x7ac38402c650 
+[11/11 21:43:44.385568][debug][129350][FrameProcessingBlock.cpp:74] Process thread stoped! N11libobsensor17PostProcessFilterE@0x7ac384004fe0 
+[11/11 21:43:44.385596][debug][129350][FrameProcessor.cpp:165] FrameProcessor stoped!
+[11/11 21:43:44.385663][debug][129350][OpenNISensorStreams.cpp:114] Erase FW Stream Depth
+[11/11 21:43:44.385675][debug][129350][OpenNISensorStreams.cpp:124] released FW Stream strType
+[11/11 21:43:44.385683][info][129350][OpenNIVideoSensor.cpp:709] OpenNI Depth stream stop completed.
+[11/11 21:43:44.385695][info][129350][Pipeline.cpp:396] Sensor stream stopped, sensorType=OB_SENSOR_DEPTH
+[11/11 21:43:44.385703][debug][129350][VideoSensor.cpp:686] VideoSensor::stop, @OB_SENSOR_COLOR
+[11/11 21:43:44.385711][debug][129350][VideoSensor.cpp:709] Stream state changed to STREAM_STATE_STOPPING. @OB_SENSOR_COLOR
+[11/11 21:43:44.385719][debug][129350][ObLibuvcDevicePort.cpp:148] ObLibuvcDevicePort::stopStream()...
+[11/11 21:43:44.452509][debug][129350][ObLibuvcDevicePort.cpp:172] ObLibuvcDevicePort::stopStream() done
+[11/11 21:43:44.452555][debug][129350][VideoSensor.cpp:735] stream stoped! @OB_SENSOR_COLOR
+[11/11 21:43:44.452563][debug][129350][FrameProcessor.cpp:165] FrameProcessor stoped!
+[11/11 21:43:44.452575][debug][129350][VideoSensor.cpp:724] Stream state changed to STREAM_STATE_STOPED. @OB_SENSOR_COLOR
+[11/11 21:43:44.452579][info][129350][VideoSensor.cpp:742] Video sensor stopped, @OB_SENSOR_COLOR
+[11/11 21:43:44.452583][info][129350][Pipeline.cpp:396] Sensor stream stopped, sensorType=OB_SENSOR_COLOR
+[11/11 21:43:44.452588][info][129350][Pipeline.cpp:402] Stop streams done!
+[11/11 21:43:44.452605][debug][129350][OpenNISensorParams.cpp:110] set property Registration(0)
+[11/11 21:43:44.453024][debug][129350][OpenNISensorParams.cpp:121] Registration(0)was successfully set.
+[11/11 21:43:44.453048][debug][129350][PropertyAccessor.cpp:17] set property value success! propertyId: 42, value: {intValue: 0, floatValue: 0}
+[11/11 21:43:44.453064][debug][129350][FrameProcessingBlockManager.cpp:84] FrameProcessingBlockManager stoped!
+[11/11 21:43:44.453068][debug][129350][FrameProcessingBlockManager.cpp:20] Processing block list cleared!
+[11/11 21:43:44.453073][info][129350][Pipeline.cpp:443] Stop pipeline done!
+[11/11 21:43:44.532732][debug][129350][Pipeline.cpp:68] Pipeline deInit start!
+[11/11 21:43:44.532763][info][129350][Pipeline.cpp:75] Pipeline destroyed! @0x7AC38451F790
+[11/11 21:43:44.533132][info][129350][OpenNIDevice.cpp:44] OpenNI device destroyed! PID: 0x0614, SN: AY23B52001Y
+[11/11 21:43:44.533141][info][129350][OpenNIVideoSensor.cpp:1021] OpenNIVideoSensor destroyed! sensorType=OB_SENSOR_IR
+[11/11 21:43:44.533145][debug][129350][VideoSensor.cpp:282] VideoSensor::~VideoSensor(), @OB_SENSOR_COLOR
+[11/11 21:43:44.533147][info][129350][VideoSensor.cpp:303] VideoSensor destroyed, @OB_SENSOR_COLOR
+[11/11 21:43:44.533150][info][129350][OpenNIVideoSensor.cpp:1021] OpenNIVideoSensor destroyed! sensorType=OB_SENSOR_DEPTH
+[11/11 21:43:44.533160][debug][129350][FrameProcessor.cpp:807] try remove eventId: PropertyValueUpdate
+[11/11 21:43:44.533164][debug][129350][FrameProcessor.cpp:807] try remove eventId: DepthStreamProfileChanged
+[11/11 21:43:44.533167][debug][129350][FrameProcessor.cpp:111] FrameProcessor destroyed! @134980151983328
+[11/11 21:43:44.533176][debug][129350][FrameProcessor.cpp:111] FrameProcessor destroyed! @134980152013248
+[11/11 21:43:44.533178][debug][129350][ObLibuvcDevicePort.cpp:63] ~ObLibuvcDevicePort
+[11/11 21:43:44.592587][info][129350][ObLibuvcDevicePort.cpp:70] uvc_close done.
+[11/11 21:43:44.592608][info][129350][ObLibuvcDevicePort.cpp:71] ~ObLibuvcDevicePort done
+[11/11 21:43:44.592645][debug][129350][FrameProcessor.cpp:111] FrameProcessor destroyed! @108383014620336
+[11/11 21:43:44.592651][debug][129350][VendorCommand.cpp:213] destructor 7ac384004730
+[11/11 21:43:44.592658][debug][129350][VendorCommand.cpp:468] disableHeartBeat heartBeatHelper_: 0
+[11/11 21:43:44.592660][debug][129350][HostProtocol.cpp:140] ~HostProtocol()
+[11/11 21:43:44.592668][debug][129398][HostProtocol.cpp:168] emitTranDataFutureSignalThread_ finish
+[11/11 21:43:44.592747][debug][129350][Context.cpp:81] Context destroying ...
+[11/11 21:43:44.592749][debug][129350][DeviceManager.cpp:56] DeviceManager destroy ...
+[11/11 21:43:44.592750][debug][129350][DeviceManager.cpp:64] DeviceManager Destructors done
+[11/11 21:43:44.592907][debug][129350][FrameBufferManager.hpp:72] FrameBufferManager destroying...! frame type: N11libobsensor8FrameSetE,  obj addr:0x7ac364000d90
+[11/11 21:43:44.592912][debug][129350][FrameBufferManager.cpp:54] Frame buffer released=0.000MB, total usage: allocated=8.155MB, max limit=2048.000MB
+[11/11 21:43:44.592913][debug][129350][FrameBufferManager.cpp:69] AbstractFrameBufferManager destroyed! manager type:N11libobsensor26AbstractFrameBufferManagerE,  obj addr:0x7ac364000d90
+[11/11 21:43:44.592915][debug][129350][FrameBufferManager.hpp:72] FrameBufferManager destroying...! frame type: N11libobsensor10DepthFrameE,  obj addr:0x7ac370000d30
+[11/11 21:43:44.592939][debug][129350][FrameBufferManager.cpp:54] Frame buffer released=0.586MB, total usage: allocated=7.569MB, max limit=2048.000MB
+[11/11 21:43:44.592972][debug][129350][FrameBufferManager.cpp:54] Frame buffer released=0.586MB, total usage: allocated=6.982MB, max limit=2048.000MB
+[11/11 21:43:44.593000][debug][129350][FrameBufferManager.cpp:54] Frame buffer released=0.586MB, total usage: allocated=6.396MB, max limit=2048.000MB
+[11/11 21:43:44.593022][debug][129350][FrameBufferManager.cpp:54] Frame buffer released=0.586MB, total usage: allocated=5.809MB, max limit=2048.000MB
+[11/11 21:43:44.593048][debug][129350][FrameBufferManager.cpp:54] Frame buffer released=0.586MB, total usage: allocated=5.223MB, max limit=2048.000MB
+[11/11 21:43:44.593065][debug][129350][FrameBufferManager.cpp:54] Frame buffer released=0.586MB, total usage: allocated=4.637MB, max limit=2048.000MB
+[11/11 21:43:44.593088][debug][129350][FrameBufferManager.cpp:54] Frame buffer released=0.586MB, total usage: allocated=4.050MB, max limit=2048.000MB
+[11/11 21:43:44.593105][debug][129350][FrameBufferManager.cpp:54] Frame buffer released=0.586MB, total usage: allocated=3.464MB, max limit=2048.000MB
+[11/11 21:43:44.593131][debug][129350][FrameBufferManager.cpp:54] Frame buffer released=0.586MB, total usage: allocated=2.877MB, max limit=2048.000MB
+[11/11 21:43:44.593147][debug][129350][FrameBufferManager.cpp:54] Frame buffer released=0.586MB, total usage: allocated=2.291MB, max limit=2048.000MB
+[11/11 21:43:44.593149][debug][129350][FrameBufferManager.cpp:69] AbstractFrameBufferManager destroyed! manager type:N11libobsensor26AbstractFrameBufferManagerE,  obj addr:0x7ac370000d30
+[11/11 21:43:44.593151][debug][129350][FrameBufferManager.hpp:72] FrameBufferManager destroying...! frame type: N11libobsensor10DepthFrameE,  obj addr:0x7ac3844e7c60
+[11/11 21:43:44.593168][debug][129350][FrameBufferManager.cpp:54] Frame buffer released=0.489MB, total usage: allocated=1.802MB, max limit=2048.000MB
+[11/11 21:43:44.593170][debug][129350][FrameBufferManager.cpp:69] AbstractFrameBufferManager destroyed! manager type:N11libobsensor26AbstractFrameBufferManagerE,  obj addr:0x7ac3844e7c60
+[11/11 21:43:44.593171][debug][129350][FrameBufferManager.hpp:72] FrameBufferManager destroying...! frame type: N11libobsensor10DepthFrameE,  obj addr:0x7ac3844e7b60
+[11/11 21:43:44.593186][debug][129350][FrameBufferManager.cpp:54] Frame buffer released=0.336MB, total usage: allocated=1.466MB, max limit=2048.000MB
+[11/11 21:43:44.593187][debug][129350][FrameBufferManager.cpp:69] AbstractFrameBufferManager destroyed! manager type:N11libobsensor26AbstractFrameBufferManagerE,  obj addr:0x7ac3844e7b60
+[11/11 21:43:44.593189][debug][129350][FrameBufferManager.hpp:72] FrameBufferManager destroying...! frame type: N11libobsensor10ColorFrameE,  obj addr:0x7ac35c000c70
+[11/11 21:43:44.593246][debug][129350][FrameBufferManager.cpp:54] Frame buffer released=0.879MB, total usage: allocated=0.587MB, max limit=2048.000MB
+[11/11 21:43:44.593251][debug][129350][FrameBufferManager.cpp:69] AbstractFrameBufferManager destroyed! manager type:N11libobsensor26AbstractFrameBufferManagerE,  obj addr:0x7ac35c000c70
+[11/11 21:43:44.593262][debug][129350][FrameBufferManager.hpp:72] FrameBufferManager destroying...! frame type: N11libobsensor10ColorFrameE,  obj addr:0x7ac3840701b0
+[11/11 21:43:44.593280][debug][129350][FrameBufferManager.cpp:54] Frame buffer released=0.293MB, total usage: allocated=0.293MB, max limit=2048.000MB
+[11/11 21:43:44.593285][debug][129350][FrameBufferManager.cpp:54] Frame buffer released=0.293MB, total usage: allocated=0.000MB, max limit=2048.000MB
+[11/11 21:43:44.593286][debug][129350][FrameBufferManager.cpp:69] AbstractFrameBufferManager destroyed! manager type:N11libobsensor26AbstractFrameBufferManagerE,  obj addr:0x7ac3840701b0
+[11/11 21:43:44.593288][info][129350][Context.cpp:84] Context destroyed
+[11/11 21:43:44.593324][debug][129469][Pipeline.cpp:319] Frame received on pipeline! type=OB_FRAME_COLOR [**79 logs in 2813ms, last: 21:43:44.377875**]
+[11/11 21:43:44.593391][debug][129468][Pipeline.cpp:319] Frame received on pipeline! type=OB_FRAME_DEPTH [**85 logs in 3251ms, last: 21:43:44.166548**]
+[11/11 21:52:30.698967][debug][132496][Context.cpp:30] Context creating, work_dir=/home/robot/project/robot_and_chassis_control-main/ros_ws
+[11/11 21:52:30.699000][debug][132496][Context.cpp:49] Config file version=1.1
+[11/11 21:52:30.699008][debug][132496][FrameBufferManager.cpp:23] Max global frame buffer size updated! size=2048.000MB
+[11/11 21:52:30.699010][info][132496][Context.cpp:68] Context created with config: /home/robot/project/robot_and_chassis_control-main/ros_ws/install/orbbec_camera/share/orbbec_camera/config/OrbbecSDKConfig_v1.0.xml
+[11/11 21:52:30.699018][info][132496][Context.cpp:73] Work directory=/home/robot/project/robot_and_chassis_control-main/ros_ws, SDK version=v1.10.35-20260128-fa838f5
+[11/11 21:52:30.699022][debug][132496][DeviceManager.cpp:30] DeviceManager init ...
+[11/11 21:52:30.699023][info][132496][LinuxPal.cpp:32] createObPal: create LinuxPal!
+[11/11 21:52:30.699509][debug][132496][DeviceManager.cpp:34] Enable USB Device Enumerator ...
+[11/11 21:52:30.772667][debug][132496][EnumeratorLibusb.cpp:324] queryDevicesInfo done!
+[11/11 21:52:30.772701][debug][132496][UsbDeviceEnumerator.cpp:163] Current usb device port list:
+[11/11 21:52:30.772711][debug][132496][UsbDeviceEnumerator.cpp:166]  - 3-1.1.2-30.0 | Orbbec(R) Astra(TM) 3D Camera(F) Depth
+[11/11 21:52:30.772714][debug][132496][UsbDeviceEnumerator.cpp:166]  - 3-1.1.1-29.0 | USB Camera
+[11/11 21:52:30.772758][warning][132496][OpenNIDeviceInfo.cpp:190] New openni device matched.
+[11/11 21:52:30.772851][info][132496][LinuxPal.cpp:166] Create PollingDeviceWatcher!
+[11/11 21:52:30.772868][debug][132496][UsbDeviceEnumerator.cpp:71] Found 1 device(s):
+[11/11 21:52:30.772873][debug][132496][UsbDeviceEnumerator.cpp:74]   - Name: SV1301S_U3, PID: 0x0614, SN/ID: , connection: USB2.0
+[11/11 21:52:30.772879][info][132496][DeviceManager.cpp:15] Current found device(s): (1)
+[11/11 21:52:30.772884][info][132496][DeviceManager.cpp:24] 	- Name: SV1301S_U3, PID: 0x0614, SN/ID: , Connection: USB2.0
+[11/11 21:52:30.772887][debug][132496][DeviceManager.cpp:52] DeviceManager construct done!
+[11/11 21:52:30.774609][info][132496][DeviceManager.cpp:304] Enable net device enumeration: false
+[11/11 21:52:30.875434][debug][132513][DeviceManager.cpp:109] DeviceManager  createDevice...
+[11/11 21:52:30.875461][debug][132513][UsbDeviceEnumerator.cpp:297] UsbDeviceEnumerator createDevice...
+[11/11 21:52:30.875992][info][132513][OpenNIHostProtocol.cpp:722] Hardware versions: FW=5.8.23 (14), HW=0, Chip=7, Sensor=0, SYS=12
+[11/11 21:52:30.876217][warning][132513][OpenNIHostProtocol.cpp:739] Get usb core type failed!
+[11/11 21:52:30.876224][debug][132513][OpenNIHostProtocol.cpp:820] Requesting KeepAlive...
+[11/11 21:52:30.876494][debug][132513][OpenNIHostProtocol.cpp:827] Got KeepAlive Reply.
+[11/11 21:52:30.877802][debug][132513][OpenNIHostProtocol.cpp:820] Requesting KeepAlive...
+[11/11 21:52:30.878129][debug][132513][OpenNIHostProtocol.cpp:827] Got KeepAlive Reply.
+[11/11 21:52:30.878144][debug][132513][OpenNIHostProtocol.cpp:845] Getting the fixed params...
+[11/11 21:52:30.878470][debug][132513][OpenNIHostProtocol.cpp:885] Reading sensor serial number...
+[11/11 21:52:30.878712][info][132513][OpenNISensorFirmware.cpp:1190] Sensor serial number:AY23B52001Y
+[11/11 21:52:30.878972][debug][132513][OpenNIHostProtocol.cpp:957] Reading sensor platform string...
+[11/11 21:52:30.879248][info][132513][OpenNISensorFirmware.cpp:1218] Firmware version RD3013
+[11/11 21:52:30.879500][info][132513][OpenNISensorFirmware.cpp:1224] Device frequency 50
+[11/11 21:52:30.879506][debug][132513][OpenNIHostProtocol.cpp:1034] Update supported depth video modes from firmware
+[11/11 21:52:30.879513][debug][132513][OpenNIHostProtocol.cpp:1070] Reading CMOS 1 supported presets...
+[11/11 21:52:30.879764][debug][132513][OpenNIHostProtocol.cpp:1034] Update supported depth video modes from firmware
+[11/11 21:52:30.879771][debug][132513][OpenNIHostProtocol.cpp:1070] Reading CMOS 2 supported presets...
+[11/11 21:52:30.888005][debug][132513][OpenNISensorParams.cpp:110] set property DepthMirror(0)
+[11/11 21:52:30.888242][debug][132513][OpenNISensorParams.cpp:121] DepthMirror(0)was successfully set.
+[11/11 21:52:30.888261][debug][132513][OpenNISensorFirmware.cpp:1236] OpenNI camera params read.
+[11/11 21:52:30.953693][debug][132513][OpenNISensorFirmware.cpp:2103] OpenNI camera params read end.
+[11/11 21:52:30.954160][warning][132513][OpenNIHostProtocol.cpp:1112] Host Protocol sub cmd not supported!
+[11/11 21:52:30.954166][warning][132513][OpenNISensorFirmware.cpp:153] OpenNI2 camera don't support Watchdog function!
+[11/11 21:52:30.954171][debug][132513][OpenNISensorIO.cpp:29] Opening endpoint 0x81 for depth...
+[11/11 21:52:30.954186][debug][132513][OpenNISensorIO.cpp:41] Depth endpoint(0x81) was successfully opened.
+[11/11 21:52:30.954202][debug][132513][OpenNISensorIO.cpp:48] Opening endpoint 0x82 for IR...
+[11/11 21:52:30.954206][debug][132513][OpenNISensorIO.cpp:54] IR endpoint(0x82) was successfully opened.
+[11/11 21:52:30.954208][debug][132513][OpenNISensorIO.cpp:60] Opening endpoint 0x84  for image...
+[11/11 21:52:30.954210][debug][132513][OpenNISensorIO.cpp:65] Image endpoint is not supported...
+[11/11 21:52:30.954213][debug][132513][OpenNISensorIO.cpp:75] Opening endpoint 0x83 for misc...
+[11/11 21:52:30.954216][debug][132513][OpenNISensorIO.cpp:80] Misc endpoint is not supported...
+[11/11 21:52:30.954219][debug][132513][OpenNISensorIO.cpp:87] Endpoints open end.
+[11/11 21:52:30.954228][debug][132513][VendorCommand.cpp:205] VendorCommand constructor 775244004730
+[11/11 21:52:30.954241][debug][132513][OpenNIDevice.cpp:205] init sensor map start!
+[11/11 21:52:30.954250][debug][132513][OpenNIDevice.cpp:219] init sensor map done!
+[11/11 21:52:30.954295][debug][132513][PropertyAccessor.cpp:50] get firmware data success! propertyId: 1000, dataLen: 164
+[11/11 21:52:30.954303][info][132513][AbstractDevice.cpp:120] 	- Firmware version: RD3013
+[11/11 21:52:30.954389][debug][132513][OpenNIDevice.cpp:259] Init depth process param start!
+[11/11 21:52:30.954401][debug][132513][OpenNIDevice.cpp:274] Device baseline: 39.921974, fx:955.5443725585938
+[11/11 21:52:30.954404][debug][132513][OpenNIDevice.cpp:305] Init depth process param done!
+[11/11 21:52:30.954603][info][132513][OpenNIDevice.cpp:821] Init depth filter params.
+[11/11 21:52:30.954606][info][132513][OpenNIDevice.cpp:40] OpenNI device created! PID: 0x0614, SN: AY23B52001Y
+[11/11 21:52:30.954609][debug][132513][UsbDeviceEnumerator.cpp:371] Device created successfully! Name: SV1301S_U3, PID: 0x0614, SN/ID: 
+[11/11 21:52:30.954612][info][132513][DeviceManager.cpp:150] Device created successfully! Name: SV1301S_U3, PID: 0x0614, SN/ID: 
+[11/11 21:52:30.954694][debug][132513][FrameProcessingBlock.cpp:26] Block created with frame queue size: 10
+[11/11 21:52:30.954710][debug][132513][FrameProcessingBlock.cpp:26] Block created with frame queue size: 10
+[11/11 21:52:30.964959][debug][132513][FrameProcessor.cpp:90] FrameProcessor init with 5 blocks! @131195212087120
+[11/11 21:52:30.964998][debug][132513][FrameProcessingBlock.cpp:26] Block created with frame queue size: 10
+[11/11 21:52:30.965010][debug][132513][FrameProcessor.cpp:98]  - block: FrameUnpacker, status: enable
+[11/11 21:52:30.965015][debug][132513][FrameProcessingBlock.cpp:26] Block created with frame queue size: 10
+[11/11 21:52:30.965018][debug][132513][FrameProcessor.cpp:98]  - block: FrameSoftFilter, status: enable
+[11/11 21:52:30.965021][debug][132513][FrameProcessingBlock.cpp:26] Block created with frame queue size: 10
+[11/11 21:52:30.965024][debug][132513][FrameProcessor.cpp:98]  - block: Disparity2DepthConverter, status: enable
+[11/11 21:52:30.965027][debug][132513][FrameProcessingBlock.cpp:26] Block created with frame queue size: 10
+[11/11 21:52:30.965029][debug][132513][FrameProcessor.cpp:98]  - block: D2CFilter, status: disable
+[11/11 21:52:30.965032][debug][132513][FrameProcessingBlock.cpp:26] Block created with frame queue size: 10
+[11/11 21:52:30.965034][debug][132513][FrameProcessor.cpp:98]  - block: PostProcessFilter, status: disable
+[11/11 21:52:30.965168][info][132513][OpenNIDevice.cpp:395] Depth sensor has been created!
+[11/11 21:52:30.965191][debug][132513][PropertyAccessor.cpp:17] set property value success! propertyId: 24, value: {intValue: 0, floatValue: 0}
+[11/11 21:52:30.965207][debug][132513][FrameProcessor.cpp:90] FrameProcessor init with 2 blocks! @101842270188336
+[11/11 21:52:30.965212][debug][132513][FrameProcessingBlock.cpp:26] Block created with frame queue size: 10
+[11/11 21:52:30.965215][debug][132513][FrameProcessor.cpp:98]  - block: FrameUnpacker, status: enable
+[11/11 21:52:30.965223][debug][132513][FrameProcessingBlock.cpp:26] Block created with frame queue size: 10
+[11/11 21:52:30.965225][debug][132513][FrameProcessor.cpp:98]  - block: FrameMirror, status: disable
+[11/11 21:52:30.965228][info][132513][OpenNIDevice.cpp:689] IR sensor has been created!
+[11/11 21:52:30.965257][debug][132513][OpenNIVideoSensor.cpp:864] Query stream profile! size= 12, sensorType=OB_SENSOR_IR
+[11/11 21:52:30.965265][debug][132513][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_IR, format: OB_FORMAT_Y10, width: 640, height: 400, fps: 30}
+[11/11 21:52:30.965267][debug][132513][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_IR, format: OB_FORMAT_Y10, width: 320, height: 200, fps: 5}
+[11/11 21:52:30.965269][debug][132513][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_IR, format: OB_FORMAT_Y10, width: 320, height: 200, fps: 10}
+[11/11 21:52:30.965271][debug][132513][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_IR, format: OB_FORMAT_Y10, width: 320, height: 200, fps: 15}
+[11/11 21:52:30.965273][debug][132513][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_IR, format: OB_FORMAT_Y10, width: 320, height: 200, fps: 30}
+[11/11 21:52:30.965275][debug][132513][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_IR, format: OB_FORMAT_Y10, width: 320, height: 200, fps: 60}
+[11/11 21:52:30.965277][debug][132513][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_IR, format: OB_FORMAT_Y10, width: 640, height: 400, fps: 5}
+[11/11 21:52:30.965279][debug][132513][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_IR, format: OB_FORMAT_Y10, width: 640, height: 400, fps: 10}
+[11/11 21:52:30.965281][debug][132513][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_IR, format: OB_FORMAT_Y10, width: 640, height: 400, fps: 15}
+[11/11 21:52:30.965283][debug][132513][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_IR, format: OB_FORMAT_Y10, width: 640, height: 400, fps: 60}
+[11/11 21:52:30.965285][debug][132513][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_IR, format: OB_FORMAT_Y10, width: 1280, height: 800, fps: 15}
+[11/11 21:52:30.965287][debug][132513][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_IR, format: OB_FORMAT_Y10, width: 1280, height: 800, fps: 30}
+[11/11 21:52:30.965309][debug][132513][LinuxPal.cpp:296] Uvc backend have been set to LibUVC(1)
+[11/11 21:52:30.985695][debug][132513][ObLibuvcDevicePort.cpp:58] uvc_open success
+[11/11 21:52:30.985733][debug][132513][LinuxPal.cpp:127] UVC device have been create with LibUVC backend! dev: 3-1.1.1-29, inf: 3-1.1.1-29.0
+[11/11 21:52:30.985741][debug][132513][FrameProcessor.cpp:90] FrameProcessor init with 1 blocks! @131195212156000
+[11/11 21:52:30.985774][debug][132513][FrameProcessingBlock.cpp:26] Block created with frame queue size: 10
+[11/11 21:52:30.985778][debug][132513][FrameProcessor.cpp:98]  - block: FormatConverter, status: disable
+[11/11 21:52:30.985795][debug][132513][VideoSensor.cpp:252] VideoSensor construct!
+[11/11 21:52:30.985811][debug][132513][VideoSensor.cpp:263] stream profile size= 21, SensorType=OB_SENSOR_COLOR
+[11/11 21:52:30.985819][debug][132513][VideoSensor.cpp:265]  - {type: OB_STREAM_COLOR, format: OB_FORMAT_MJPG, width: 640, height: 480, fps: 30}
+[11/11 21:52:30.985822][debug][132513][VideoSensor.cpp:265]  - {type: OB_STREAM_COLOR, format: OB_FORMAT_MJPG, width: 1920, height: 1080, fps: 30}
+[11/11 21:52:30.985825][debug][132513][VideoSensor.cpp:265]  - {type: OB_STREAM_COLOR, format: OB_FORMAT_MJPG, width: 1280, height: 720, fps: 30}
+[11/11 21:52:30.985828][debug][132513][VideoSensor.cpp:265]  - {type: OB_STREAM_COLOR, format: OB_FORMAT_MJPG, width: 640, height: 480, fps: 60}
+[11/11 21:52:30.985830][debug][132513][VideoSensor.cpp:265]  - {type: OB_STREAM_COLOR, format: OB_FORMAT_MJPG, width: 640, height: 480, fps: 15}
+[11/11 21:52:30.985833][debug][132513][VideoSensor.cpp:265]  - {type: OB_STREAM_COLOR, format: OB_FORMAT_MJPG, width: 640, height: 480, fps: 10}
+[11/11 21:52:30.985837][debug][132513][VideoSensor.cpp:265]  - {type: OB_STREAM_COLOR, format: OB_FORMAT_MJPG, width: 640, height: 480, fps: 5}
+[11/11 21:52:30.985839][debug][132513][VideoSensor.cpp:265]  - {type: OB_STREAM_COLOR, format: OB_FORMAT_RGB888, width: 1920, height: 1080, fps: 30}
+[11/11 21:52:30.985842][debug][132513][VideoSensor.cpp:265]  - {type: OB_STREAM_COLOR, format: OB_FORMAT_RGB888, width: 1280, height: 720, fps: 30}
+[11/11 21:52:30.985845][debug][132513][VideoSensor.cpp:265]  - {type: OB_STREAM_COLOR, format: OB_FORMAT_RGB888, width: 640, height: 480, fps: 60}
+[11/11 21:52:30.985847][debug][132513][VideoSensor.cpp:265]  - {type: OB_STREAM_COLOR, format: OB_FORMAT_RGB888, width: 640, height: 480, fps: 30}
+[11/11 21:52:30.985850][debug][132513][VideoSensor.cpp:265]  - {type: OB_STREAM_COLOR, format: OB_FORMAT_RGB888, width: 640, height: 480, fps: 15}
+[11/11 21:52:30.985853][debug][132513][VideoSensor.cpp:265]  - {type: OB_STREAM_COLOR, format: OB_FORMAT_RGB888, width: 640, height: 480, fps: 10}
+[11/11 21:52:30.985856][debug][132513][VideoSensor.cpp:265]  - {type: OB_STREAM_COLOR, format: OB_FORMAT_RGB888, width: 640, height: 480, fps: 5}
+[11/11 21:52:30.985859][debug][132513][VideoSensor.cpp:265]  - {type: OB_STREAM_COLOR, format: OB_FORMAT_BGRA, width: 1920, height: 1080, fps: 30}
+[11/11 21:52:30.985861][debug][132513][VideoSensor.cpp:265]  - {type: OB_STREAM_COLOR, format: OB_FORMAT_BGRA, width: 1280, height: 720, fps: 30}
+[11/11 21:52:30.985864][debug][132513][VideoSensor.cpp:265]  - {type: OB_STREAM_COLOR, format: OB_FORMAT_BGRA, width: 640, height: 480, fps: 60}
+[11/11 21:52:30.985867][debug][132513][VideoSensor.cpp:265]  - {type: OB_STREAM_COLOR, format: OB_FORMAT_BGRA, width: 640, height: 480, fps: 30}
+[11/11 21:52:30.985869][debug][132513][VideoSensor.cpp:265]  - {type: OB_STREAM_COLOR, format: OB_FORMAT_BGRA, width: 640, height: 480, fps: 15}
+[11/11 21:52:30.985872][debug][132513][VideoSensor.cpp:265]  - {type: OB_STREAM_COLOR, format: OB_FORMAT_BGRA, width: 640, height: 480, fps: 10}
+[11/11 21:52:30.985875][debug][132513][VideoSensor.cpp:265]  - {type: OB_STREAM_COLOR, format: OB_FORMAT_BGRA, width: 640, height: 480, fps: 5}
+[11/11 21:52:30.985885][debug][132513][VideoSensor.cpp:278] VideoSensor created, @OB_SENSOR_COLOR
+[11/11 21:52:30.985887][info][132513][OpenNIDevice.cpp:641] Color sensor has been created!
+[11/11 21:52:30.985961][debug][132513][OpenNIVideoSensor.cpp:864] Query stream profile! size= 24, sensorType=OB_SENSOR_DEPTH
+[11/11 21:52:30.985965][debug][132513][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y11, width: 640, height: 400, fps: 30}
+[11/11 21:52:30.985968][debug][132513][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y11, width: 320, height: 200, fps: 5}
+[11/11 21:52:30.985974][debug][132513][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y12, width: 320, height: 200, fps: 5}
+[11/11 21:52:30.985978][debug][132513][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y11, width: 320, height: 200, fps: 10}
+[11/11 21:52:30.985983][debug][132513][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y12, width: 320, height: 200, fps: 10}
+[11/11 21:52:30.985986][debug][132513][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y11, width: 320, height: 200, fps: 15}
+[11/11 21:52:30.985989][debug][132513][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y12, width: 320, height: 200, fps: 15}
+[11/11 21:52:30.985993][debug][132513][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y11, width: 320, height: 200, fps: 30}
+[11/11 21:52:30.985997][debug][132513][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y12, width: 320, height: 200, fps: 30}
+[11/11 21:52:30.986001][debug][132513][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y11, width: 320, height: 200, fps: 60}
+[11/11 21:52:30.986005][debug][132513][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y12, width: 320, height: 200, fps: 60}
+[11/11 21:52:30.986009][debug][132513][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y11, width: 640, height: 400, fps: 5}
+[11/11 21:52:30.986012][debug][132513][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y12, width: 640, height: 400, fps: 5}
+[11/11 21:52:30.986015][debug][132513][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y11, width: 640, height: 400, fps: 10}
+[11/11 21:52:30.986018][debug][132513][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y12, width: 640, height: 400, fps: 10}
+[11/11 21:52:30.986020][debug][132513][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y11, width: 640, height: 400, fps: 15}
+[11/11 21:52:30.986023][debug][132513][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y12, width: 640, height: 400, fps: 15}
+[11/11 21:52:30.986025][debug][132513][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y12, width: 640, height: 400, fps: 30}
+[11/11 21:52:30.986028][debug][132513][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y11, width: 640, height: 400, fps: 60}
+[11/11 21:52:30.986031][debug][132513][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y12, width: 640, height: 400, fps: 60}
+[11/11 21:52:30.986033][debug][132513][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y11, width: 1280, height: 800, fps: 15}
+[11/11 21:52:30.986036][debug][132513][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y12, width: 1280, height: 800, fps: 15}
+[11/11 21:52:30.986039][debug][132513][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y11, width: 1280, height: 800, fps: 30}
+[11/11 21:52:30.986041][debug][132513][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y12, width: 1280, height: 800, fps: 30}
+[11/11 21:52:30.986139][debug][132513][FrameProcessingBlock.cpp:26] Block created with frame queue size: 10
+[11/11 21:52:30.987686][debug][132513][PropertyAccessor.cpp:17] set property value success! propertyId: 2, value: {intValue: 1, floatValue: 1.4013e-45}
+[11/11 21:52:30.987725][debug][132513][ObLibuvcDevicePort.cpp:334] ObLibuvcDevicePort::uvcCtrlValueTranslate propertyId=1, action=2003, value=1
+[11/11 21:52:30.988026][debug][132513][ObLibuvcDevicePort.cpp:207] ObLibuvcDevicePort::setPu() propertyId = 2003 value = 
+[11/11 21:52:30.988053][debug][132513][PropertyAccessor.cpp:17] set property value success! propertyId: 2003, value: {intValue: 1, floatValue: 1.4013e-45}
+[11/11 21:52:30.988067][debug][132513][ObLibuvcDevicePort.cpp:334] ObLibuvcDevicePort::uvcCtrlValueTranslate propertyId=1, action=2012, value=0
+[11/11 21:52:30.988300][debug][132513][ObLibuvcDevicePort.cpp:207] ObLibuvcDevicePort::setPu() propertyId = 2012 value = 
+[11/11 21:52:30.988331][debug][132513][PropertyAccessor.cpp:17] set property value success! propertyId: 2012, value: {intValue: 0, floatValue: 0}
+[11/11 21:52:30.988621][debug][132513][ObLibuvcDevicePort.cpp:334] ObLibuvcDevicePort::uvcCtrlValueTranslate propertyId=129, action=2012, value=0
+[11/11 21:52:30.988633][debug][132513][PropertyAccessor.cpp:28] get property value success! propertyId: 2012, value: {intValue: 0, floatValue: 0}
+[11/11 21:52:30.988686][debug][132513][ObLibuvcDevicePort.cpp:334] ObLibuvcDevicePort::uvcCtrlValueTranslate propertyId=1, action=2000, value=1
+[11/11 21:52:30.988940][debug][132513][ObLibuvcDevicePort.cpp:366] UVC_SET_CUR: getAERes:9.
+[11/11 21:52:30.988957][debug][132513][ObLibuvcDevicePort.cpp:370] UVC_AE_MODE_D0_MANUAL:translated_value:8,value:1.
+[11/11 21:52:30.989215][debug][132513][ObLibuvcDevicePort.cpp:207] ObLibuvcDevicePort::setPu() propertyId = 2000 value = 
+[11/11 21:52:30.989236][debug][132513][PropertyAccessor.cpp:17] set property value success! propertyId: 2000, value: {intValue: 1, floatValue: 1.4013e-45}
+[11/11 21:52:30.989264][debug][132513][PropertyAccessor.cpp:28] get property value success! propertyId: 40, value: {intValue: 16, floatValue: 2.24208e-44}
+[11/11 21:52:30.989292][debug][132513][PropertyAccessor.cpp:28] get property value success! propertyId: 41, value: {intValue: 480, floatValue: 6.72623e-43}
+[11/11 21:52:30.989877][debug][132513][OpenNIVideoSensor.cpp:864] Query stream profile! size= 24, sensorType=OB_SENSOR_DEPTH
+[11/11 21:52:30.989885][debug][132513][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y11, width: 640, height: 400, fps: 30}
+[11/11 21:52:30.989888][debug][132513][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y11, width: 320, height: 200, fps: 5}
+[11/11 21:52:30.989890][debug][132513][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y12, width: 320, height: 200, fps: 5}
+[11/11 21:52:30.989892][debug][132513][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y11, width: 320, height: 200, fps: 10}
+[11/11 21:52:30.989893][debug][132513][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y12, width: 320, height: 200, fps: 10}
+[11/11 21:52:30.989895][debug][132513][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y11, width: 320, height: 200, fps: 15}
+[11/11 21:52:30.989897][debug][132513][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y12, width: 320, height: 200, fps: 15}
+[11/11 21:52:30.989898][debug][132513][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y11, width: 320, height: 200, fps: 30}
+[11/11 21:52:30.989900][debug][132513][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y12, width: 320, height: 200, fps: 30}
+[11/11 21:52:30.989902][debug][132513][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y11, width: 320, height: 200, fps: 60}
+[11/11 21:52:30.989904][debug][132513][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y12, width: 320, height: 200, fps: 60}
+[11/11 21:52:30.989906][debug][132513][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y11, width: 640, height: 400, fps: 5}
+[11/11 21:52:30.989907][debug][132513][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y12, width: 640, height: 400, fps: 5}
+[11/11 21:52:30.989909][debug][132513][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y11, width: 640, height: 400, fps: 10}
+[11/11 21:52:30.989911][debug][132513][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y12, width: 640, height: 400, fps: 10}
+[11/11 21:52:30.989913][debug][132513][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y11, width: 640, height: 400, fps: 15}
+[11/11 21:52:30.989920][debug][132513][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y12, width: 640, height: 400, fps: 15}
+[11/11 21:52:30.989922][debug][132513][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y12, width: 640, height: 400, fps: 30}
+[11/11 21:52:30.989923][debug][132513][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y11, width: 640, height: 400, fps: 60}
+[11/11 21:52:30.989925][debug][132513][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y12, width: 640, height: 400, fps: 60}
+[11/11 21:52:30.989927][debug][132513][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y11, width: 1280, height: 800, fps: 15}
+[11/11 21:52:30.989929][debug][132513][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y12, width: 1280, height: 800, fps: 15}
+[11/11 21:52:30.989933][debug][132513][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y11, width: 1280, height: 800, fps: 30}
+[11/11 21:52:30.989934][debug][132513][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y12, width: 1280, height: 800, fps: 30}
+[11/11 21:52:31.075120][debug][132513][Pipeline.cpp:29] Pipeline init ...
+[11/11 21:52:31.075177][debug][132513][Pipeline.cpp:168] loadFrameQueueSizeConfig() config queue size: 10
+[11/11 21:52:31.075189][warning][132513][ObException.cpp:5] Current device does not support frame sync!
+[11/11 21:52:31.075251][warning][132513][Pipeline.cpp:45] Execute failure! A libobsensor_exception has occurred!
+	 - where:45#Pipeline
+	 - msg:Current device does not support frame sync!
+	 - type:N11libobsensor31unsupported_operation_exceptionE
+[11/11 21:52:31.075270][info][132513][Pipeline.cpp:47] Pipeline created with device: {name: SV1301S_U3, sn: AY23B52001Y}, @0x7752445E12C0
+[11/11 21:52:31.075534][debug][132513][Pipeline.cpp:227] Pipeline start() start!
+[11/11 21:52:31.075544][info][132513][Pipeline.cpp:188] Check and set config start!
+[11/11 21:52:31.075562][debug][132513][OpenNIVideoSensor.cpp:864] Query stream profile! size= 24, sensorType=OB_SENSOR_DEPTH
+[11/11 21:52:31.075571][debug][132513][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y11, width: 640, height: 400, fps: 30}
+[11/11 21:52:31.075576][debug][132513][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y11, width: 320, height: 200, fps: 5}
+[11/11 21:52:31.075581][debug][132513][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y12, width: 320, height: 200, fps: 5}
+[11/11 21:52:31.075587][debug][132513][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y11, width: 320, height: 200, fps: 10}
+[11/11 21:52:31.075592][debug][132513][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y12, width: 320, height: 200, fps: 10}
+[11/11 21:52:31.075596][debug][132513][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y11, width: 320, height: 200, fps: 15}
+[11/11 21:52:31.075601][debug][132513][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y12, width: 320, height: 200, fps: 15}
+[11/11 21:52:31.075605][debug][132513][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y11, width: 320, height: 200, fps: 30}
+[11/11 21:52:31.075610][debug][132513][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y12, width: 320, height: 200, fps: 30}
+[11/11 21:52:31.075614][debug][132513][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y11, width: 320, height: 200, fps: 60}
+[11/11 21:52:31.075618][debug][132513][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y12, width: 320, height: 200, fps: 60}
+[11/11 21:52:31.075623][debug][132513][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y11, width: 640, height: 400, fps: 5}
+[11/11 21:52:31.075627][debug][132513][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y12, width: 640, height: 400, fps: 5}
+[11/11 21:52:31.075645][debug][132513][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y11, width: 640, height: 400, fps: 10}
+[11/11 21:52:31.075650][debug][132513][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y12, width: 640, height: 400, fps: 10}
+[11/11 21:52:31.075655][debug][132513][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y11, width: 640, height: 400, fps: 15}
+[11/11 21:52:31.075659][debug][132513][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y12, width: 640, height: 400, fps: 15}
+[11/11 21:52:31.075664][debug][132513][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y12, width: 640, height: 400, fps: 30}
+[11/11 21:52:31.075668][debug][132513][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y11, width: 640, height: 400, fps: 60}
+[11/11 21:52:31.075672][debug][132513][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y12, width: 640, height: 400, fps: 60}
+[11/11 21:52:31.075677][debug][132513][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y11, width: 1280, height: 800, fps: 15}
+[11/11 21:52:31.075682][debug][132513][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y12, width: 1280, height: 800, fps: 15}
+[11/11 21:52:31.075686][debug][132513][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y11, width: 1280, height: 800, fps: 30}
+[11/11 21:52:31.075691][debug][132513][OpenNIVideoSensor.cpp:866]  - {type: OB_STREAM_DEPTH, format: OB_FORMAT_Y12, width: 1280, height: 800, fps: 30}
+[11/11 21:52:31.075697][info][132513][Pipeline.cpp:223] Check and set config done!
+[11/11 21:52:31.076007][debug][132513][PropertyAccessor.cpp:28] get property value success! propertyId: 14, value: {intValue: 0, floatValue: 0}
+[11/11 21:52:31.076023][debug][132513][PropertyAccessor.cpp:17] set property value success! propertyId: 63, value: {intValue: 0, floatValue: 0}
+[11/11 21:52:31.076279][debug][132513][PropertyAccessor.cpp:28] get property value success! propertyId: 14, value: {intValue: 0, floatValue: 0}
+[11/11 21:52:31.076297][debug][132513][PropertyAccessor.cpp:17] set property value success! propertyId: 63, value: {intValue: 0, floatValue: 0}
+[11/11 21:52:31.076305][debug][132513][OpenNISensorParams.cpp:110] set property Registration(0)
+[11/11 21:52:31.076524][debug][132513][OpenNISensorParams.cpp:121] Registration(0)was successfully set.
+[11/11 21:52:31.076534][debug][132513][PropertyAccessor.cpp:17] set property value success! propertyId: 42, value: {intValue: 0, floatValue: 0}
+[11/11 21:52:31.076552][debug][132513][FrameProcessingBlockManager.cpp:75]  FrameProcessingBlockManager started, 0 blocks contained!
+[11/11 21:52:31.076557][info][132513][Pipeline.cpp:288] Try to start streams!
+[11/11 21:52:31.076564][debug][132513][VideoSensor.cpp:574] VideoSensor::start, @OB_SENSOR_COLOR
+[11/11 21:52:31.076570][debug][132513][FrameMemoryPool.cpp:35] FrameMemoryPool created!
+[11/11 21:52:31.076578][debug][132513][FrameBufferManager.hpp:65] FrameBufferManager created! frame type:N11libobsensor10ColorFrameE, obj addr:0x7752444fc520, frame obj total size:0.293MB
+[11/11 21:52:31.076581][debug][132513][FrameMemoryPool.cpp:76] ColorFrame bufferManager created!
+[11/11 21:52:31.076589][debug][132513][FrameProcessor.cpp:144] Frame processor active blocks chain update: input -> output
+[11/11 21:52:31.076593][debug][132513][FrameProcessor.cpp:155] FrameProcessor started, 1 blocks contained!
+[11/11 21:52:31.076601][info][132513][VideoSensor.cpp:653] start OB_SENSOR_COLOR stream with profile: {type: OB_STREAM_COLOR, format: OB_FORMAT_MJPG, width: 640, height: 480, fps: 30}, Backend Format: OB_FORMAT_MJPG
+[11/11 21:52:31.076605][debug][132513][ObLibuvcDevicePort.cpp:75] ObLibuvcDevicePort::startStream()...
+[11/11 21:52:31.076614][debug][132513][ObLibuvcDevicePort.cpp:90] playProfile: infIndex=0, selected_format.width=640, height=480, format=OB_FORMAT_MJPG
+[11/11 21:52:31.530436][debug][132513][ObLibuvcDevicePort.cpp:143] ObLibuvcDevicePort::startStream() done
+[11/11 21:52:31.530509][debug][132513][VideoSensor.cpp:680] Stream state changed to STREAM_STATE_STARTING. @OB_SENSOR_COLOR
+[11/11 21:52:31.530516][debug][132513][VideoSensor.cpp:682] Stream starting! @OB_SENSOR_COLOR
+[11/11 21:52:31.530522][debug][132513][Pipeline.cpp:299] Sensor stream started, sensorType=OB_SENSOR_COLOR
+[11/11 21:52:31.530541][debug][132513][FrameBufferManager.hpp:65] FrameBufferManager created! frame type:N11libobsensor10DepthFrameE, obj addr:0x77524445d9f0, frame obj total size:0.336MB
+[11/11 21:52:31.530546][debug][132513][FrameMemoryPool.cpp:60] DepthFrame bufferManager created!
+[11/11 21:52:31.530592][debug][132513][OpenNISensorStreams.cpp:79] Firmware stream Depth processor was replaced.
+[11/11 21:52:31.530614][debug][132513][FrameProcessor.cpp:144] Frame processor active blocks chain update: input ->FrameUnpacker -> Disparity2DepthConverter -> D2CFilter -> PostProcessFilter -> output
+[11/11 21:52:31.530619][debug][132513][FrameProcessor.cpp:155] FrameProcessor started, 5 blocks contained!
+[11/11 21:52:31.531164][debug][132513][OpenNIVideoSensor.cpp:774] Creating USB Depth read thread... 
+[11/11 21:52:31.531175][debug][132513][OpenNIUSBLinux.cpp:113] Starting a USB read thread...
+[11/11 21:52:31.532795][debug][132513][OpenNISensorParams.cpp:110] set property DepthFormat(3)
+[11/11 21:52:31.533070][debug][132513][OpenNISensorParams.cpp:121] DepthFormat(3)was successfully set.
+[11/11 21:52:31.533074][debug][132513][OpenNISensorParams.cpp:110] set property DepthResolution(17)
+[11/11 21:52:31.533404][debug][132513][OpenNISensorParams.cpp:121] DepthResolution(17)was successfully set.
+[11/11 21:52:31.533407][debug][132513][OpenNISensorParams.cpp:110] set property DepthFPS(30)
+[11/11 21:52:31.535084][debug][132513][OpenNISensorParams.cpp:121] DepthFPS(30)was successfully set.
+[11/11 21:52:31.535109][debug][132513][OpenNISensorParams.cpp:110] set property DepthHoleFilter(1)
+[11/11 21:52:31.535361][debug][132513][OpenNISensorParams.cpp:121] DepthHoleFilter(1)was successfully set.
+[11/11 21:52:31.535365][debug][132513][OpenNISensorParams.cpp:110] set property Registration(0)
+[11/11 21:52:31.535632][debug][132513][OpenNISensorParams.cpp:121] Registration(0)was successfully set.
+[11/11 21:52:31.535635][debug][132513][OpenNISensorParams.cpp:110] set property DepthMirror(0)
+[11/11 21:52:31.535901][debug][132513][OpenNISensorParams.cpp:121] DepthMirror(0)was successfully set.
+[11/11 21:52:31.535904][debug][132513][OpenNISensorParams.cpp:110] set property Stream1Mode(2)
+[11/11 21:52:31.539180][debug][132513][OpenNISensorParams.cpp:121] Stream1Mode(2)was successfully set.
+[11/11 21:52:31.539191][debug][132513][OpenNISensorParams.cpp:110] set property DepthCropEnabled(0)
+[11/11 21:52:31.540083][debug][132513][OpenNISensorParams.cpp:121] DepthCropEnabled(0)was successfully set.
+[11/11 21:52:31.540086][debug][132513][OpenNISensorParams.cpp:110] set property FrameSync(0)
+[11/11 21:52:31.540343][debug][132513][OpenNISensorParams.cpp:121] FrameSync(0)was successfully set.
+[11/11 21:52:31.540352][debug][132513][OpenNIVideoSensor.cpp:547] Stream state changed to STREAM_STATE_STARTING. @OB_SENSOR_DEPTH
+[11/11 21:52:31.540355][debug][132513][Pipeline.cpp:299] Sensor stream started, sensorType=OB_SENSOR_DEPTH
+[11/11 21:52:31.540357][info][132513][Pipeline.cpp:301] Start streams done!
+[11/11 21:52:31.540359][info][132513][Pipeline.cpp:277] Pipeline start done!
+[11/11 21:52:31.542018][debug][132513][PropertyAccessor.cpp:17] set property value success! propertyId: 2, value: {intValue: 1, floatValue: 1.4013e-45}
+[11/11 21:52:31.549538][debug][132518][OpenNIDataProcessor.cpp:28] Depth: Expected 1, got 20133
+[11/11 21:52:31.549571][debug][132518][OpenNIFrameProcessor.cpp:88] Depth frame is corrupt!
+[11/11 21:52:31.582154][debug][132518][FrameBufferManager.cpp:35] New frame buffer allocated=0.336MB, total usage: allocated=0.336MB, max limit=2048.000MB
+[11/11 21:52:31.582191][debug][132518][OpenNIVideoSensor.cpp:723] Stream state changed to STREAM_STATE_STREAMING. @OB_SENSOR_DEPTH
+[11/11 21:52:31.582412][debug][132518][FrameProcessingBlock.cpp:59] FrameProcessingBlock@N11libobsensor13FrameUnpackerE process thread started!
+[11/11 21:52:31.582504][debug][132520][FrameBufferManager.hpp:65] FrameBufferManager created! frame type:N11libobsensor10DepthFrameE, obj addr:0x77524445dad0, frame obj total size:0.489MB
+[11/11 21:52:31.582517][debug][132520][FrameMemoryPool.cpp:60] DepthFrame bufferManager created!
+[11/11 21:52:31.582534][debug][132520][FrameBufferManager.cpp:35] New frame buffer allocated=0.489MB, total usage: allocated=0.825MB, max limit=2048.000MB
+[11/11 21:52:31.582953][debug][132520][FrameProcessingBlock.cpp:59] FrameProcessingBlock@N11libobsensor24Disparity2DepthConverterE process thread started!
+[11/11 21:52:31.583281][debug][132521][FrameProcessingBlock.cpp:59] FrameProcessingBlock@N11libobsensor9D2CFilterE process thread started!
+[11/11 21:52:31.583334][debug][132522][FrameBufferManager.hpp:65] FrameBufferManager created! frame type:N11libobsensor10DepthFrameE, obj addr:0x77522c000d30, frame obj total size:0.586MB
+[11/11 21:52:31.583341][debug][132522][FrameMemoryPool.cpp:60] DepthFrame bufferManager created!
+[11/11 21:52:31.584324][debug][132522][FrameBufferManager.cpp:35] New frame buffer allocated=0.586MB, total usage: allocated=1.411MB, max limit=2048.000MB
+[11/11 21:52:31.586417][debug][132522][FrameProcessingBlock.cpp:59] FrameProcessingBlock@N11libobsensor17PostProcessFilterE process thread started!
+[11/11 21:52:31.586467][debug][132523][FrameBufferManager.hpp:65] FrameBufferManager created! frame type:N11libobsensor8FrameSetE, obj addr:0x775230000d90, frame obj total size:0.000MB
+[11/11 21:52:31.586478][debug][132523][FrameMemoryPool.cpp:92] Frameset bufferManager created!
+[11/11 21:52:31.586500][debug][132523][Pipeline.cpp:319] Frame received on pipeline! type=OB_FRAME_DEPTH
+[11/11 21:52:31.617055][debug][132522][FrameBufferManager.cpp:35] New frame buffer allocated=0.586MB, total usage: allocated=1.998MB, max limit=2048.000MB
+[11/11 21:52:31.649594][debug][132522][FrameBufferManager.cpp:35] New frame buffer allocated=0.586MB, total usage: allocated=2.584MB, max limit=2048.000MB
+[11/11 21:52:31.656318][debug][132523][FrameBufferManager.cpp:35] New frame buffer allocated=0.000MB, total usage: allocated=2.584MB, max limit=2048.000MB
+[11/11 21:52:31.772324][debug][132517][FrameBufferManager.cpp:35] New frame buffer allocated=0.293MB, total usage: allocated=2.878MB, max limit=2048.000MB
+[11/11 21:52:31.772355][debug][132517][VideoSensor.cpp:462] Stream state changed to STREAM_STATE_STREAMING. @OB_SENSOR_COLOR
+[11/11 21:52:31.777221][debug][132517][Pipeline.cpp:319] Frame received on pipeline! type=OB_FRAME_COLOR
+[11/11 21:52:31.777253][debug][132519][FrameBufferManager.hpp:65] FrameBufferManager created! frame type:N11libobsensor10ColorFrameE, obj addr:0x775220000be0, frame obj total size:0.879MB
+[11/11 21:52:31.777285][debug][132519][FrameMemoryPool.cpp:76] ColorFrame bufferManager created!
+[11/11 21:52:31.777320][debug][132519][FrameBufferManager.cpp:35] New frame buffer allocated=0.879MB, total usage: allocated=3.757MB, max limit=2048.000MB
+[11/11 21:52:31.840214][debug][132517][FrameBufferManager.cpp:35] New frame buffer allocated=0.293MB, total usage: allocated=4.051MB, max limit=2048.000MB
+[11/11 21:52:31.840257][debug][132517][FrameBufferManager.cpp:35] New frame buffer allocated=0.000MB, total usage: allocated=4.051MB, max limit=2048.000MB
+[11/11 21:52:31.847387][debug][132522][FrameBufferManager.cpp:35] New frame buffer allocated=0.586MB, total usage: allocated=4.638MB, max limit=2048.000MB
+[11/11 21:52:31.916737][debug][132522][FrameBufferManager.cpp:35] New frame buffer allocated=0.586MB, total usage: allocated=5.224MB, max limit=2048.000MB
+[11/11 21:52:31.949101][debug][132522][FrameBufferManager.cpp:35] New frame buffer allocated=0.586MB, total usage: allocated=5.810MB, max limit=2048.000MB
+[11/11 21:52:31.980580][debug][132522][FrameBufferManager.cpp:35] New frame buffer allocated=0.586MB, total usage: allocated=6.397MB, max limit=2048.000MB
+[11/11 21:52:32.016292][debug][132522][FrameBufferManager.cpp:35] New frame buffer allocated=0.586MB, total usage: allocated=6.983MB, max limit=2048.000MB
+[11/11 21:52:32.048596][debug][132522][FrameBufferManager.cpp:35] New frame buffer allocated=0.586MB, total usage: allocated=7.569MB, max limit=2048.000MB
+[11/11 21:52:32.083618][debug][132522][FrameBufferManager.cpp:35] New frame buffer allocated=0.586MB, total usage: allocated=8.156MB, max limit=2048.000MB
+[11/11 21:52:32.115036][debug][132522][FrameBufferManager.cpp:35] New frame buffer allocated=0.586MB, total usage: allocated=8.742MB, max limit=2048.000MB
+[11/11 21:52:34.613208][debug][132523][Pipeline.cpp:319] Frame received on pipeline! type=OB_FRAME_DEPTH [**90 logs in 3026ms**]
+[11/11 21:52:34.796200][debug][132517][Pipeline.cpp:319] Frame received on pipeline! type=OB_FRAME_COLOR [**84 logs in 3018ms**]
+[11/11 21:52:35.796606][info][132496][Pipeline.cpp:411] Try to stop pipeline!
+[11/11 21:52:35.796628][info][132496][Pipeline.cpp:383] Try to stop streams!
+[11/11 21:52:35.796633][debug][132496][OpenNIVideoSensor.cpp:784] Shutting down USB Depth read thread...
+[11/11 21:52:35.796635][debug][132496][OpenNIUSBLinux.cpp:346] Shutdown read thread...
+[11/11 21:52:35.796978][debug][132518][OpenNIUSBLinux.cpp:218] Cancel request transfer(44)...
+[11/11 21:52:35.797106][debug][132511][RequestLibusb.cpp:21] transfer cancelled!
+[11/11 21:52:35.897194][warning][132518][OpenNIUSBLinux.cpp:245] Endpoint  0x81, Buffer44: Failed waiting on asynch transfer event:OB_EVENT_TIMEOUT
+[11/11 21:52:35.897430][debug][132518][OpenNIUSBLinux.cpp:218] Cancel request transfer(33)...
+[11/11 21:52:35.897662][debug][132511][RequestLibusb.cpp:21] transfer cancelled!
+[11/11 21:52:35.997698][warning][132518][OpenNIUSBLinux.cpp:245] Endpoint  0x81, Buffer33: Failed waiting on asynch transfer event:OB_EVENT_TIMEOUT
+[11/11 21:52:35.997732][debug][132518][OpenNIDataProcessor.cpp:28] Depth: Expected 13661, got 14008
+[11/11 21:52:35.997737][debug][132518][OpenNIFrameProcessor.cpp:88] Depth frame is corrupt!
+[11/11 21:52:35.997741][warning][132518][OpenNIUSBLinux.cpp:204] exist(0) read thread(34)
+[11/11 21:52:35.997906][warning][132496][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:52:35.997930][warning][132496][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:52:35.997932][warning][132496][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:52:35.997935][warning][132496][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:52:35.997938][warning][132496][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:52:35.997940][warning][132496][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:52:35.997942][warning][132496][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:52:35.997943][warning][132496][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:52:35.997945][warning][132496][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:52:35.997947][warning][132496][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:52:35.997949][warning][132496][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:52:35.997950][warning][132496][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:52:35.997960][warning][132496][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:52:35.997962][warning][132496][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:52:35.997964][warning][132496][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:52:35.997966][warning][132496][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:52:35.997967][warning][132496][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:52:35.997969][warning][132496][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:52:35.997970][warning][132496][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:52:35.997973][warning][132496][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:52:35.997974][warning][132496][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:52:35.997976][warning][132496][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:52:35.997978][warning][132496][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:52:35.997979][warning][132496][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:52:35.997981][warning][132496][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:52:35.997983][warning][132496][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:52:35.997984][warning][132496][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:52:35.997986][warning][132496][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:52:35.997987][warning][132496][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:52:35.997989][warning][132496][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:52:35.997991][warning][132496][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:52:35.997993][warning][132496][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:52:35.997994][warning][132496][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:52:35.997996][warning][132496][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:52:35.997998][warning][132496][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:52:35.998000][warning][132496][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:52:35.998001][warning][132496][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:52:35.998005][warning][132496][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:52:35.998006][warning][132496][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:52:35.998008][warning][132496][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:52:35.998010][warning][132496][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:52:35.998011][warning][132496][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:52:35.998013][warning][132496][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:52:35.998015][warning][132496][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:52:35.998016][warning][132496][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:52:35.998018][warning][132496][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:52:35.998019][warning][132496][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:52:35.998021][warning][132496][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:52:35.998023][warning][132496][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:52:35.998025][warning][132496][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:52:35.998026][warning][132496][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:52:35.998028][warning][132496][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:52:35.998029][warning][132496][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:52:35.998031][warning][132496][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:52:35.998033][warning][132496][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:52:35.998034][warning][132496][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:52:35.998036][warning][132496][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:52:35.998038][warning][132496][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:52:35.998039][warning][132496][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:52:35.998041][warning][132496][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:52:35.998042][warning][132496][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:52:35.998044][warning][132496][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:52:35.998047][warning][132496][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:52:35.998049][warning][132496][MessengerLibusb.cpp:82] usb_request_cancel returned error, endpoint:129, error:Inappropriate ioctl for device, number:25 
+[11/11 21:52:35.998051][debug][132496][OpenNIUSBLinux.cpp:381] Shutdown read thread end...
+[11/11 21:52:35.998057][debug][132496][OpenNISensorParams.cpp:110] set property Stream1Mode(0)
+[11/11 21:52:35.999003][debug][132496][OpenNISensorParams.cpp:121] Stream1Mode(0)was successfully set.
+[11/11 21:52:35.999495][debug][132496][FrameProcessingBlock.cpp:74] Process thread stoped! N11libobsensor13FrameUnpackerE@0x7752440340a0 
+[11/11 21:52:36.000462][debug][132496][FrameProcessingBlock.cpp:74] Process thread stoped! N11libobsensor24Disparity2DepthConverterE@0x77524405d440 
+[11/11 21:52:36.000697][debug][132496][FrameProcessingBlock.cpp:74] Process thread stoped! N11libobsensor9D2CFilterE@0x77524405d870 
+[11/11 21:52:36.001380][debug][132496][FrameProcessingBlock.cpp:74] Process thread stoped! N11libobsensor17PostProcessFilterE@0x775244004fe0 
+[11/11 21:52:36.001415][debug][132496][FrameProcessor.cpp:165] FrameProcessor stoped!
+[11/11 21:52:36.001483][debug][132496][OpenNISensorStreams.cpp:114] Erase FW Stream Depth
+[11/11 21:52:36.001490][debug][132496][OpenNISensorStreams.cpp:124] released FW Stream strType
+[11/11 21:52:36.001498][info][132496][OpenNIVideoSensor.cpp:709] OpenNI Depth stream stop completed.
+[11/11 21:52:36.001512][info][132496][Pipeline.cpp:396] Sensor stream stopped, sensorType=OB_SENSOR_DEPTH
+[11/11 21:52:36.001520][debug][132496][VideoSensor.cpp:686] VideoSensor::stop, @OB_SENSOR_COLOR
+[11/11 21:52:36.001526][debug][132496][VideoSensor.cpp:709] Stream state changed to STREAM_STATE_STOPPING. @OB_SENSOR_COLOR
+[11/11 21:52:36.001534][debug][132496][ObLibuvcDevicePort.cpp:148] ObLibuvcDevicePort::stopStream()...
+[11/11 21:52:36.065855][debug][132496][ObLibuvcDevicePort.cpp:172] ObLibuvcDevicePort::stopStream() done
+[11/11 21:52:36.065906][debug][132496][VideoSensor.cpp:735] stream stoped! @OB_SENSOR_COLOR
+[11/11 21:52:36.065913][debug][132496][FrameProcessor.cpp:165] FrameProcessor stoped!
+[11/11 21:52:36.065927][debug][132496][VideoSensor.cpp:724] Stream state changed to STREAM_STATE_STOPED. @OB_SENSOR_COLOR
+[11/11 21:52:36.065931][info][132496][VideoSensor.cpp:742] Video sensor stopped, @OB_SENSOR_COLOR
+[11/11 21:52:36.065936][info][132496][Pipeline.cpp:396] Sensor stream stopped, sensorType=OB_SENSOR_COLOR
+[11/11 21:52:36.065940][info][132496][Pipeline.cpp:402] Stop streams done!
+[11/11 21:52:36.065956][debug][132496][OpenNISensorParams.cpp:110] set property Registration(0)
+[11/11 21:52:36.066282][debug][132496][OpenNISensorParams.cpp:121] Registration(0)was successfully set.
+[11/11 21:52:36.066309][debug][132496][PropertyAccessor.cpp:17] set property value success! propertyId: 42, value: {intValue: 0, floatValue: 0}
+[11/11 21:52:36.066324][debug][132496][FrameProcessingBlockManager.cpp:84] FrameProcessingBlockManager stoped!
+[11/11 21:52:36.066328][debug][132496][FrameProcessingBlockManager.cpp:20] Processing block list cleared!
+[11/11 21:52:36.066332][info][132496][Pipeline.cpp:443] Stop pipeline done!
+[11/11 21:52:36.130847][debug][132496][Pipeline.cpp:68] Pipeline deInit start!
+[11/11 21:52:36.130888][info][132496][Pipeline.cpp:75] Pipeline destroyed! @0x7752445E12C0
+[11/11 21:52:36.131494][info][132496][OpenNIDevice.cpp:44] OpenNI device destroyed! PID: 0x0614, SN: AY23B52001Y
+[11/11 21:52:36.131517][info][132496][OpenNIVideoSensor.cpp:1021] OpenNIVideoSensor destroyed! sensorType=OB_SENSOR_IR
+[11/11 21:52:36.131522][debug][132496][VideoSensor.cpp:282] VideoSensor::~VideoSensor(), @OB_SENSOR_COLOR
+[11/11 21:52:36.131524][info][132496][VideoSensor.cpp:303] VideoSensor destroyed, @OB_SENSOR_COLOR
+[11/11 21:52:36.131527][info][132496][OpenNIVideoSensor.cpp:1021] OpenNIVideoSensor destroyed! sensorType=OB_SENSOR_DEPTH
+[11/11 21:52:36.131538][debug][132496][FrameProcessor.cpp:807] try remove eventId: PropertyValueUpdate
+[11/11 21:52:36.131551][debug][132496][FrameProcessor.cpp:807] try remove eventId: DepthStreamProfileChanged
+[11/11 21:52:36.131555][debug][132496][FrameProcessor.cpp:111] FrameProcessor destroyed! @131195212087120
+[11/11 21:52:36.131564][debug][132496][FrameProcessor.cpp:111] FrameProcessor destroyed! @131195212156000
+[11/11 21:52:36.131566][debug][132496][ObLibuvcDevicePort.cpp:63] ~ObLibuvcDevicePort
+[11/11 21:52:36.138993][info][132496][ObLibuvcDevicePort.cpp:70] uvc_close done.
+[11/11 21:52:36.139013][info][132496][ObLibuvcDevicePort.cpp:71] ~ObLibuvcDevicePort done
+[11/11 21:52:36.139048][debug][132496][FrameProcessor.cpp:111] FrameProcessor destroyed! @101842270188336
+[11/11 21:52:36.139054][debug][132496][VendorCommand.cpp:213] destructor 775244004730
+[11/11 21:52:36.139063][debug][132496][VendorCommand.cpp:468] disableHeartBeat heartBeatHelper_: 0
+[11/11 21:52:36.139065][debug][132496][HostProtocol.cpp:140] ~HostProtocol()
+[11/11 21:52:36.139074][debug][132515][HostProtocol.cpp:168] emitTranDataFutureSignalThread_ finish
+[11/11 21:52:36.139187][debug][132496][Context.cpp:81] Context destroying ...
+[11/11 21:52:36.139190][debug][132496][DeviceManager.cpp:56] DeviceManager destroy ...
+[11/11 21:52:36.139191][debug][132496][DeviceManager.cpp:64] DeviceManager Destructors done
+[11/11 21:52:36.139387][debug][132496][FrameBufferManager.hpp:72] FrameBufferManager destroying...! frame type: N11libobsensor8FrameSetE,  obj addr:0x775230000d90
+[11/11 21:52:36.139395][debug][132496][FrameBufferManager.cpp:54] Frame buffer released=0.000MB, total usage: allocated=8.742MB, max limit=2048.000MB
+[11/11 21:52:36.139397][debug][132496][FrameBufferManager.cpp:54] Frame buffer released=0.000MB, total usage: allocated=8.741MB, max limit=2048.000MB
+[11/11 21:52:36.139398][debug][132496][FrameBufferManager.cpp:69] AbstractFrameBufferManager destroyed! manager type:N11libobsensor26AbstractFrameBufferManagerE,  obj addr:0x775230000d90
+[11/11 21:52:36.139400][debug][132496][FrameBufferManager.hpp:72] FrameBufferManager destroying...! frame type: N11libobsensor10DepthFrameE,  obj addr:0x77522c000d30
+[11/11 21:52:36.139430][debug][132496][FrameBufferManager.cpp:54] Frame buffer released=0.586MB, total usage: allocated=8.155MB, max limit=2048.000MB
+[11/11 21:52:36.139460][debug][132496][FrameBufferManager.cpp:54] Frame buffer released=0.586MB, total usage: allocated=7.569MB, max limit=2048.000MB
+[11/11 21:52:36.139463][debug][132496][FrameBufferManager.cpp:54] Frame buffer released=0.586MB, total usage: allocated=6.982MB, max limit=2048.000MB
+[11/11 21:52:36.139465][debug][132496][FrameBufferManager.cpp:54] Frame buffer released=0.586MB, total usage: allocated=6.396MB, max limit=2048.000MB
+[11/11 21:52:36.139467][debug][132496][FrameBufferManager.cpp:54] Frame buffer released=0.586MB, total usage: allocated=5.809MB, max limit=2048.000MB
+[11/11 21:52:36.139468][debug][132496][FrameBufferManager.cpp:54] Frame buffer released=0.586MB, total usage: allocated=5.223MB, max limit=2048.000MB
+[11/11 21:52:36.139470][debug][132496][FrameBufferManager.cpp:54] Frame buffer released=0.586MB, total usage: allocated=4.637MB, max limit=2048.000MB
+[11/11 21:52:36.139471][debug][132496][FrameBufferManager.cpp:54] Frame buffer released=0.586MB, total usage: allocated=4.050MB, max limit=2048.000MB
+[11/11 21:52:36.139487][debug][132496][FrameBufferManager.cpp:54] Frame buffer released=0.586MB, total usage: allocated=3.464MB, max limit=2048.000MB
+[11/11 21:52:36.139489][debug][132496][FrameBufferManager.cpp:54] Frame buffer released=0.586MB, total usage: allocated=2.877MB, max limit=2048.000MB
+[11/11 21:52:36.139490][debug][132496][FrameBufferManager.cpp:54] Frame buffer released=0.586MB, total usage: allocated=2.291MB, max limit=2048.000MB
+[11/11 21:52:36.139491][debug][132496][FrameBufferManager.cpp:69] AbstractFrameBufferManager destroyed! manager type:N11libobsensor26AbstractFrameBufferManagerE,  obj addr:0x77522c000d30
+[11/11 21:52:36.139493][debug][132496][FrameBufferManager.hpp:72] FrameBufferManager destroying...! frame type: N11libobsensor10DepthFrameE,  obj addr:0x77524445dad0
+[11/11 21:52:36.139524][debug][132496][FrameBufferManager.cpp:54] Frame buffer released=0.489MB, total usage: allocated=1.802MB, max limit=2048.000MB
+[11/11 21:52:36.139525][debug][132496][FrameBufferManager.cpp:69] AbstractFrameBufferManager destroyed! manager type:N11libobsensor26AbstractFrameBufferManagerE,  obj addr:0x77524445dad0
+[11/11 21:52:36.139527][debug][132496][FrameBufferManager.hpp:72] FrameBufferManager destroying...! frame type: N11libobsensor10DepthFrameE,  obj addr:0x77524445d9f0
+[11/11 21:52:36.139544][debug][132496][FrameBufferManager.cpp:54] Frame buffer released=0.336MB, total usage: allocated=1.466MB, max limit=2048.000MB
+[11/11 21:52:36.139546][debug][132496][FrameBufferManager.cpp:69] AbstractFrameBufferManager destroyed! manager type:N11libobsensor26AbstractFrameBufferManagerE,  obj addr:0x77524445d9f0
+[11/11 21:52:36.139547][debug][132496][FrameBufferManager.hpp:72] FrameBufferManager destroying...! frame type: N11libobsensor10ColorFrameE,  obj addr:0x775220000be0
+[11/11 21:52:36.139574][debug][132496][FrameBufferManager.cpp:54] Frame buffer released=0.879MB, total usage: allocated=0.587MB, max limit=2048.000MB
+[11/11 21:52:36.139575][debug][132496][FrameBufferManager.cpp:69] AbstractFrameBufferManager destroyed! manager type:N11libobsensor26AbstractFrameBufferManagerE,  obj addr:0x775220000be0
+[11/11 21:52:36.139577][debug][132496][FrameBufferManager.hpp:72] FrameBufferManager destroying...! frame type: N11libobsensor10ColorFrameE,  obj addr:0x7752444fc520
+[11/11 21:52:36.139581][debug][132496][FrameBufferManager.cpp:54] Frame buffer released=0.293MB, total usage: allocated=0.293MB, max limit=2048.000MB
+[11/11 21:52:36.139599][debug][132496][FrameBufferManager.cpp:54] Frame buffer released=0.293MB, total usage: allocated=0.000MB, max limit=2048.000MB
+[11/11 21:52:36.139600][debug][132496][FrameBufferManager.cpp:69] AbstractFrameBufferManager destroyed! manager type:N11libobsensor26AbstractFrameBufferManagerE,  obj addr:0x7752444fc520
+[11/11 21:52:36.139602][info][132496][Context.cpp:84] Context destroyed
+[11/11 21:52:36.139656][debug][132570][Pipeline.cpp:319] Frame received on pipeline! type=OB_FRAME_COLOR [**36 logs in 1343ms, last: 21:52:35.992128**]
+[11/11 21:52:36.139713][debug][132569][Pipeline.cpp:319] Frame received on pipeline! type=OB_FRAME_DEPTH [**35 logs in 1526ms, last: 21:52:35.776112**]

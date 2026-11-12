@@ -20,7 +20,7 @@ import capture_transfer as rgbd
 import capture_storage as storage
 from industrial_pc_hk_receiver import receive_frame
 from industrial_pc_protocol import validate_detection_result
-from robot_tcp_common import configuration, parser, status, heartbeat
+from robot_tcp_common import configuration, parser, status, heartbeat, request
 from industrial_pc_heartbeat import HeartbeatWatch
 
 
@@ -44,6 +44,7 @@ class RobotListener:
         self.channels = {name: {'state': 'starting', 'count': 0} for name in ('hk', 'rgbd', 'control', 'detection')}
         self.channels['detection']['state'] = 'waiting_result'
         self.robot_status = None
+        self.saved_capture_acks = set()
         self.heartbeat_enabled = config.get('heartbeat_enabled', True)
         self.heartbeat_watch = HeartbeatWatch(config.get('heartbeat_timeout', 10.), armed=True)
         self.heartbeat_session = uuid4().hex
@@ -232,6 +233,37 @@ class RobotListener:
                       ('；请人工核对任务，不会自动启动或继续' if self.intervention_required else ''), flush=True)
             self.heartbeat_state = state
 
+    def acknowledge_saved_capture(self, robot_status):
+        """Confirm both image channels after checking the three files on disk."""
+        camera = (robot_status or {}).get('camera_detection') or {}
+        data = camera.get('data') or {}
+        if not camera.get('fresh') or not data.get('oline_mode') or data.get('state') != 'WAIT_SAVED':
+            return
+        identity = data.get('run_id')
+        if identity in self.saved_capture_acks:
+            return
+        path = self.output/'.capture_index.json'
+        if not path.is_file():
+            return
+        with storage.index(self.output) as index:
+            record = index['sessions'].get(identity)
+            if not record or not all(name in record['files'] for name in ('hk.jpg', 'rgb.png', 'depth.png')):
+                return
+            if record.get('rgbd', {}).get('capture_manifest_sha256') != data.get('capture_manifest_sha256'):
+                raise ValueError('当前照片的清单哈希与机器人不一致')
+            files = {name: record['files'][name] for name in ('hk.jpg', 'rgb.png', 'depth.png')}
+            for name, checksum in files.items():
+                if storage.digest(storage.file_path(self.output, record, name)) != checksum:
+                    raise ValueError('照片落盘校验失败：'+name)
+        payload = dict(schema='paint_robot_capture_saved_v1', message_id='saved-'+identity,
+                       capture_set_id=identity, capture_manifest_sha256=data['capture_manifest_sha256'],
+                       files_sha256=files)
+        response = request(self.config, payload)
+        if response.get('ok') is not True:
+            raise ValueError('照片保存确认被拒绝：'+str(response.get('reason')))
+        self.saved_capture_acks.add(identity)
+        print('[oline] HK、RGB、深度图已校验保存，已确认批次：'+identity, flush=True)
+
     def run(self):
         threads = [threading.Thread(target=method, daemon=True)
                    for method in (self.receive_hk, self.receive_depth)]
@@ -248,6 +280,7 @@ class RobotListener:
                         self.robot_status = response.get('robot_status')
                         self.channels['control']['count'] += 1
                     self.save_detection_results(response.get('robot_status'))
+                    self.acknowledge_saved_capture(response.get('robot_status'))
                     current = response.get('robot_status') or {}
                     for name in ('normal', 'abnormal'):
                         packet = current.get(name+'_status')

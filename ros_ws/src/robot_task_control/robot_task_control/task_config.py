@@ -144,8 +144,13 @@ def load_task_config(path):
     step = detect.get('preposition_angle_step_deg', 15.)
     if type(step) not in (int, float) or not math.isfinite(step) or not 0. < step <= 45.:
         raise ValueError('preposition_angle_step_deg must be in (0, 45] degrees')
-    if any(limits) and detect.get('lock_tool_orientation', False):
-        raise ValueError('Rx/Ry selection conflicts with lock_tool_orientation')
+    spin = detect.get('preposition_tool_z_spin', False)
+    if not isinstance(spin, bool):
+        raise ValueError('preposition_tool_z_spin must be boolean')
+    if spin and (any(limits) or detect.get('approach_axis') != 'tool_positive_z'):
+        raise ValueError('Tool Z spin requires tool_positive_z and disabled Rx/Ry search')
+    if (spin or any(limits)) and detect.get('lock_tool_orientation', False):
+        raise ValueError('Orientation selection conflicts with lock_tool_orientation')
     for name, params in (('arm_joint_postures', node_parameters(document, 'arm_joint_postures')),
                          ('detect_controller', detect)):
         for key in ('velocity_scaling', 'acceleration_scaling'):

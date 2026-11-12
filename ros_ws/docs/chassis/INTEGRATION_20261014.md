@@ -14,7 +14,7 @@
 
 保留 TaskControl/TaskStatus 类型化任务接口、执行编号、PID 与循迹速度选择、三种独立任务流程、单次 HK 拍照和照片外传。更新源内的旧 TCP 底盘任务接口没有恢复。原 masc_user_serial 与归档版本相同；HK 驱动底层也没有新差异，不覆盖当前拍照服务改动。
 
-相同的 CAN 脚本和 systemd 配置继续复用，项目级旧说明合入本目录供参考；旧部署示例中的 TCP 控制桥仅代表原部署方式，当前启动以 robot_task_control/README.md 为准。
+相同的 CAN 脚本和 systemd 配置继续复用，项目级旧说明合入本目录供参考；旧部署示例中的 TCP 控制桥仅代表原部署方式，当前启动以[任务操作指南](../tasks/ROBOT_TASK_GUIDE.md)为准。
 
 导入前源代码备份在 `/tmp/masc_chassis_before_merge_20261014.tar.gz`，不包含构建输出与源仓库 .git；临时目录不是长期备份。
 

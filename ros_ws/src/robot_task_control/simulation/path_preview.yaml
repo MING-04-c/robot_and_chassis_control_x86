@@ -9,5 +9,9 @@ planning_time_sec: 15.0
 planning_attempts: 5
 velocity_scaling: 0.1
 acceleration_scaling: 0.1
+# Simulation-only experiment: preserve the frozen probe contact XYZ, try the
+# photo orientation first, then local X/Y tilts up to this angle (0 disables).
+# The entire precontact/contact/retract/photo-return path must plan successfully.
+detection_tilt_limit_deg: 15.0
 startup_timeout_sec: 120.0
 report_file: /tmp/robot_task_path_preview.json

@@ -30,14 +30,14 @@ Visualization Manager:
       Name: Planned Motion
       Enabled: true
       Robot Description: robot_description
-      Trajectory Topic: /display_planned_path
-      Loop Animation: true
+      Trajectory Topic: /path_preview/display_planned_path
+      Loop Animation: false
       Interrupt Display: false
       Show Robot Visual: true
       Show Robot Collision: false
       Robot Alpha: 0.9
       Show Trail: false
-      State Display Time: 0.05 s
+      State Display Time: 0.1 s
       Trail Step Size: 5
   Enabled: true
   Global Options:
@@ -62,6 +62,13 @@ Visualization Manager:
       Target Frame: <Fixed Frame>
       Near Clip Distance: 0.01
 Window Geometry:
+  Displays:
+    collapsed: false
+  Views:
+    collapsed: false
+  Planned Motion - Trajectory Slider:
+    collapsed: false
+  QMainWindow State: 000000ff00000000fd00000002000000000000012c000002cafc0200000002fb000000100044006900730070006c0061007900730100000000000001e50000003200fffffffb0000000a0056006900650077007301000001eb000000df0000003200ffffff000000030000050000000050fc0100000001fb000000440050006c0061006e006e006500640020004d006f00740069006f006e0020002d0020005400720061006a006500630074006f0072007900200053006c00690064006500720100000000000005000000012c00ffffff000003ce000002ca00000004000000040000000800000008fc00000000
   Width: 1280
   Height: 800
   Hide Left Dock: false
