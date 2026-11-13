@@ -55,23 +55,23 @@ def test_production_workflow_preserves_sequence_pose_and_route_mode():
     flow = WorkflowController.load_workflow(CONFIG)
     assert [step['action'] for step in flow['steps']] == [
         'wait_chassis_stopped', 'arm_posture', 'line_follow', 'wait_chassis_stopped',
-        'arm_posture', 'arm_move', 'arm_move', 'arm_move', 'camera_detection',
-        'arm_move', 'arm_move', 'arm_posture', 'arm_posture',
+        'arm_posture', 'arm_posture', 'arm_move', 'arm_move', 'arm_move', 'camera_detection',
+        'arm_move', 'arm_move', 'arm_posture', 'arm_posture', 'arm_posture',
         'line_follow', 'wait_chassis_stopped',
     ]
     moves = [s for s in flow['steps'] if s['action'] == 'line_follow']
     assert [s['drive_direction'] for s in moves] == ['forward', 'reverse']
     assert moves[0]['finish_at_first_marker'] and moves[1]['return_to_start']
     arm_moves = [s for s in flow['steps'] if s['action'] == 'arm_move']
-    assert arm_moves[0]['target_pose']['position'] == [.150, .530, .810]
-    assert arm_moves[0]['target_pose']['orientation'] == [75., 20., 170.]
-    assert arm_moves[1]['target_pose']['position'] == [.300, .410, .795]
-    assert arm_moves[1]['target_pose']['orientation'] == [-90., 45., -45.]
+    assert arm_moves[0]['target_pose']['position'] == [-.435, .254, .720]
+    assert arm_moves[0]['target_pose']['orientation'] == [-90., 0., 45.]
+    assert arm_moves[1]['target_pose']['position'] == [.110, .450, .600]
+    assert arm_moves[1]['target_pose']['orientation'] == [180., 0., -25.]
     assert all(step['control_mode'] == 'moveit' and step['frame_id'] == 'base_link'
                and step['end_effector_frame'] == 'tool0' for step in arm_moves)
     photo = arm_moves[2]
-    assert photo['target_pose']['position'] == [.375, .360, .590]
-    assert photo['target_pose']['orientation'] == [-175., 0., -90.]
+    assert photo['target_pose']['position'] == [.240, .390, .580]
+    assert photo['target_pose']['orientation'] == [-180., 0., -90.]
     assert photo['after_arrival_delay_sec'] == .5
     assert [s['name'] for s in arm_moves[3:]] == ['return_camera_intermediate', 'return_camera_via']
     for outward, backward in zip(arm_moves[:2], reversed(arm_moves[3:])):
@@ -97,7 +97,7 @@ def test_yaml_edits_reach_every_component(tmp_path):
         data['detect_controller']['ros__parameters']['hold_seconds'] = 4.
         data['capture']['robot_settle_sec'] = .8
         data['workflow']['travel_posture_timeout_sec'] = 123.
-        data['workflow']['steps'][4]['after_arrival_delay_sec'] = .7
+        next(step for step in data['workflow']['steps'] if step['action']=='arm_move')['after_arrival_delay_sec'] = .7
     path, data = recipe(tmp_path, mutate)
     module, nodes, includes = launch_module(), {}, []
     def node(**kwargs):
@@ -168,6 +168,7 @@ def test_workflow_steps_can_change_without_another_task_implementation(tmp_path)
     lambda d: d['detect_controller']['ros__parameters'].update(preposition_tool_z_spin=True, lock_tool_orientation=True),
     lambda d: d['capture'].update(camera_warmup_sec=40.),
     lambda d: d['travel'].pop(),
+    lambda d: d.pop('detection_ready_2'),
 ])
 def test_bad_config_fails_before_any_device_action(tmp_path, change):
     path, _ = recipe(tmp_path, change)
@@ -205,20 +206,20 @@ def test_station_points_and_detection_sequence():
     flow = WorkflowController.load_workflow(path)
     assert flow['auto_start'] is True
     assert [step['action'] for step in flow['steps']] == [
-        'arm_posture', 'arm_move', 'arm_move', 'arm_move', 'camera_detection',
-        'arm_move', 'arm_move', 'arm_posture', 'arm_posture']
+        'arm_posture', 'arm_posture', 'arm_move', 'arm_move', 'arm_move', 'camera_detection',
+        'arm_move', 'arm_move', 'arm_posture', 'arm_posture', 'arm_posture']
     assert [step.get('posture') for step in flow['steps'] if step['action'] == 'arm_posture'] == [
-        'detection_ready', 'detection_ready', 'travel']
-    assert flow['steps'][1]['target_pose']['position'] == [.150, .530, .810]
-    assert flow['steps'][1]['target_pose']['orientation'] == [75., 20., 170.]
-    assert flow['steps'][2]['target_pose']['position'] == [.300, .410, .795]
-    assert flow['steps'][2]['target_pose']['orientation'] == [-90., 45., -45.]
-    assert flow['steps'][3]['target_pose']['position'] == [.375, .360, .590]
-    assert flow['steps'][3]['target_pose']['orientation'] == [-175., 0., -90.]
-    for outward, backward in ((1, 6), (2, 5)):
+        'detection_ready', 'detection_ready_2', 'detection_ready_2', 'detection_ready', 'travel']
+    assert flow['steps'][2]['target_pose']['position'] == [-.435, .254, .720]
+    assert flow['steps'][2]['target_pose']['orientation'] == [-90., 0., 45.]
+    assert flow['steps'][3]['target_pose']['position'] == [.110, .450, .600]
+    assert flow['steps'][3]['target_pose']['orientation'] == [180., 0., -25.]
+    assert flow['steps'][4]['target_pose']['position'] == [.240, .390, .580]
+    assert flow['steps'][4]['target_pose']['orientation'] == [-180., 0., -90.]
+    for outward, backward in ((2, 7), (3, 6)):
         assert {k: v for k, v in flow['steps'][outward].items() if k != 'name'} == {
             k: v for k, v in flow['steps'][backward].items() if k != 'name'}
-    assert data['camera_detection_task']['ros__parameters']['camera_points_mm'] == [0., 0., 130.]
+    assert data['camera_detection_task']['ros__parameters']['camera_points_mm'] == [0., 0., 100.]
 
 
 def test_capture_only_workflow_starts_at_current_pose_without_extra_moves():
@@ -230,8 +231,23 @@ def test_capture_only_workflow_starts_at_current_pose_without_extra_moves():
     assert [step['action'] for step in flow['steps']] == ['camera_detection']
     assert flow['steps'][0]['step_timeout_sec'] == 1200.
     assert data['camera_detection_task']['ros__parameters'] == {
-        'target_source': 'local', 'camera_points_mm': [0., 0., 130.]}
+        'target_source': 'local', 'camera_points_mm': [0., 0., 100.]}
     assert not any(step['action'] in ('arm_move', 'arm_posture', 'line_follow') for step in flow['steps'])
+
+
+def test_full_local_detection_uses_preview_workflow_and_captures_only_after_photo_arrival():
+    preview = yaml.safe_load((ROOT/'simulation/path_preview.yaml').read_text())
+    assert (ROOT/'simulation'/preview['workflow_file']).resolve() == STATION_CONFIG.resolve()
+    flow = WorkflowController.load_workflow(STATION_CONFIG)
+    assert [step['name'] for step in flow['steps']] == [
+        'to_transition', 'to_transition_2', 'to_camera_via', 'to_camera_intermediate', 'to_photo_pose',
+        'capture_and_thickness', 'return_camera_intermediate', 'return_camera_via',
+        'return_transition_2', 'return_transition', 'return_travel',
+    ]
+    assert [i for i, step in enumerate(flow['steps']) if step['action'] == 'camera_detection'] == [5]
+    assert all(step['action'] != 'line_follow' for step in flow['steps'])
+    _, data = load_station_config(STATION_CONFIG)
+    assert data['camera_detection_task']['ros__parameters']['target_source'] == 'local'
 
 
 @pytest.mark.parametrize('station_config', [STATION_CONFIG, CAPTURE_CONFIG])
@@ -265,11 +281,13 @@ def test_station_launch_keeps_arm_safety_and_capture_without_chassis(tmp_path, s
     assert camera['capture_config_file'] == str(path) and camera['capture_local'] is True
     assert camera['auto_start'] is False
     detect = nodes['detect_controller'][-1]
-    assert detect['touch_control_mode'] == 'moveit_force_guard'
+    assert detect['touch_control_mode'] == 'admittance'
     assert detect['require_thickness_measurement'] is True
-    assert detect['preposition_tool_z_spin'] is False
-    assert detect['approach_speed'] == .001
-    assert (detect['initial_force_limit'], detect['contact_force'], detect['overload_force']) == (15., 25., 40.)
+    assert detect['preposition_tool_z_spin'] is True
+    assert detect['approach_clearance'] == .03
+    assert detect['approach_speed'] == .0005
+    assert detect['phase_timeout'] >= (detect['approach_clearance'] + detect['max_penetration']) / detect['approach_speed'] + 30
+    assert (detect['initial_force_limit'], detect['contact_force'], detect['overload_force']) == (15., 20., 25.)
     assert any(args.get('auto_request') == 'false' for args in includes)
 
 
@@ -290,7 +308,7 @@ def test_station_validation_does_not_require_a_chassis_route(tmp_path, station_c
     lambda d: d.update(system={'robot_ip': '169.254.199.250'}),
     lambda d: d['workflow'].update(auto_start='false'),
     lambda d: d['workflow']['steps'].append({'action': 'line_follow', 'drive_direction': 'forward', 'seconds': 1.}),
-    lambda d: d['workflow']['steps'][1].update(control_mode='admittance'),
+    lambda d: next(step for step in d['workflow']['steps'] if step['action']=='arm_move').update(control_mode='admittance'),
     lambda d: d['workflow'].update(arm_postures_before_chassis=False),
     lambda d: d['camera_detection_task']['ros__parameters'].update(target_source='tcp'),
     lambda d: d['camera_detection_task']['ros__parameters'].update(camera_points_mm=[1., 2.]),

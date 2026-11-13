@@ -19,15 +19,27 @@ ros2 launch robot_task_control robot_task.launch.py validate_only:=true
 |---|---|
 | 自动单轮真机 | `ros2 launch robot_task_control robot_task.launch.py`，当前主配置 `auto_start: true` |
 | 麒麟分步、多轮真机 | `ros2 launch robot_task_control robot_task_oline.launch.py`，等待麒麟 start，见 [oline](../tcp/OLINE流程与协议.md) |
-| 到站机械臂诊断 | 用下面的 `arrival_detect.yaml`；固定底盘，不启动底盘驱动/循迹，设备就绪后自动运动 |
-| 仅最后拍照测厚 | 用下面的 `capture_detect.yaml`；启动前已在拍照位，设备就绪后自动运动触碰 |
+| 本地给定相机坐标，验证完整机械臂测厚流程（优先使用） | `arrival_detect.yaml`；过渡位1→过渡位2→中间点一→中间点二→拍照位→拍照测厚→倒序返回，不启动底盘驱动/循迹 |
+| 仅最后拍照测厚（专项排查，不是完整流程） | `capture_detect.yaml`；跳过所有到位步骤，启动前必须已在拍照位，不能用于验证与仿真相同的完整顺序 |
 | 只预览规划 | `ros2 launch robot_task_control path_preview.launch.py`，独立域 190，无硬件运动 |
 
+当前仿真只保留 axis_only：预接近终点保持拍照工具 Z 方向、绕轴自由，途中不锁姿态，最后保持选定朝向做3 cm名义直线接近/撤离。
+其他对照和就近数值 IK 已移除，见[仿真说明](../simulation/PATH_PREVIEW.md)。
+
 ```bash
-# 以下仍为仅校验；确认现场安全后去掉 validate_only:=true 才执行诊断。
+# 本地固定坐标完整流程；仿真使用同一流程，但中间/拍照位被仿真 waypoint_poses/photo_pose 单独覆盖：
+# 这里只校验，确认现场安全后去掉 validate_only:=true 才执行真实运动。
 ros2 launch robot_task_control robot_task.launch.py station_workflow_file:="$PWD/src/robot_task_control/config/diagnostics/arrival_detect.yaml" validate_only:=true
+# 以下仅供已在拍照位时排查最后一段，普通完整测试不要用此入口：
 ros2 launch robot_task_control robot_task.launch.py station_workflow_file:="$PWD/src/robot_task_control/config/diagnostics/capture_detect.yaml" validate_only:=true
 ```
+
+完整本地测厚测试应校验出 **11 个工作流步骤**：过渡位1、过渡位2、中间点一、中间点二、拍照位、
+拍照及漆膜检测、中间点二、中间点一、过渡位2、过渡位1、行车关节位。
+只有前面的运动步骤实际到位后才触发采图和测厚；设备就绪后整个流程自动开始。
+不要用仅有 1 步的 `capture_detect.yaml` 代替这份完整测试。
+本地点改 `arrival_detect.yaml` 的 `camera_points_mm`，与麒麟 TCP 取点模式互不替代。
+若日志显示 `No camera found`，应先排查海康连接/供电和占用；换成完整流程也不会自动解决相机缺失。
 
 主配置：[robot_task.yaml](../../src/robot_task_control/config/robot_task.yaml)。
 远程覆盖：[robot_task_oline.yaml](../../src/robot_task_control/config/robot_task_oline.yaml)，
@@ -42,18 +54,23 @@ XYZ 为米，RPY 为固定轴欧拉角、单位度。
 
 | 点位 | YAML 名称 | XYZ（米） | RPY（度） |
 |---|---|---|---|
-| 中间点一 | `to_camera_via` / `camera_via` 锚点 | `[0.150, 0.530, 0.810]` | `[75, 20, 170]` |
-| 中间点二 | `to_camera_intermediate` / `camera_intermediate` 锚点 | `[0.300, 0.410, 0.795]` | `[-90, 45, -45]` |
-| 拍照位 | 第三个 `arm_move`；诊断名 `to_photo_pose` | `[0.375, 0.360, 0.590]` | `[-175, 0, -90]` |
+| 中间点一 | `to_camera_via` / `camera_via` 锚点 | `[-0.435, 0.254, 0.720]` | `[-90, 0, 45]` |
+| 中间点二 | `to_camera_intermediate` / `camera_intermediate` 锚点 | `[0.110, 0.450, 0.600]` | `[180, 0, -25]` |
+| 拍照位 | 第三个 `arm_move`；诊断名 `to_photo_pose` | `[0.240, 0.390, 0.580]` | `[-180, 0, -90]` |
+
+主任务、oline 继承配置、arrival_detect 诊断及仿真当前使用上述相同位姿；回程倒序复用中间点。
 
 另有两个六轴关节姿态，顺序为基座/肩/肘/手腕1/手腕2/手腕3，单位度：
 
 - 行车位 `travel`：`[-45, 15, -71, 4.4, 148, 75]`。
 - 过渡位 `detection_ready`：`[-45, 0, 0, 0, 90, 0]`，不是上表的笛卡尔中间点。
+- 过渡位2 `detection_ready_2`：`[-45,-90,180,0,0,90]`，单位度；主任务、oline和完整到站诊断均使用。
+  仿真肘部有效限位为±250°；当前真机描述文件硬限位为±250°，默认0.15 rad安全裕量下软限位约±241.41°。
+  若MoveIt把180°压小，控制器会在发送执行动作前拒绝该规划。必须先确认实机限位或提供合适的新角度，不能直接当作已通过真机验证。
 
-去程：行车位 → 过渡关节位 → 中间点一 → 中间点二 → 拍照位。
+去程：行车位 → 过渡位1 → 过渡位2 → 中间点一 → 中间点二 → 拍照位。
 每个检测点结束先回实际记录的拍照关节原位。
-离站：拍照原位 → 中间点二 → 中间点一 → 过渡关节位 → 行车位 → 底盘倒车返程。
+离站：拍照原位 → 中间点二 → 中间点一 → 过渡位2 → 过渡位1 → 行车位 → 底盘倒车返程。
 回程通过 YAML 锚点复用去程位置和朝向，每段重新规划、检查碰撞，不逐帧反放去程轨迹。
 主任务在底盘运动前自动插入行车位确认；到站诊断显式返回行车位，但不驱动小车。
 
@@ -77,7 +94,7 @@ oline 每轮结束停在拍照位等待，不立即离站；只有允许阶段�
 末端安装模型见[模块说明](../modules/TERMINAL_MODEL.md)。
 
 `camera_points_mm` 为相机坐标的毫米点，多个点按 `[x1,y1,z1,x2,y2,z2]` 填：
-主任务当前是 `[-10,-10,130]`；两个诊断当前均为 `[0,0,130]`。
+主任务和两个本地诊断当前均为 `[0,0,100]`，单位毫米；预接近距离为30毫米，与本次同步的仿真参数一致。oline仍使用远端实际坐标，预接近距离共用30毫米。
 这些是测试占位值，不是实物可达/碰撞安全或标定正确的证明。
 只改正在使用的配置；修改诊断点不会自动改变主任务。
 oline 覆盖为 `target_source: tcp`，不使用这些本地测试点，必须等本批照片对应的真实坐标。

@@ -1,4 +1,6 @@
 # Final-stage diagnostic only. Secure chassis and start at the intended photo pose.
+# 完整本地测试请用 arrival_detect.yaml（与仿真同点位、先到过渡/中间/拍照位）。
+# 本文件只用于已经到拍照位后的专项排查，不能当作完整检测流程入口。
 # Auto-starts after readiness/safety checks; camera_detection CAN MOVE THE ARM.
 # No transition/photo-position move and no chassis motion are scheduled here.
 # Capture freezes the CURRENT camera/probe pose, not a hard-coded base-frame pose.
@@ -29,4 +31,4 @@ camera_detection_task:
     # CAMERA-frame xyz in millimetres, NOT base_link/tool0 coordinates.
     # Flat triples allow multiple points: [x1, y1, z1, x2, y2, z2].
     # TEST point copied from current arrival diagnostic; verify before touching.
-    camera_points_mm: [0.0, 0.0, 130.0]
+    camera_points_mm: [0.0, 0.0, 100.0]  # 与当前仿真同步，相机系Z=10 cm。

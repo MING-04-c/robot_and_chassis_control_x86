@@ -47,6 +47,50 @@ class FinalCaptureTest(unittest.TestCase):
         self.assertFalse(monitor.observe(light, 1.5))
         self.assertFalse(monitor.observe(light, 3.))  # 长时间丢帧后不能沿用旧稳定计数。
 
+    def test_failed_candidate_is_separate_and_never_marked_as_accepted(self):
+        import cv2
+        with tempfile.TemporaryDirectory() as directory:
+            node = MagicMock()
+            node.storage_root = Path(directory)
+            node.output = node.storage_root/'.pending'/'session1'
+            node.report = {'hk': None, 'rgbd': None}
+            monitor = capture.StableFrames(capture.load_config(CONFIG))
+            frame = np.full((48, 64, 3), 87, np.uint8)
+            capture.CaptureSession.save_failed_candidate(node, '/camera/image', frame,
+                (1, 2), monitor, dict(received=5, valid=3), '画面未稳定')
+            folder = node.storage_root/'failed'/'session1'
+            np.testing.assert_array_equal(cv2.imread(str(folder/'camera_image_last_UNVERIFIED.png')), frame)
+            info = json.loads((folder/'camera_image_diagnostic.json').read_text())
+            self.assertFalse(info['accepted_for_detection'])
+            self.assertEqual(info['received_counts']['valid'], 3)
+            self.assertIsNone(node.report['hk'])
+            self.assertIsNone(node.report['rgbd'])
+            self.assertFalse((node.storage_root/'.capture_index.json').exists())
+
+    def test_stability_timeout_saves_valid_frame_but_still_raises(self):
+        node = MagicMock()
+        node.config = capture.load_config(CONFIG)
+        node.config['stability_timeout_sec'] = .25
+        node.get_clock.return_value.now.return_value.nanoseconds = 10**9
+        message = SimpleNamespace(header=SimpleNamespace(stamp=SimpleNamespace(sec=1, nanosec=0)))
+        frame = np.zeros((48, 64, 3), np.uint8)
+        node.bridge.imgmsg_to_cv2.return_value = frame
+        node.create_subscription.side_effect = lambda _type, _topic, callback, _qos: setattr(node, 'image_callback', callback)
+        process = MagicMock()
+        process.poll.return_value = None
+        def spin(*_, **__):
+            node.image_callback(message)
+        with patch.object(capture.rclpy, 'ok', return_value=True), \
+                patch.object(capture.rclpy, 'spin_once', side_effect=spin), \
+                patch.object(capture.time, 'monotonic', side_effect=[0., .1, .15, .2, .3]):
+            with self.assertRaisesRegex(RuntimeError, '画面未稳定'):
+                capture.CaptureSession.stable_image(node, '/camera/image', process)
+        args = node.save_failed_candidate.call_args.args
+        np.testing.assert_array_equal(args[1], frame)
+        self.assertEqual(args[2], (1, 0))
+        self.assertEqual(args[4]['valid'], 1)
+        node.destroy_subscription.assert_called_once()
+
     def test_cameras_are_sequential_and_closed_before_transfer(self):
         events = []
         @contextmanager

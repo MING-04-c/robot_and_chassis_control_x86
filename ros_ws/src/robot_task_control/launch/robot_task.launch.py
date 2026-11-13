@@ -25,7 +25,10 @@ def launch_setup(context):
     workflow_path, station = load_station_config(station_file) if station_file else (path, None)
     # Finish validation before returning any action that can open a device.
     workflow = WorkflowController.load_workflow(workflow_path)
-    load_postures(workflow_path)
+    postures = load_postures(workflow_path)
+    for step in workflow['steps']:
+        if step['action'] == 'arm_posture' and step['posture'] not in postures:
+            raise ValueError('Workflow references an undefined joint posture: '+step['posture'])
     load_config(path)
     system = dict(config['system'])
     oline = LaunchConfiguration('oline_mode', default='false').perform(context).lower() == 'true'
@@ -63,7 +66,7 @@ def launch_setup(context):
     system.update({
         'workflow_file': str(workflow_path), 'capture_config_file': str(path), 'require_arm_ready': True,
         'check_devices_on_startup': True, 'joint_posture_only': False,
-        'manage_line_stream': True, 'launch_admittance': False,
+        'manage_line_stream': True, 'launch_admittance': True,
         'chassis_pid_enabled': False, 'use_velocity_mux': True,
         'launch_arm_executor': True, 'arm_use_cartesian_path': False,
         'launch_force_sensor': True, 'start_hk_camera': False,
@@ -77,7 +80,7 @@ def launch_setup(context):
         for index, step in enumerate(workflow['steps'], 1):
             get_logger('robot_task').info(f'Station step {index}: {step.get("name", step["action"])}')
     posture = node_parameters(config, 'arm_joint_postures')
-    posture.update(postures_file=str(workflow_path), simulation=False, manage_admittance=False)
+    posture.update(postures_file=str(workflow_path), simulation=False, manage_admittance=True)
     camera = node_parameters(config, 'camera_detection_task')
     if station is not None:
         camera.update(node_parameters(station, 'camera_detection_task'))

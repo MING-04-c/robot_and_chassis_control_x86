@@ -7,6 +7,9 @@ sensor_node:
     reconnect_period_ms: 1000
     tcp_keepalive: true
     tcp_no_delay: true
+    # Linux接收侧立即ACK；连接及每次正长度read后请求，不改变网关/传感器参数。
+    tcp_quickack: true
+    timing_report_period_sec: 5.0  # /sensor/timing及终端统计，0禁用；不是采样周期。
     auto_start: true
     zero_before_request: true
     request_period: 0.0

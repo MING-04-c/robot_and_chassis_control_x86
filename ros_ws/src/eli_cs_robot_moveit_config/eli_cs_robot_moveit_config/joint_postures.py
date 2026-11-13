@@ -9,10 +9,11 @@ JOINTS = ['shoulder_pan_joint', 'shoulder_lift_joint', 'elbow_joint',
 
 
 def load_postures(path):
-    """读取两组有限六轴角度；不对目标取模，保留用户指定关节分支。"""
+    """读取行车/过渡位及可选过渡位2；不取模，保留指定关节分支。"""
     values = yaml.safe_load(Path(path).expanduser().read_text())
     output = {}
-    for key in ('travel', 'detection_ready'):
+    keys = ('travel', 'detection_ready') + (('detection_ready_2',) if 'detection_ready_2' in values else ())
+    for key in keys:
         angles = values[key]
         if (not isinstance(angles, list) or len(angles) != 6 or
                 any(isinstance(x, bool) or not isinstance(x, (int, float)) or

@@ -30,6 +30,10 @@ from geminipro_camer_calibration.geometry import to_pose, transform_matrix
 from geminipro_camer_calibration.live_tf import LiveRobotTransforms
 
 
+class StaleRobotTransform(ValueError):
+    """暂时缺少新鲜位姿；不允许用缓存值继续任务。"""
+
+
 REAL_PLUGIN = 'ELITE_CS_ROBOT_ROS_DRIVER/EliteCSPositionHardwareInterface'
 
 
@@ -113,6 +117,7 @@ class CameraDetectionTask(Node):
         self.targets = []
         self.holds = 0
         self.ready_since = None
+        self.tf_wait_since = None
         self.ready_stable_sec = float(param('ready_stable_sec', 2.))
         if not math.isfinite(self.ready_stable_sec) or self.ready_stable_sec < 0:
             raise ValueError('ready_stable_sec must be finite and nonnegative')
@@ -202,6 +207,7 @@ class CameraDetectionTask(Node):
         self.point_ids = []
         self.snapshot = None
         self.ready_since = None
+        self.tf_wait_since = None
         self.posture_prepared = False
         self.run_id = uuid4().hex  # 每次新拍照使用新身份，拒绝上一次的结果。
         self.transition('WAIT_READY', f'已回原位，准备第{self.retry_count}次重拍取点：'+reason)
@@ -241,7 +247,8 @@ class CameraDetectionTask(Node):
         message = self.live.buffer.lookup_transform(self.base, frame, Time())
         age = (self.get_clock().now()-Time.from_msg(message.header.stamp)).nanoseconds/1e9
         if not -.1 <= age <= .3:
-            raise ValueError(frame+' TF 过期，不能用旧位姿继续任务')
+            raise StaleRobotTransform(
+                f'{frame} TF 过期：age={age:.3f}s，要求 -0.1≤age≤0.3s；不能用旧位姿继续任务')
         return transform_matrix(message.transform)
 
     def check_hardware(self):
@@ -291,13 +298,27 @@ class CameraDetectionTask(Node):
 
     def check_stationary(self):
         """冻结测试坐标到开始运动前保持原位，避免目标和记录的原位不一致。"""
-        for frame, name in ((self.camera, 'base_T_camera'), (self.probe, 'base_T_probe')):
-            current, original = self.pose(frame), np.asarray(self.snapshot[name])
-            delta = original[:3, :3].T @ current[:3, :3]
-            angle = math.acos(float(np.clip((np.trace(delta)-1.)/2., -1., 1.)))
-            if (np.linalg.norm(current[:3, 3]-original[:3, 3]) > self.position_tolerance
-                    or angle > self.angle_tolerance):
-                raise ValueError('测试初始位姿已变化，取消本轮；请重新启动')
+        # 仅在开始检测运动前使用。等新数据期间不能进入下一步或重用旧TF。
+        if self.tf_wait_since is not None and monotonic()-self.tf_wait_since >= 1.:
+            raise ValueError('新鲜TF等待超时（1秒），取消本轮，不使用迟到位姿继续任务')
+        try:
+            for frame, name in ((self.camera, 'base_T_camera'), (self.probe, 'base_T_probe')):
+                current, original = self.pose(frame), np.asarray(self.snapshot[name])
+                delta = original[:3, :3].T @ current[:3, :3]
+                angle = math.acos(float(np.clip((np.trace(delta)-1.)/2., -1., 1.)))
+                if (np.linalg.norm(current[:3, 3]-original[:3, 3]) > self.position_tolerance
+                        or angle > self.angle_tolerance):
+                    raise ValueError('测试初始位姿已变化，取消本轮；请重新启动')
+        except (StaleRobotTransform, TransformException) as error:
+            now = monotonic()
+            if self.tf_wait_since is None:
+                self.tf_wait_since = now
+                self.get_logger().warning(f'等待新鲜TF，暂停后续步骤（最多1秒）：{error}')
+            elif now-self.tf_wait_since >= 1.:
+                raise ValueError(f'新鲜TF等待超时，取消本轮：{error}') from error
+            return False
+        self.tf_wait_since = None
+        return True
 
     def prepare_targets(self):
         self.snapshot.setdefault('frozen_at_ros_ns', self.get_clock().now().nanoseconds)
@@ -436,7 +457,8 @@ class CameraDetectionTask(Node):
             if self.ready_since is None:
                 self.ready_since = monotonic()
                 self.snapshot = {'base_T_camera': camera.tolist(), 'base_T_probe': probe.tolist()}
-            self.check_stationary()
+            if self.check_stationary() is False:
+                return
             if monotonic()-self.ready_since >= self.ready_stable_sec:
                 if self.target_source == 'tcp' or self.capture_local is True:
                     self.begin_capture()
@@ -461,7 +483,8 @@ class CameraDetectionTask(Node):
                 self.transition('WAIT_READY', '检测准备姿态已到位，开始稳定拍照等待')
             return
         if self.phase in ('CAPTURE', 'WAIT_RESULT', 'CLEAR_TARGETS', 'RECORD_HOME', 'WAIT_TARGETS'):
-            self.check_stationary()
+            if self.check_stationary() is False:
+                return
         if self.phase == 'CAPTURE':
             if monotonic()-self.since > self.timeouts['capture']:
                 raise ValueError('采集或发送超时，取消本轮')
@@ -497,7 +520,8 @@ class CameraDetectionTask(Node):
             if self.operation.done():
                 response = self.operation.result()
                 if not response.success and response.message.startswith('TARGET_UNREACHABLE:'):
-                    self.check_stationary()  # 服务拒绝发生在实际运动之前，仍须确认拍照原位。
+                    if self.check_stationary() is False:  # 服务拒绝发生在实际运动之前。
+                        return
                     self.schedule_reacquire(response.message)
                     return
             if self.operation_complete():

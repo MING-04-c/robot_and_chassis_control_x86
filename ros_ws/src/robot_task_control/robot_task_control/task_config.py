@@ -44,8 +44,9 @@ def load_station_config(path):
     """Read diagnostic point overrides; device and safety settings remain production-owned."""
     path = Path(path).expanduser().resolve(strict=True)
     document = yaml.safe_load(path.read_text(encoding='utf-8'))
-    if not isinstance(document, dict) or set(document) != {
-            'workflow', 'travel', 'detection_ready', 'camera_detection_task'}:
+    required = {'workflow', 'travel', 'detection_ready', 'camera_detection_task'}
+    if (not isinstance(document, dict) or not required.issubset(document)
+            or set(document)-required-{'detection_ready_2'}):
         raise ValueError('Station YAML requires workflow, travel, detection_ready, camera_detection_task')
     workflow = document['workflow']
     if not isinstance(workflow, dict) or type(workflow.get('auto_start', False)) is not bool:
@@ -68,7 +69,8 @@ def load_task_config(path):
     sections = {'system', 'tcp', 'thickness_detector', 'workflow', 'travel',
                 'detection_ready', 'arm_joint_postures', 'camera_detection_task',
                 'detect_controller', 'capture'}
-    if not isinstance(document, dict) or set(document) != sections:
+    if (not isinstance(document, dict) or not sections.issubset(document)
+            or set(document)-sections-{'detection_ready_2'}):
         raise ValueError('Task YAML requires exactly these sections: '+', '.join(sorted(sections)))
     system = document['system']
     if not isinstance(system, dict) or set(system) != SYSTEM_KEYS:
@@ -130,13 +132,17 @@ def load_task_config(path):
             or not all(type(v) in (int, float) and math.isfinite(v) for v in points)):
         raise ValueError('camera_points_mm must contain finite xyz triples in millimetres')
     detect = node_parameters(document, 'detect_controller')
-    if detect.get('touch_control_mode') != 'moveit_force_guard' or detect.get('require_thickness_measurement') is not True:
-        raise ValueError('Production task requires force-guarded touch and thickness measurement')
+    if detect.get('touch_control_mode') not in ('admittance', 'moveit_force_guard') or detect.get('require_thickness_measurement') is not True:
+        raise ValueError('Production task requires a supported touch controller and thickness measurement')
     positive(detect.get('initial_force_limit'), 'initial_force_limit')
     positive(detect.get('contact_force'), 'contact_force')
     positive(detect.get('overload_force'), 'overload_force')
     if not detect['initial_force_limit'] < detect['contact_force'] < detect['overload_force']:
         raise ValueError('Require initial_force_limit < contact_force < overload_force')
+    preposition_force = detect.get('preposition_force_limit', 25.0)
+    positive(preposition_force, 'preposition_force_limit')
+    if preposition_force > detect['overload_force']:
+        raise ValueError('preposition_force_limit must not exceed overload_force')
     limits = detect.get('preposition_rp_tolerance_deg', [0., 0.])
     if (not isinstance(limits, list) or len(limits) != 2 or not all(
             type(v) in (int, float) and math.isfinite(v) and 0. <= v <= 45. for v in limits)):

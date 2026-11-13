@@ -90,8 +90,10 @@ class WorkflowController(Node):
         self.posture_status = None
         self.posture_status_time = None
         self.posture_request_id = None
+        posture_names = ('travel', 'detection_ready') + (('detection_ready_2',) if any(
+            step.get('posture') == 'detection_ready_2' for step in self.steps) else ())
         self.posture_clients = {name: self.create_client(Trigger, '/arm_joint_postures/'+name)
-                                for name in ('travel', 'detection_ready')}
+                                for name in posture_names}
         self.posture_cancel_client = self.create_client(Trigger, '/arm_joint_postures/cancel')
         self.create_subscription(String, '/arm_joint_postures/status', self.on_posture_status,
             QoSProfile(depth=1, durability=DurabilityPolicy.TRANSIENT_LOCAL))
@@ -386,8 +388,8 @@ class WorkflowController(Node):
                     raise ValueError(f"workflow step {index} requires a valid config_file path")
             if action == 'camera_detection' and timeout < 30.0:
                 raise ValueError(f'workflow step {index} camera_detection timeout must be at least 30 seconds')
-            if action == 'arm_posture' and step.get('posture') not in ('travel', 'detection_ready'):
-                raise ValueError('arm_posture requires travel or detection_ready')
+            if action == 'arm_posture' and step.get('posture') not in ('travel', 'detection_ready', 'detection_ready_2'):
+                raise ValueError('arm_posture requires travel, detection_ready or detection_ready_2')
             if action == 'line_follow' and step.get('service_intermediate_stations', False):
                 if not station_steps or not workflow.get('arm_postures_before_chassis', False):
                     raise ValueError('站点动作需要station_steps和行驶姿态保护')

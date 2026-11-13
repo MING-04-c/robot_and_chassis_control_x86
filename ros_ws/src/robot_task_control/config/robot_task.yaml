@@ -42,6 +42,10 @@ thickness_detector:
 travel: [-45.0, 15.0, -71.0, 4.4, 148.0, 75.0]
 # 过渡关节位：行车位与拍照路径之间的六轴姿态。
 detection_ready: [-45.0, 0.0, 0.0, 0.0, 90.0, 0.0]
+# 过渡位2：基座→肩→肘→腕1→腕2→腕3，单位度；去程在过渡位1后，回程在其前。
+# 180°肘角必须符合实际真机模型；仿真±250°覆盖没有同步到真机。
+# 若MoveIt按原软限位将180°压小，关节控制器会在执行前拒绝该规划结果。
+detection_ready_2: [-45.0, -90.0, 180.0, 0.0, 0.0, 90.0]
 arm_joint_postures:
   ros__parameters:
     velocity_scaling: 0.1
@@ -72,10 +76,16 @@ workflow:
     progress_timeout_sec: 5.0
     step_timeout_sec: 900.0
   - *wait_stopped
-  - action: arm_posture
+  - name: to_transition
+    action: arm_posture
     posture: detection_ready
     step_timeout_sec: 600.0
-  # 中间点一（原点位）：去程先经过这里；回程最后经过这里，再回过渡关节位。
+  - name: to_transition_2
+    action: arm_posture
+    posture: detection_ready_2
+    step_timeout_sec: 600.0
+  # 中间点一：与 path_preview.yaml 同步；去程先经过，回程最后经过再回过渡位2。
+  # 旧点位仅作记录：XYZ [0.150, 0.530, 0.810]，RPY [75, 20, 170]，不再执行。
   # 相对 base_link 的 tool0 XYZ（米）与 RPY（度），回程通过 YAML 锚点复用。
   - &camera_via
     name: to_camera_via
@@ -90,9 +100,10 @@ workflow:
     step_timeout_sec: 180.0
     target_pose:
       position_mode: absolute
-      position: [0.150, 0.530, 0.810]
-      orientation: [75.0, 20.0, 170.0]
-  # 中间点二（原点位）：位于中间点一与拍照位之间，去回程共用位置及朝向。
+      position: [-0.435, 0.254, 0.720]
+      orientation: [-90.0, 0.0, 45.0]
+  # 中间点二：与仿真同步；去回程共用位置及朝向。
+  # 旧点位仅作记录：XYZ [0.300, 0.410, 0.795]，RPY [-90, 45, -45]，不再执行。
   - &camera_intermediate
     name: to_camera_intermediate
     action: arm_move
@@ -106,8 +117,8 @@ workflow:
     step_timeout_sec: 180.0
     target_pose:
       position_mode: absolute
-      position: [0.300, 0.410, 0.795]
-      orientation: [-90.0, 45.0, -45.0]
+      position: [0.110, 0.450, 0.600]
+      orientation: [180.0, 0.0, -25.0]
   # 拍照位：仍是 tool0 位姿，不是镜头位置；到位后冻结实际相机/探针 TF。
   # 检测记录实际六轴关节作为拍照原位，每点测完先返回该原位。
   - action: arm_move
@@ -121,18 +132,23 @@ workflow:
     step_timeout_sec: 180.0
     target_pose:
       position_mode: absolute
-      position: [0.375, 0.360, 0.590]
-      orientation: [-175.0, 0.0, -90.0]
+      position: [0.240, 0.390, 0.580]
+      orientation: [-180.0, 0.0, -90.0]
   - action: camera_detection
     step_timeout_sec: 1200.0
   # Reverse the outbound waypoints, including orientation, before transition.
-  # 回程顺序：拍照原位 -> 中间点二 -> 中间点一 -> 过渡关节位 -> 行车位。
+  # 回程顺序：拍照原位 -> 中间点二 -> 中间点一 -> 过渡位2 -> 过渡位1 -> 行车位。
   # 每段重新进行碰撞规划，不是逐帧倒放去程轨迹；oline 等 go_home 才进入此段。
   - <<: *camera_intermediate
     name: return_camera_intermediate
   - <<: *camera_via
     name: return_camera_via
-  - action: arm_posture
+  - name: return_transition_2
+    action: arm_posture
+    posture: detection_ready_2
+    step_timeout_sec: 600.0
+  - name: return_transition
+    action: arm_posture
     posture: detection_ready
     step_timeout_sec: 600.0
   - action: line_follow
@@ -156,7 +172,7 @@ camera_detection_task:
     probe_frame: terminal_link_2  # 探针尖端，非 tool0；安装补偿读取 URDF/TF。
     base_frame: base_link
     target_source: local  # 自动单轮用下面测试点；oline 覆盖为 tcp，等待本批真实坐标。
-    camera_points_mm: [-10.0, -10.0, 130.0]  # TEST camera-frame point (mm); verify before touch.
+    camera_points_mm: [0.0, 0.0, 100.0]  # 与当前仿真同步的相机系测试点（mm），Z=10 cm；触碰前核对。
     auto_start: false  # Triggered by workflow, never races the photo-pose move.
     capture_local: true
     status_topic: /camera_detection_task/status
@@ -176,7 +192,8 @@ detect_controller:
     tool_frame: tool0
     probe_frame: terminal_link_2
     planning_group: cs_manipulator
-    touch_control_mode: moveit_force_guard
+    # 真机接触段使用导纳；拍照位到预接近点仍由 detect_controller 的 MoveIt 规划完成。
+    touch_control_mode: admittance
     joint_postures_enabled: false
     initial_position_enabled: false
     workspace_min: [-1.0, -1.0, 0.08]
@@ -188,19 +205,23 @@ detect_controller:
     lock_tool_orientation: false  # 不锁整段绕障路径；终点及最后接触段仍检查朝向。
     orientation_tolerance_deg: 1.0
     preposition_rp_tolerance_deg: [0.0, 0.0]  # No base-frame Rx/Ry search.
-    preposition_tool_z_spin: false  # Original direct pose planning; no candidate IK/joint locking.
-    # 仿真 path_preview 的局部 X/Y 倾角搜索没有同步启用到真机；这里保留拍照目标朝向。
+    # 保持拍照时 tool0 +Z 的方向，只允许绕自身 Z 轴选角度；不允许 X/Y 倾斜。
+    # 先试原角度，再按下面步长试 ±15°、±30°……180°，每个候选检查无碰撞 IK。
+    preposition_tool_z_spin: true
     preposition_angle_step_deg: 15.0
-    phase_timeout: 120.0
-    approach_clearance: 0.02  # Start slow contact approach 20 mm before the target.
-    approach_speed: 0.001  # 1 mm/s throughout contact approach.
+    phase_timeout: 300.0  # 0.5 mm/s 下最大 100 mm 接近需约 200 秒，保留执行余量。
+    # 接触点沿拍照工具 +Z 反方向退 3 cm；相机 +Z 与其同向时等价于相机 z 减 30 mm。
+    # 前面 OMPL 绕障不锁姿态，到预接近位后固定所选朝向，沿实际 tool0 +Z 直线推进。
+    approach_clearance: 0.03  # 与当前仿真同步：预接近到名义接触点3 cm。
+    approach_speed: 0.0005  # 最后接近及反向撤离均为 0.5 mm/s。
     max_penetration: 0.05
     recover_approach_failure: true
     recovery_settle_seconds: 0.5
     require_thickness_measurement: true
-    contact_force: 25.0
-    overload_force: 40.0
-    initial_force_limit: 15.0
+    contact_force: 20.0  # 未滤波去偏轴向力达到即在回调中取消推进；停稳后才能测厚。
+    overload_force: 25.0  # 全程未滤波去偏三轴合力保护阈值。
+    initial_force_limit: 15.0  # 启动前检查阈值，不作为预接近运动中的停止阈值。
+    preposition_force_limit: 25.0  # 预接近三轴合力达到即取消运动并FAULT，不自动继续。
     data_timeout: 0.3
     target_max_age: 30.0
     service_timeout: 5.0
@@ -212,8 +233,8 @@ detect_controller:
     force_filter_alpha: 0.25
     force_bias_sample_count: 50
     hold_seconds: 5.0  # Actual contact dwell for thickness reading.
-    velocity_scaling: 0.05
-    acceleration_scaling: 0.05
+    velocity_scaling: 0.01  # 检测预接近和回拍照位：模型关节速度上限的 1%，非固定末端线速度。
+    acceleration_scaling: 0.01
 
 capture:
   # HK 海康 + 深度相机 RGB/原始深度三图；与 system.line_camera_device 循迹 USB 相机不同。

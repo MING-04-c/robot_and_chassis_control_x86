@@ -146,7 +146,7 @@ def test_rejected_contact_pose_tries_another_orientation_without_moving():
 
 def test_local_z_selection_rejects_original_and_preserves_photo_axis():
     subject, done = node(), MagicMock()
-    subject.cfg.update(preposition_tool_z_spin=True, preposition_rp_tolerance_deg=[0., 0.])
+    subject.cfg.update(preposition_tool_z_spin=True, preposition_rp_tolerance_deg=[0., 0.], approach_clearance=.05)
     original = subject.final.copy()
     tip = (original @ subject.mounting)[:3, 3]
     CONTROLLER.select_preposition(subject, done)
@@ -158,7 +158,7 @@ def test_local_z_selection_rejects_original_and_preserves_photo_axis():
     done.assert_called_once()
     np.testing.assert_allclose(subject.final[:3, 2], original[:3, 2], atol=1e-12)
     np.testing.assert_allclose((subject.final @ subject.mounting)[:3, 3], tip, atol=1e-12)
-    np.testing.assert_allclose((subject.pre @ subject.mounting)[:3, 3], tip-original[:3, 2]*.02)
+    np.testing.assert_allclose((subject.pre @ subject.mounting)[:3, 3], tip-original[:3, 2]*.05)
     np.testing.assert_allclose(subject.pre, selected_pre, atol=1e-12)
     for call in subject.ik.call_async.call_args_list:
         assert call.args[0].ik_request.avoid_collisions
@@ -256,16 +256,109 @@ def test_contact_approach_requests_two_mm_per_second_with_collisions_enabled():
     assert request.cartesian_speed_limited_link == 'tool0'
 
 
+@pytest.mark.parametrize('speed', [.0005, .002, .01])
+def test_retract_never_exceeds_approach_speed_or_old_limit(speed):
+    subject = node()
+    subject.cfg.update(approach_speed=speed, velocity_scaling=.01,
+                       acceleration_scaling=.01, phase_timeout=300.)
+    subject.current_tool.return_value = subject.pre
+    subject.axis = CONTROLLER.direction_for(subject, subject.pre)
+    CONTROLLER.retreat(subject)
+    request = subject.cartesian.call_async.call_args.args[0]
+    assert request.max_cartesian_speed == min(.005, speed)
+    assert request.avoid_collisions
+    assert request.max_velocity_scaling_factor == .01
+    assert request.max_acceleration_scaling_factor == .01
+
+
+@pytest.mark.parametrize('phase', ['SELECT_PREPOSITION', 'PREPOSITION', 'VERIFY_PREPOSITION'])
+@pytest.mark.parametrize('force', [[30., 0., 0.], [18., 24., 0.]])
+def test_preposition_force_at_threshold_cancels_and_faults_without_auto_continue(phase, force):
+    subject = node()
+    subject.cfg.update(initial_force_limit=15., preposition_force_limit=30., overload_force=40., contact_force=25.)
+    subject.phase = phase
+    subject.active = True
+    subject.touch_control_mode = 'moveit_force_guard'
+    subject.generation = 2
+    subject.outstanding_actions = {object()}
+    subject.fail.side_effect = lambda detail: CONTROLLER.fail(subject, detail)
+    handle = subject.goal_handle
+    CONTROLLER.handle_force_sample(subject, np.array(force))
+    handle.cancel_goal_async.assert_called_once()
+    assert subject.operation is None
+    assert subject.generation == 3
+    assert subject.stop_confirmed is False
+    assert subject.state.call_args.args[0] == 'FAULT'
+    subject.begin_hold.assert_not_called()
+    subject.request_moveit_force_stop.assert_not_called()
+    subject.return_home.assert_not_called()
+
+
+def test_preposition_raw_force_guard_does_not_wait_for_low_pass():
+    subject = node()
+    subject.cfg.update(initial_force_limit=15., preposition_force_limit=30., overload_force=40., force_filter_alpha=.25,
+                       data_timeout=.3)
+    subject.phase = 'PREPOSITION'
+    subject.active = True
+    subject.touch_control_mode = 'moveit_force_guard'
+    subject.force_bias = np.array([1., 2., 3.])
+    subject.force_filter = np.zeros(3)
+    subject.stamp_fresh.return_value = True
+    subject.raw_force_in_base.return_value = np.array([31., 2., 3.])
+    CONTROLLER.on_raw(subject, MODULE.WrenchStamped())
+    assert '30N' in subject.fail.call_args.args[0]
+    subject.handle_force_sample.assert_not_called()
+    np.testing.assert_array_equal(subject.force_filter, np.zeros(3))
+
+
+@pytest.mark.parametrize('phase, force', [('PREPOSITION', [29.9, 0., 0.]),
+                                         ('MOVEIT_DESCEND', [15., 0., 0.])])
+def test_preposition_guard_does_not_change_below_threshold_or_contact_stage(phase, force):
+    subject = node()
+    subject.cfg.update(initial_force_limit=15., preposition_force_limit=30., overload_force=40., contact_force=25.)
+    subject.phase = phase
+    subject.active = True
+    subject.axial_force.return_value = 0.
+    CONTROLLER.handle_force_sample(subject, np.array(force))
+    subject.fail.assert_not_called()
+
+
+@pytest.mark.parametrize('phase', ['MOVEIT_WAIT_CONTACT', 'MOVEIT_PLAN_DESCENT',
+                                  'MOVEIT_DESCEND', 'VERIFY_MOVEIT_SEGMENT'])
+@pytest.mark.parametrize('force, stop, fault', [
+    ([0., 0., 19.9], False, False), ([0., 0., 20.], True, False),
+    ([0., 0., -20.], True, False), ([21., 0., 0.], False, False),
+    ([15., 20., 0.], False, True)])
+def test_raw_contact_stop_at_twenty_does_not_wait_for_filter(phase, force, stop, fault):
+    subject = node()
+    subject.cfg.update(initial_force_limit=15., preposition_force_limit=25., overload_force=25.,
+                       contact_force=20., force_filter_alpha=.25, data_timeout=.3, base_frame='base_link')
+    subject.phase = phase
+    subject.active = True
+    subject.touch_control_mode = 'moveit_force_guard'
+    subject.force_bias = np.array([1., 2., 3.])
+    subject.force_filter = np.zeros(3)
+    subject.stamp_fresh.return_value = True
+    subject.raw_force_in_base.return_value = np.array(force)+subject.force_bias
+    subject.axial_force.side_effect = lambda values: abs(values[2])
+    CONTROLLER.on_raw(subject, MODULE.WrenchStamped())
+    assert subject.request_moveit_force_stop.called is stop
+    assert subject.fail.called is fault
+    if stop:
+        assert abs(subject.force_filter[2]) < 20.  # 滤波仍远低于20，停止已请求。
+
+
 def test_production_yaml_uses_requested_limits_and_slowdown():
     document = yaml.safe_load((ROOT/'robot_task_control/config/robot_task.yaml').read_text())
     config = document['detect_controller']['ros__parameters']
     assert config['preposition_rp_tolerance_deg'] == [0., 0.]
-    assert config['preposition_tool_z_spin'] is False
+    assert config['preposition_tool_z_spin'] is True
     assert config['preposition_angle_step_deg'] == 15.
-    assert config['approach_clearance'] == .02
-    assert config['approach_speed'] == .001
-    assert config['velocity_scaling'] == config['acceleration_scaling'] == .05
-    assert document['camera_detection_task']['ros__parameters']['camera_points_mm'] == [-10., -10., 130.]
+    assert config['approach_clearance'] == .03
+    assert config['approach_speed'] == .0005
+    assert config['velocity_scaling'] == config['acceleration_scaling'] == .01
+    assert document['camera_detection_task']['ros__parameters']['camera_points_mm'] == [0., 0., 100.]
     assert document['arm_joint_postures']['ros__parameters']['velocity_scaling'] == .1
     assert not config['lock_tool_orientation']
-    assert (config['initial_force_limit'], config['contact_force'], config['overload_force']) == (15., 25., 40.)
+    assert config['preposition_force_limit'] == 25.
+    assert (config['initial_force_limit'], config['contact_force'], config['overload_force']) == (15., 20., 25.)

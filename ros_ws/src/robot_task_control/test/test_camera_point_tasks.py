@@ -25,7 +25,7 @@ import xacro
 from rclpy.node import Node
 
 from eli_cs_robot_moveit_config.joint_postures import JOINTS
-from robot_task_control.camera_detection_task import CameraDetectionTask, received_points
+from robot_task_control.camera_detection_task import CameraDetectionTask, StaleRobotTransform, received_points
 from std_msgs.msg import String
 from geminipro_camer_calibration.capture_geometry import frozen_probe_targets
 from geminipro_camer_calibration.live_tf import LiveRobotTransforms
@@ -229,6 +229,7 @@ module.main()
 
     def test_real_task_invalidates_moved_capture_pose(self):
         node = MagicMock()
+        node.tf_wait_since = None
         node.camera, node.probe = 'camera', 'probe'
         node.snapshot = {'base_T_camera': np.eye(4).tolist(), 'base_T_probe': np.eye(4).tolist()}
         node.position_tolerance, node.angle_tolerance = .001, np.deg2rad(.5)
@@ -244,6 +245,48 @@ module.main()
         node.pose.return_value = moved
         with self.assertRaisesRegex(ValueError, '位姿已变化'):
             CameraDetectionTask.check_stationary(node)
+
+    def test_stationary_tf_wait_never_uses_stale_pose_and_expires(self):
+        node = MagicMock()
+        node.camera, node.probe = 'camera', 'probe'
+        node.tf_wait_since = None
+        node.pose.side_effect = StaleRobotTransform('camera age=0.4s')
+        with patch('robot_task_control.camera_detection_task.monotonic', return_value=10.):
+            self.assertFalse(CameraDetectionTask.check_stationary(node))
+        self.assertEqual(node.tf_wait_since, 10.)
+        with patch('robot_task_control.camera_detection_task.monotonic', return_value=11.):
+            with self.assertRaisesRegex(ValueError, 'TF等待超时'):
+                CameraDetectionTask.check_stationary(node)
+
+    def test_stationary_tf_recovery_still_checks_original_frozen_pose(self):
+        node = MagicMock()
+        node.camera, node.probe = 'camera', 'probe'
+        node.snapshot = {'base_T_camera': np.eye(4).tolist(), 'base_T_probe': np.eye(4).tolist()}
+        node.position_tolerance, node.angle_tolerance = .001, np.deg2rad(.5)
+        node.tf_wait_since = 10.
+        node.pose.return_value = np.eye(4)
+        with patch('robot_task_control.camera_detection_task.monotonic', return_value=10.5):
+            self.assertTrue(CameraDetectionTask.check_stationary(node))
+        self.assertIsNone(node.tf_wait_since)
+        node.tf_wait_since = 10.
+        moved = np.eye(4)
+        moved[0, 3] = .002
+        node.pose.return_value = moved
+        with patch('robot_task_control.camera_detection_task.monotonic', return_value=10.5):
+            with self.assertRaisesRegex(ValueError, '位姿已变化'):
+                CameraDetectionTask.check_stationary(node)
+
+    def test_stationary_tf_wait_blocks_capture_completion_and_motion_start(self):
+        for phase in ('CAPTURE', 'WAIT_RESULT', 'CLEAR_TARGETS', 'RECORD_HOME', 'WAIT_TARGETS'):
+            node = MagicMock()
+            node.phase = phase
+            node.check_stationary.return_value = False
+            CameraDetectionTask.advance(node)
+            node.finish_capture.assert_not_called()
+            node.consume_result.assert_not_called()
+            node.publish_targets.assert_not_called()
+            node.record_client.call_async.assert_not_called()
+            node.start_client.call_async.assert_not_called()
 
     def test_real_task_clears_records_and_starts_only_after_new_targets(self):
         node = MagicMock()
@@ -343,7 +386,7 @@ module.main()
         import yaml
         profile = yaml.safe_load((ROOT/'robot_task_control/config/robot_task.yaml').read_text())
         params = profile['camera_detection_task']['ros__parameters']
-        self.assertEqual(params['camera_points_mm'], [-10., -10., 130.])
+        self.assertEqual(params['camera_points_mm'], [0., 0., 100.])
         self.assertEqual(params['target_source'], 'local')
         self.assertTrue(params['capture_local'])
         self.assertFalse(params['auto_start'])

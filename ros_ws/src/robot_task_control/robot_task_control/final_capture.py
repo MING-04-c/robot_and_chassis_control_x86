@@ -173,17 +173,47 @@ class CaptureSession(Node):
         finally:
             self.destroy_client(client)
 
+    def save_failed_candidate(self, topic, frame, stamp, monitor, counts, reason):
+        """仅保存排查图，绝不进入正式三图索引或后续检测/发送流程。"""
+        folder = self.storage_root/'failed'/self.output.name
+        folder.mkdir(parents=True, exist_ok=True)
+        label = ''.join(ch if ch.isalnum() else '_' for ch in topic).strip('_') or 'image'
+        photo = folder/(label+'_last_UNVERIFIED.png')
+        info = dict(topic=topic, accepted_for_detection=False, reason=reason,
+                    received_counts=counts, stamp=stamp, stable_count=monitor.count,
+                    last_difference=monitor.difference, image=None)
+        if frame is not None:
+            ok, encoded = cv2.imencode('.png', frame, [cv2.IMWRITE_PNG_COMPRESSION, 1])
+            if not ok:
+                raise RuntimeError('失败候选图PNG编码失败')
+            photo.write_bytes(encoded.tobytes())
+            info['image'] = str(photo)
+        (folder/(label+'_diagnostic.json')).write_text(
+            json.dumps(info, ensure_ascii=False, indent=2), encoding='utf-8')
+        self.report.setdefault('failed_candidates', []).append(info)
+        self.get_logger().warning('失败采集诊断：'+str(photo if frame is not None else folder)
+                                  +'；仅供查看，不用于检测')
+
     def stable_image(self, topic, process):
         monitor = StableFrames(self.config)
         latest = [None]
         stamp = [None]
+        candidate = [None]
+        counts = dict(received=0, valid=0, duplicate=0, stale=0)
         def on_image(message):
+            counts['received'] += 1
             key = (message.header.stamp.sec, message.header.stamp.nanosec)
             age = (self.get_clock().now().nanoseconds-key[0]*10**9-key[1])/1e9
-            if key == stamp[0] or not 0 <= age <= 1.0:
+            if key == stamp[0]:
+                counts['duplicate'] += 1
+                return
+            if not 0 <= age <= 1.0:
+                counts['stale'] += 1
                 return
             stamp[0] = key
             frame = self.bridge.imgmsg_to_cv2(message, desired_encoding='bgr8')
+            candidate[0] = frame
+            counts['valid'] += 1
             if monitor.observe(frame, time.monotonic()):
                 latest[0] = message
         qos = QoSProfile(depth=1, reliability=ReliabilityPolicy.BEST_EFFORT)
@@ -197,6 +227,13 @@ class CaptureSession(Node):
                 if latest[0] is not None:
                     return latest[0]
             raise RuntimeError(f'{topic} 画面未稳定或没有新帧，禁止用旧图拍照；最后变化={monitor.difference}')
+        except (Exception, KeyboardInterrupt) as error:
+            try:
+                self.save_failed_candidate(topic, candidate[0], stamp[0], monitor, counts,
+                                           str(error) or '采集取消')
+            except Exception as save_error:
+                self.get_logger().error('失败候选图保存失败：'+str(save_error))
+            raise
         finally:
             self.destroy_subscription(subscription)
 

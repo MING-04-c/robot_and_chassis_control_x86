@@ -19,6 +19,11 @@ def launch_node(context):
         "frame_id": LaunchConfiguration("frame_id"),
     }
     parameters = [LaunchConfiguration("config_file"), overrides]
+    quickack = LaunchConfiguration("tcp_quickack").perform(context).strip()
+    if quickack:
+        if quickack not in ('true', 'false'):
+            raise ValueError('tcp_quickack must be true or false')
+        overrides['tcp_quickack'] = quickack == 'true'
     cleanup = []
     target = LaunchConfiguration("target_unit").perform(context).strip()
     if target:
@@ -53,6 +58,8 @@ def generate_launch_description():
         DeclareLaunchArgument("host", default_value="169.254.199.80"),
         DeclareLaunchArgument("port", default_value="9001"),
         DeclareLaunchArgument("frame_id", default_value="force_sensor"),
+        DeclareLaunchArgument("tcp_quickack", default_value="",
+                             description="true/false overrides config for stationary A/B receive timing tests"),
         DeclareLaunchArgument(
             "target_unit", default_value="",
             description="运行时硬件单位：N、kgf、keep；默认按上电 kg 对齐到 N，正常退出恢复 kg。",

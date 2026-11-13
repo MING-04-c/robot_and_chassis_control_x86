@@ -13,7 +13,7 @@
 | 远程多轮等待/检测/回家阶段 | `src/robot_task_control/robot_task_control/camera_detection_oline.py` |
 | 稳定采图和图像发送 | `src/robot_task_control/robot_task_control/final_capture.py` |
 | 真机限力接触、测厚、撤离回位 | `src/detect_control/scripts/detect_controller.py` |
-| 仿真路径/局部倾角试验 | `src/robot_task_control/simulation/path_preview.py`、`path_preview.yaml` |
+| 仿真路径/预接近终点工具 Z 轴约束 | `src/robot_task_control/simulation/path_preview.py`、`path_preview.yaml` |
 | TCP 协议与机器人唯一桥 | `src/eli_cs_robot_serial/device/industrial_pc/src/` |
 | 麒麟工具唯一代码源 | `src/eli_cs_robot_serial/device/industrial_pc/host_tools/` |
 | 麒麟导出工具 | 仓库根目录 `tools/export_industrial_pc.py` |

@@ -242,6 +242,19 @@ class JointPostureControl(Node):
         if result.error_code.val != MoveItErrorCodes.SUCCESS or not result.trajectory.joint_trajectory.points:
             self.report['native_error_code'] = int(result.error_code.val)
             raise RuntimeError(label+'双向预规划失败：'+str(result.error_code.val))
+        joint_path = result.trajectory.joint_trajectory
+        endpoint = joint_path.points[-1].positions
+        if (set(joint_path.joint_names) != set(JOINTS) or len(joint_path.joint_names) != len(JOINTS)
+                or len(endpoint) != len(JOINTS)):
+            raise RuntimeError(label+'规划结果关节列表不匹配，拒绝执行')
+        actual = [endpoint[joint_path.joint_names.index(name)] for name in JOINTS]
+        errors = np.abs(np.asarray(actual)-np.asarray(target))
+        segment.update(planned_end_rad=actual, joint_goal_error_rad=errors.tolist())
+        if not np.isfinite(errors).all() or max(errors) > .005+1e-8:
+            self.report['native_error_code'] = int(MoveItErrorCodes.INVALID_MOTION_PLAN)
+            self.write('REJECT_MODIFIED_GOAL_'+label)
+            raise RuntimeError(label+'规划终点不符合请求关节角（可能被模型限位裁剪），拒绝执行；'
+                               '不能用仿真放宽范围代替真机限位确认')
         return result.trajectory
 
     def wait_ready(self):
@@ -299,12 +312,14 @@ class JointPostureControl(Node):
         self.execute_segments(segments)
 
     def move_posture(self, posture):
-        """联合任务用：中转只到中转；行驶位先经中转，再返回行驶关节角。"""
+        """指定过渡位只到该位；回行车位仍经原过渡位，外层负责先走过渡位2。"""
+        if posture not in self.postures:
+            raise RuntimeError('配置未定义关节姿态：'+posture)
         self.prepare_control_mode()
         self.wait_ready()
         current = self.current()
         self.validate('actual_start', current)
-        names = ['detection_ready', 'travel'] if posture == 'travel' else ['detection_ready']
+        names = ['detection_ready', 'travel'] if posture == 'travel' else [posture]
         if max(abs(a-b) for a, b in zip(current, self.postures[posture])) <= .01:
             self.write('DONE')
             return
@@ -400,6 +415,8 @@ def service_main():
     signal.signal(signal.SIGTERM, lambda *_: setattr(node, 'abort_reason', '收到退出信号'))
     node.create_service(Trigger, '~/travel', lambda req, response: node.request_posture('travel', response))
     node.create_service(Trigger, '~/detection_ready', lambda req, response: node.request_posture('detection_ready', response))
+    if 'detection_ready_2' in node.postures:
+        node.create_service(Trigger, '~/detection_ready_2', lambda req, response: node.request_posture('detection_ready_2', response))
     node.create_service(Trigger, '~/cancel', node.stop_request)
     node.write('IDLE')
     try:

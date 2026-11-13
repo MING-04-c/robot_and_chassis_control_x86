@@ -42,7 +42,8 @@ source install/setup.bash
 ros2 launch eli_cs_robot_serial sensor_tcp.launch.py
 ```
 
-默认 TCP 地址为 `169.254.199.80:9001`，网口转换器为 TCP Server、节点为 TCP Client。可传 `host:=... port:=...`。转换器串口侧沿用传感器的 460800 8N1 配置。
+默认 TCP 地址为 `169.254.199.80:9001`，网口转换器为 TCP Server、节点为 TCP Client。可传 `host:=... port:=...`。
+现场已确认转换器串口侧是 **115200、8N1**，不是此前文档写的460800；TCP节点的本机 `baudrate` 不会改变转换器串口侧设置。
 
 USB 入口：
 
@@ -59,6 +60,40 @@ ros2 launch eli_cs_robot_serial sensor_plot.launch.py
 ```
 
 机械臂导纳、检测及联合任务已经复用这些配置，不要同时启动第二个传感器节点。
+
+## 接收延迟与静止诊断
+
+TCP配置默认 `tcp_no_delay: true`、`tcp_quickack: true`。后者在连接和每次正长度read后请求Linux立即ACK，
+因为QUICKACK不是永久状态；不改变网关打包参数、波特率、设备采样率或力保护阈值，也不能保证消除延迟。
+不支持/设置失败会报警并继续采集，统计字段显示最近一次设置是否成功。
+
+`timing_report_period_sec: 5.0` 控制诊断发布周期（0关闭），不是采样周期。终端每周期打印 `Sensor timing`，
+`/sensor/timing` 同时发布JSON：
+
+| 字段 | 含义 |
+|---|---|
+| `read_hz` | 电脑每秒正长度read次数，不等于网包数或采样Hz |
+| `max_read_gap_ms` / `mean_read_gap_ms` | 相邻正长度read间隔，采用电脑单调时钟 |
+| `max_bytes_per_read` | 单次read最大字节数 |
+| `max_decoded_frames_per_read` | 一次read中最多解码多少帧，观察成批数据 |
+| `wrench_hz` | 节点成功发布的力帧数/窗口时间，不是订阅端测量结果 |
+| `since_last_read_ms` | 距最近一次read的时间，检查当前断流 |
+| `tcp_quickack_requested` / `tcp_quickack_last_success` | 立即ACK开关及最近一次设置结果 |
+
+当前29字节协议帧没有硬件采样时间戳；`/sensor/wrench`填电脑发布时刻，不能据此证明设备到电脑的端到端延迟。
+read可能合并多个网包，单看成批read也不能确定缓存就在网关，必要时结合抓包或USB-RS485直连比较。
+
+先保证机器人静止、没有接触/导纳任务，再只启动一个传感器节点；不要为了测频率启动自动整机工作流：
+
+```bash
+ros2 launch eli_cs_robot_serial sensor_tcp.launch.py tcp_quickack:=true
+# 另一终端观察，不能同时再启动第二个sensor节点：
+ros2 topic echo /sensor/timing
+ros2 topic hz /sensor/wrench
+```
+
+正常退出后可用 `tcp_quickack:=false` 单独再跑一轮，比较最大read间隔和成批帧数，而不只比较平均Hz。
+这会沿用原有的启动单位/清零与正常退出恢复流程；没有新增传感器协议命令。
 
 ## 单位服务
 

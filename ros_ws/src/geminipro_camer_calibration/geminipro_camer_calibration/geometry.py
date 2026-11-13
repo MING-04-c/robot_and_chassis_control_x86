@@ -107,3 +107,29 @@ def rpy_degrees_rotation(rpy):
         cr * cp * cy + sr * sp * sy,
     ]
     return matrix([0.0, 0.0, 0.0], quaternion)[:3, :3]
+
+
+def tool_z_angles(step):
+    """Finite local-Z spin candidates, shared by real detection and preview."""
+    if isinstance(step, bool) or not math.isfinite(step) or not 0 < step <= 180:
+        raise ValueError('Tool Z spin step must be in (0, 180] degrees')
+    yield 0.
+    for angle in np.arange(step, 180., step):
+        yield float(angle)
+        yield -float(angle)
+    yield 180.
+
+
+def spin_tool_pose(final, mounting, angle):
+    """Rotate around local +Z without moving the probe contact point."""
+    tip = (final @ mounting)[:3, 3].copy()
+    candidate = final.copy()
+    candidate[:3, :3] = final[:3, :3] @ rpy_degrees_rotation([0., 0., angle])
+    candidate[:3, 3] = tip - candidate[:3, :3] @ mounting[:3, 3]
+    return candidate
+
+
+def tool_z_orientations(final, mounting, step):
+    """Preserve the base-frame tool +Z direction and probe contact XYZ."""
+    for angle in tool_z_angles(step):
+        yield angle, 0., spin_tool_pose(final, mounting, angle)

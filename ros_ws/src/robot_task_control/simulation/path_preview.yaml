@@ -1,7 +1,35 @@
-# Joint/pose targets come from this existing workflow, not a second copy.
+# 仅仿真参数：本文件的覆盖不会回写真机配置。改后需重启预览。
 workflow_file: ../config/diagnostics/arrival_detect.yaml
 task_config_file: ../config/robot_task.yaml
 initial_posture: travel
+# 相机坐标系下的探针检测目标，单位毫米；不是基座XYZ，也不是拍照位。
+# 多点写成 [x1, y1, z1, x2, y2, z2]；删掉此项才改为继承工作流测试点。
+camera_points_mm: [0.0, 0.0, 100.0]  # 相机系最终名义接触点，当前Z=10 cm。
+# 仿真预接近点到名义接触点的距离，单位米；0.05=5 cm，0.02=2 cm。
+# 只改变预接近点，不改变名义点；仅仿真有效，删除此项才继承真机主配置。
+approach_clearance: 0.03
+# 过渡位2：去程在原过渡位之后，回程在原过渡位之前；六关节从基座到末端，单位度。
+# 原样保留180°请求，不取模、不裁剪；是否满足模型限位/碰撞必须通过MoveIt检查。
+# path_preview.launch.py 仅在仿真内存模型中将肘部有效范围设为±250°，真机模型不变。
+transition2_joint_degrees: [-45.0, -90.0, 180.0, 0.0, 0.0, 90.0]
+# Simulation-only base_link / tool0 photo target; does not modify the real workflow.
+photo_pose:
+  position: [0.240, 0.390, 0.580]  # metres: 240, 390, 580 mm
+  orientation: [-180.0, 0.0, -90.0]  # fixed-axis RPY, degrees
+# 完整的仿真笛卡尔中间点列表：按下面书写顺序去，回程自动倒序。
+# 可增删、调换整块；名称必须 to_ 开头且唯一；XYZ为米，RPY为度。
+# 空映射 waypoint_poses: {} 表示不经过任何笛卡尔中间点；删除整个字段则继承工作流。
+waypoint_poses:
+  to_camera_via:  # 中间点一；回程在中间点二之后经过
+    position: [-0.435, 0.254, 0.720]
+    orientation: [-90.0, 0.0, 45]
+  to_camera_intermediate:  # 中间点二；回程从拍照位先返回这里
+    position: [0.110, 0.450, 0.600]
+    orientation: [180.0, 0.0, -25.0]
+  # 新增中间点：取消下面三行注释，并按实际需要填写点位（不是已验证推荐点）。
+  # to_camera_extra:
+  #   position: [0.110, 0.450, 0.600]
+  #   orientation: [180.0, 0.0, -25.0]
 # Use the original OMPL obstacle-aware planning pipeline.
 planning_pipeline: ompl
 planner_id: RRTConnectkConfigDefault
@@ -9,9 +37,9 @@ planning_time_sec: 15.0
 planning_attempts: 5
 velocity_scaling: 0.1
 acceleration_scaling: 0.1
-# Simulation-only experiment: preserve the frozen probe contact XYZ, try the
-# photo orientation first, then local X/Y tilts up to this angle (0 disables).
-# The entire precontact/contact/retract/photo-return path must plan successfully.
-detection_tilt_limit_deg: 15.0
+# Geometry remains the same as production: preserve photo tool +Z; clearance is configured above.
+# Direct MoveIt axis-only goal; no continuous orientation constraint during transport.
+# Preserve the photo tool +Z at precontact; then approach/retract along tool +Z.
+detection_orientation_mode: axis_only
 startup_timeout_sec: 120.0
 report_file: /tmp/robot_task_path_preview.json

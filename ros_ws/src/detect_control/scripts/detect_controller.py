@@ -45,6 +45,7 @@ from geminipro_camer_calibration.geometry import (
     transform_matrix,
     to_pose,
     tool_goal,
+    tool_z_orientations,
 )
 
 JOINTS = [
@@ -69,18 +70,10 @@ def preposition_selection_enabled(config):
             or any(config.get('preposition_rp_tolerance_deg', [0., 0.])))
 
 
-def tool_z_orientations(final, mounting, step):
-    """Rotate about nominal local +Z, preserving its base direction and probe XYZ."""
-    tip = (final @ mounting)[:3, 3].copy()
-    angles = [0.]
-    for angle in np.arange(step, 180., step):
-        angles.extend([float(angle), -float(angle)])
-    angles.append(180.)
-    for angle in angles:
-        candidate = final.copy()
-        candidate[:3, :3] = final[:3, :3] @ rpy_degrees_rotation([0., 0., angle])
-        candidate[:3, 3] = tip - candidate[:3, :3] @ mounting[:3, 3]
-        yield angle, 0., candidate
+def preposition_force_exceeded(config, phase, force):
+    """预接近合力保护独立于启动检查，不按单一接近轴判断。"""
+    return (phase in ('SELECT_PREPOSITION', 'PREPOSITION', 'VERIFY_PREPOSITION')
+            and np.linalg.norm(force) >= config.get('preposition_force_limit', config['initial_force_limit']))
 
 
 def preposition_orientations(final, mounting, limits, step):
@@ -139,8 +132,9 @@ class DetectController(Node):
             "fixed_position": [0.4, 0.0, 0.3],
             "fixed_quaternion_xyzw": [0.0, 0.0, 0.0, 1.0],
             "contact_force": 20.0,
-            "overload_force": 40.0,
+            "overload_force": 25.0,
             "initial_force_limit": 5.0,
+            "preposition_force_limit": 25.0,
             "hold_seconds": 5.0,
             "approach_axis": "base_negative_z",
             "continue_until_contact": False,
@@ -221,6 +215,10 @@ class DetectController(Node):
             raise ValueError(
                 "要求 initial_force_limit < contact_force < overload_force"
             )
+        limit = self.cfg['preposition_force_limit']
+        if (type(limit) not in (int, float) or not math.isfinite(limit)
+                or not 0 < limit <= self.cfg['overload_force']):
+            raise ValueError('preposition_force_limit 必须为正数且不高于 overload_force')
         if self.cfg["target_source"] not in ("camera", "fixed"):
             raise ValueError("target_source 必须是 camera 或 fixed")
         for key in ("velocity_scaling", "acceleration_scaling"):
@@ -334,7 +332,8 @@ class DetectController(Node):
         self.create_service(Trigger, "~/load_targets", self.load_targets)
         self.tick_timer = self.create_timer(1 / self.cfg["rate"], self.tick)
         self.get_logger().info(
-            "检测接口就绪；不会因收到目标而自动运动。接触阈值 20N 默认可配置。"
+            f"检测接口就绪；目标不会自动触发运动。轴向接触阈值{self.cfg['contact_force']:g}N，"
+            f"三轴合力保护{self.cfg['overload_force']:g}N，预接近合力保护{self.cfg['preposition_force_limit']:g}N。"
         )
 
     def destroy_node(self):
@@ -760,6 +759,16 @@ class DetectController(Node):
                     if self.active and np.linalg.norm(transformed) >= self.cfg["overload_force"]:
                         self.fail("原始去偏合力超过保护阈值")
                         return
+                    if self.active and preposition_force_exceeded(self.cfg, self.phase, transformed):
+                        self.fail(f"预接近原始去偏合力达到{self.cfg.get('preposition_force_limit', self.cfg['initial_force_limit']):g}N，取消运动；需人工确认")
+                        return
+                    # 停止触发不等待低通滤波追上实际受力；仅最后接近阶段按轴向力停止。
+                    # 停止方法会使旧异步规划回调失效，并立即请求取消已接受轨迹。
+                    if (self.active and self.phase in (
+                            'MOVEIT_PLAN_DESCENT', 'MOVEIT_DESCEND', 'VERIFY_MOVEIT_SEGMENT',
+                            'MOVEIT_WAIT_CONTACT')
+                            and self.axial_force(transformed) >= self.cfg['contact_force']):
+                        self.request_moveit_force_stop()
                     alpha = float(self.cfg["force_filter_alpha"])
                     self.force_filter = (
                         transformed if self.force_filter is None
@@ -821,6 +830,9 @@ class DetectController(Node):
         if np.linalg.norm(values) >= self.cfg["overload_force"]:
             self.fail("合力超过保护阈值")
             return
+        if preposition_force_exceeded(self.cfg, self.phase, values):
+            self.fail(f"预接近合力达到{self.cfg.get('preposition_force_limit', self.cfg['initial_force_limit']):g}N，取消运动；需人工确认")
+            return
         if self.axial_force(values) < self.cfg["contact_force"]:
             return
         mode = self.cfg.get("touch_control_mode", "admittance")
@@ -837,11 +849,16 @@ class DetectController(Node):
     def fresh(self):
         now = monotonic()
         limit = self.cfg["data_timeout"]
-        return (
+        fresh = (
             self.joints is not None
             and self.force is not None
-            and all(now - x <= limit for x in (self.joints_at, self.force_at, self.raw_at))
+            and all(now - x <= limit for x in (self.joints_at, self.force_at))
         )
+        # The admittance controller already publishes its corrected wrench. The
+        # raw sensor stream is only required by the MoveIt force-guard mode.
+        if self.touch_control_mode == "moveit_force_guard":
+            fresh = fresh and now - self.raw_at <= limit
+        return fresh
 
     def current_tool(self, after=None):
         tf = self.buffer.lookup_transform(
@@ -1599,7 +1616,8 @@ class DetectController(Node):
         req.avoid_collisions = True
         req.path_constraints = self.orientation_path_constraints()
         req.cartesian_speed_limited_link = self.cfg["tool_frame"]
-        req.max_cartesian_speed = 0.005
+        # 撤离不快于接近，避免接触结束后突然按旧 5 mm/s 提速。
+        req.max_cartesian_speed = min(0.005, float(self.cfg['approach_speed']))
         # Jazzy 支持这些字段；限制撤离轨迹的关节速度和加速度。
         req.max_velocity_scaling_factor = self.cfg["velocity_scaling"]
         req.max_acceleration_scaling_factor = self.cfg["acceleration_scaling"]

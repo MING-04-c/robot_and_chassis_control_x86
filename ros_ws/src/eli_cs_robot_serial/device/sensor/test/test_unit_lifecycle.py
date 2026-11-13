@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """用本机模拟传感器验证上电档位、切换、退出及断线；不连接实际设备。"""
 import os
+import json
 os.environ['ROS_DOMAIN_ID'] = '181'
 os.environ['ROS_AUTOMATIC_DISCOVERY_RANGE'] = 'LOCALHOST'
 os.environ['ROS_LOG_DIR'] = '/tmp/sensor-unit-lifecycle-ros'
@@ -106,6 +107,10 @@ class UnitLifecycleTest(unittest.TestCase):
         self.node = rclpy.create_node('unit_lifecycle_observer')
         self.wrenches = []
         self.states = []
+        self.timings = []
+        self.node.create_subscription(String, '/sensor/timing',
+                                      lambda msg: self.timings.append(json.loads(msg.data)),
+                                      rclpy.qos.qos_profile_sensor_data)
         self.node.create_subscription(WrenchStamped, '/sensor/wrench', self.wrenches.append, 10)
         self.node.create_subscription(String, '/sensor/unit_status',
                                       lambda msg: self.states.append(msg.data),
@@ -128,15 +133,18 @@ class UnitLifecycleTest(unittest.TestCase):
         self.log.seek(0)
         self.fail('模拟传感器等待超时\n' + self.log.read())
 
-    def start(self, target='N'):
+    def start(self, target='N', quickack=True):
         self.wrenches.clear()
         self.states.clear()
+        self.timings.clear()
         installed = Path(get_package_prefix('eli_cs_robot_serial')) / 'lib/eli_cs_robot_serial/sensor_node'
         binary = Path(os.environ.get('SENSOR_NODE_BINARY', str(installed)))
         self.process = subprocess.Popen([
             str(binary), '--ros-args', '-p', 'transport:=tcp', '-p', 'host:=127.0.0.1',
             '-p', f'port:={self.sensor.port}', '-p', 'publish_wrench:=true',
             '-p', f'target_unit:="{target}"',
+            '-p', 'timing_report_period_sec:=0.2',
+            '-p', f'tcp_quickack:={str(quickack).lower()}',
             '-p', 'command_delay_ms:=20', '-p', 'unit_switch_delay_ms:=20',
             '-p', 'zero_wait_ms:=20', '-p', 'stop_exit_delay_ms:=20',
         ], stdout=self.log, stderr=subprocess.STDOUT)
@@ -201,6 +209,21 @@ class UnitLifecycleTest(unittest.TestCase):
         self.assert_si()
         self.stop(signal.SIGTERM)
         self.assertEqual(self.sensor.commands.count(0x35), 0)
+
+    def test_receive_timing_and_quickack_toggle_without_changing_protocol(self):
+        for quickack in (True, False):
+            self.start(quickack=quickack)
+            self.wait(lambda: self.timings)
+            report = self.timings[-1]
+            self.assertEqual(report['schema'], 'sensor_receive_timing_v1')
+            self.assertEqual(report['tcp_quickack_requested'], quickack)
+            self.assertEqual(report['tcp_quickack_last_success'], quickack)
+            self.assertGreater(report['read_calls'], 0)
+            self.assertGreater(report['wrench_hz'], 0)
+            self.assertGreaterEqual(report['max_decoded_frames_per_read'], 1)
+            self.assertFalse(report['hardware_sample_timestamps_available'])
+            self.assertFalse(any(command == 0x04 for command in self.sensor.commands))
+            self.stop()
 
     def test_reconnect_does_not_guess_or_toggle(self):
         self.start()

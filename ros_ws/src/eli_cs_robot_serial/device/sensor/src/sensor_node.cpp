@@ -31,6 +31,7 @@
 
 #include "eli_cs_robot_serial/srv/write_serial.hpp"
 #include "unit_calibration.hpp"
+#include "receive_timing.hpp"
 #include "eli_cs_robot_serial/srv/set_sensor_unit.hpp"
 
 class SensorNode final : public rclcpp::Node
@@ -45,7 +46,12 @@ public:
     reconnect_period_ms_ = declare_parameter<int>("reconnect_period_ms", 1000);
     tcp_keepalive_ = declare_parameter<bool>("tcp_keepalive", true);
     tcp_no_delay_ = declare_parameter<bool>("tcp_no_delay", true);
-    baudrate_ = declare_parameter<int>("baudrate", 460800);
+    tcp_quickack_ = declare_parameter<bool>("tcp_quickack", true);
+    timing_period_ = declare_parameter<double>("timing_report_period_sec", 5.0);
+    if (!std::isfinite(timing_period_) || timing_period_ < 0) {
+      throw std::runtime_error("timing_report_period_sec must be finite and nonnegative (0 disables)");
+    }
+    baudrate_ = declare_parameter<int>("baudrate", 115200);
     data_bits_ = declare_parameter<int>("data_bits", 8);
     stop_bits_ = declare_parameter<int>("stop_bits", 1);
     parity_ = declare_parameter<std::string>("parity", "none");
@@ -117,6 +123,8 @@ public:
 
     unit_status_pub_ = create_publisher<std_msgs::msg::String>(
       "/sensor/unit_status", rclcpp::QoS(1).transient_local());
+    timing_pub_ = create_publisher<std_msgs::msg::String>(
+      "/sensor/timing", rclcpp::QoS(1).best_effort());
     set_unit_srv_ = create_service<eli_cs_robot_serial::srv::SetSensorUnit>(
       "/sensor/set_unit", std::bind(&SensorNode::set_unit_callback, this,
       std::placeholders::_1, std::placeholders::_2));
@@ -246,11 +254,15 @@ private:
         int enabled = 1;
         setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &enabled, sizeof(enabled));
       }
+      quickack_applied_ = false;
+      apply_quickack(fd);  // Linux的QUICKACK不是永久状态，后续每次read后重新请求。
+      timing_ = sensor_timing::ReceiveWindow{};
       fcntl(fd, F_SETFL, O_NONBLOCK); std::lock_guard<std::mutex> lock(mutex_); fd_ = fd; return true;
     }
     const auto baud = speed(baudrate_); if (!baud) { RCLCPP_ERROR(get_logger(), "Unsupported baudrate: %d", baudrate_); return false; }
     const int fd = open(device_.c_str(), O_RDWR | O_NOCTTY | O_NONBLOCK); if (fd < 0) return false;
     termios tty{}; if (tcgetattr(fd, &tty) != 0) { close(fd); return false; } cfmakeraw(&tty); cfsetispeed(&tty, baud); cfsetospeed(&tty, baud); tty.c_cflag |= CLOCAL | CREAD; tty.c_cflag &= ~(CSTOPB | PARENB | PARODD | CSIZE); tty.c_cflag |= data_bits_ == 7 ? CS7 : CS8; if (stop_bits_ == 2) tty.c_cflag |= CSTOPB; if (parity_ == "odd") tty.c_cflag |= PARENB | PARODD; else if (parity_ == "even") tty.c_cflag |= PARENB; tty.c_cc[VMIN] = 0; tty.c_cc[VTIME] = 1; if (tcsetattr(fd, TCSANOW, &tty) != 0) { close(fd); return false; }
+    timing_ = sensor_timing::ReceiveWindow{};
     std::lock_guard<std::mutex> lock(mutex_); fd_ = fd; return true;
   }
 
@@ -511,6 +523,7 @@ private:
   void publish_wrench_values(const std::array<double, 6> &values)
   {
     if (!std::all_of(values.begin(), values.end(), [](double x) { return std::isfinite(x); })) return;
+    timing_.on_decoded();
     // 原始读数专供观察，即使单位未确认也可绘图；绝不冒充 SI 力话题。
     std_msgs::msg::Float64MultiArray raw_values;
     raw_values.data.assign(values.begin(), values.end());
@@ -533,6 +546,7 @@ private:
     message.wrench.torque.y = values[4] * scale;
     message.wrench.torque.z = values[5] * scale;
     wrench_pub_->publish(message);
+    ++timing_.published;
   }
 
   void parse_ascii_line(const std::string &line)
@@ -596,14 +610,79 @@ private:
     }
   }
 
+  static double steady_seconds()
+  {
+    return std::chrono::duration<double>(
+      std::chrono::steady_clock::now().time_since_epoch()).count();
+  }
+
+  void apply_quickack(int fd)
+  {
+    if (!tcp_quickack_) return;
+#ifdef TCP_QUICKACK
+    int enabled = 1;
+    const bool success = setsockopt(fd, IPPROTO_TCP, TCP_QUICKACK, &enabled, sizeof(enabled)) == 0;
+    quickack_applied_ = success;
+    if (!success && !quickack_warned_) {
+      RCLCPP_WARN(get_logger(), "TCP_QUICKACK unavailable: %s; acquisition continues without it",
+        std::strerror(errno));
+      quickack_warned_ = true;
+    }
+#else
+    if (!quickack_warned_) {
+      RCLCPP_WARN(get_logger(), "TCP_QUICKACK unsupported on this platform");
+      quickack_warned_ = true;
+    }
+    (void)fd;
+#endif
+  }
+
+  void report_timing()
+  {
+    const auto now = steady_seconds();
+    const double elapsed = timing_.elapsed(now);
+    if (timing_period_ <= 0 || elapsed < timing_period_) return;
+    std::ostringstream report;
+    report << "{\"schema\":\"sensor_receive_timing_v1\",\"transport\":\"" << transport_
+      << "\",\"window_sec\":" << elapsed
+      << ",\"read_calls\":" << timing_.reads << ",\"read_hz\":" << timing_.reads/elapsed
+      << ",\"bytes\":" << timing_.bytes << ",\"max_bytes_per_read\":" << timing_.max_bytes
+      << ",\"mean_read_gap_ms\":" << (timing_.gaps ? timing_.gap_sum/timing_.gaps*1000 : 0)
+      << ",\"max_read_gap_ms\":" << timing_.max_gap*1000
+      << ",\"since_last_read_ms\":" << timing_.silence(now)*1000
+      << ",\"decoded_frames\":" << timing_.decoded
+      << ",\"max_decoded_frames_per_read\":" << timing_.max_decoded_per_read
+      << ",\"wrench_hz\":" << timing_.published/elapsed
+      << ",\"tcp_quickack_requested\":" << (tcp_quickack_ && transport_ == "tcp" ? "true" : "false")
+      << ",\"tcp_quickack_last_success\":" << (quickack_applied_ ? "true" : "false")
+      << ",\"hardware_sample_timestamps_available\":false}";
+    std_msgs::msg::String message;
+    message.data = report.str();
+    timing_pub_->publish(message);
+    RCLCPP_INFO(get_logger(), "Sensor timing: %s", message.data.c_str());
+    timing_.next_window(now);
+  }
+
   void read_loop()
   {
     std::array<uint8_t, 2048> buffer{};
     while (running_ && rclcpp::ok()) {
       std::unique_lock<std::recursive_mutex> protocol_lock(protocol_mutex_);
       bool connected = false; ssize_t count = 0;
-      { std::lock_guard<std::mutex> lock(mutex_); connected = fd_ >= 0; if (connected) count = read(fd_, buffer.data(), buffer.size()); }
+      double received_at = 0;
+      {
+        std::lock_guard<std::mutex> lock(mutex_);
+        connected = fd_ >= 0;
+        if (connected) {
+          count = read(fd_, buffer.data(), buffer.size());
+          if (count > 0) {
+            received_at = steady_seconds();
+            if (transport_ == "tcp") apply_quickack(fd_);
+          }
+        }
+      }
       if (count > 0) {
+        timing_.on_read(received_at, static_cast<size_t>(count));
         publish_raw_chunk(buffer.data(), static_cast<size_t>(count));
         extract_ascii_lines(buffer.data(), static_cast<size_t>(count));
         frame_buffer_.insert(frame_buffer_.end(), buffer.begin(), buffer.begin() + count);
@@ -643,6 +722,7 @@ private:
         }
       }
       advance_calibration();
+      report_timing();
       protocol_lock.unlock();
       // 给服务线程留出机会，避免读线程反复持锁造成标定/停止服务饥饿。
       std::this_thread::sleep_for(std::chrono::milliseconds(2));
@@ -936,6 +1016,10 @@ private:
   int command_delay_ms_, zero_wait_ms_, unit_switch_delay_ms_, stop_exit_delay_ms_;
   double request_period_;
   bool tcp_keepalive_, tcp_no_delay_, publish_wrench_, auto_start_, zero_before_request_;
+  bool tcp_quickack_{true}, quickack_applied_{false}, quickack_warned_{false};
+  double timing_period_{5.0};
+  sensor_timing::ReceiveWindow timing_;
+  rclcpp::Publisher<std_msgs::msg::String>::SharedPtr timing_pub_;
   int fd_{-1}; std::atomic<bool> running_{true}, streaming_{false}, shutdown_started_{false}; std::mutex mutex_; std::thread reader_; rclcpp::TimerBase::SharedPtr timer_;
   std::vector<uint8_t> frame_buffer_;
   std::string ascii_buffer_;
