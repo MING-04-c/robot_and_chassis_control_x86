@@ -271,6 +271,19 @@ def test_retract_never_exceeds_approach_speed_or_old_limit(speed):
     assert request.max_acceleration_scaling_factor == .01
 
 
+def test_retract_uses_independent_speed_limit():
+    subject = node()
+    subject.cfg.update(approach_speed=.0025, contact_approach_speed=.001,
+                       retract_speed=.003, velocity_scaling=.01,
+                       acceleration_scaling=.01, phase_timeout=300.)
+    subject.current_tool.return_value = subject.pre
+    subject.axis = CONTROLLER.direction_for(subject, subject.pre)
+    CONTROLLER.retreat(subject)
+    request = subject.cartesian.call_async.call_args.args[0]
+    assert request.max_cartesian_speed == .003
+    assert request.avoid_collisions
+
+
 @pytest.mark.parametrize('phase', ['SELECT_PREPOSITION', 'PREPOSITION', 'VERIFY_PREPOSITION'])
 @pytest.mark.parametrize('force', [[30., 0., 0.], [18., 24., 0.]])
 def test_preposition_force_at_threshold_cancels_and_faults_without_auto_continue(phase, force):
@@ -355,7 +368,7 @@ def test_production_yaml_uses_requested_limits_and_slowdown():
     assert config['preposition_tool_z_spin'] is True
     assert config['preposition_angle_step_deg'] == 15.
     assert config['approach_clearance'] == .03
-    assert config['approach_speed'] == .001
+    assert config['approach_speed'] == .0025
     assert config['velocity_scaling'] == config['acceleration_scaling'] == .01
     assert document['camera_detection_task']['ros__parameters']['camera_points_mm'] == [0., 0., 100.]
     assert document['arm_joint_postures']['ros__parameters']['velocity_scaling'] == .1

@@ -1,7 +1,7 @@
 # 仅仿真参数：本文件的覆盖不会回写真机配置。改后需重启预览。
 workflow_file: ../config/diagnostics/arrival_detect.yaml
 task_config_file: ../config/robot_task.yaml
-# 仿真继续使用 MoveIt，不启用力传感器导纳；接近速度继承上述主配置的 0.001 m/s（1 mm/s）。
+# 仿真继续使用 MoveIt，不启用力传感器导纳；到名义点速度2.5 mm/s、撤离上限3 mm/s，继承上述主配置。
 initial_posture: travel
 # 相机坐标系下的探针检测目标，单位毫米；不是基座XYZ，也不是拍照位。
 # 多点写成 [x1, y1, z1, x2, y2, z2]；删掉此项才改为继承工作流测试点。
@@ -12,7 +12,7 @@ approach_clearance: 0.03
 # 过渡位2：去程在原过渡位之后，回程在原过渡位之前；六关节从基座到末端，单位度。
 # 原样保留180°请求，不取模、不裁剪；是否满足模型限位/碰撞必须通过MoveIt检查。
 # path_preview.launch.py 仅在仿真内存模型中将肘部有效范围设为±250°，真机模型不变。
-transition2_joint_degrees: [-45.0, -90.0, 180.0, 0.0, 0.0, 90.0]
+transition2_joint_degrees: [-45.0, -90.0, 180.0, 0.0, 0.0, 135.0]
 # Simulation-only base_link / tool0 photo target; does not modify the real workflow.
 photo_pose:
   position: [0.240, 0.390, 0.580]  # metres: 240, 390, 580 mm

@@ -316,8 +316,8 @@ def test_probe_preview_has_precontact_nominal_contact_retract_and_photo_return()
     assert not constraints.joint_constraints
     assert constraints.orientation_constraints[0].absolute_x_axis_tolerance == pytest.approx(
         min(math.radians(detect["orientation_tolerance_deg"]), detect["pose_tolerance"] / (4 * .1)))
-    assert steps[1]["_cartesian_speed"] == .001
-    assert steps[2]["_cartesian_speed"] == .001
+    assert steps[1]["_cartesian_speed"] == .0025
+    assert steps[2]["_cartesian_speed"] == .003
     assert steps[1]["_cartesian_step"] == detect["moveit_cartesian_step"]
     assert steps[2]["_cartesian_step"] == .001
 
@@ -631,7 +631,8 @@ def test_transition2_is_joint_space_and_preserves_unwrapped_requested_degrees():
     names = [step['name'] for step in steps]
     assert names.index('to_transition_2') == names.index('to_transition')+1
     assert names.index('return_transition_2')+1 == names.index('return_transition')
-    np.testing.assert_allclose(np.rad2deg(postures['detection_ready_2']), [-45.,-90.,180.,0.,0.,90.])
+    np.testing.assert_allclose(np.rad2deg(postures['detection_ready']), [-45.,0.,0.,0.,90.,135.])
+    np.testing.assert_allclose(np.rad2deg(postures['detection_ready_2']), [-45.,-90.,180.,0.,0.,135.])
     for name in ('to_transition_2', 'return_transition_2'):
         step = next(step for step in steps if step['name']==name)
         assert step['action'] == 'arm_posture' and step['posture'] == 'detection_ready_2'

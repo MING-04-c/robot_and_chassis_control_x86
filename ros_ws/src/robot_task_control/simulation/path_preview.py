@@ -344,7 +344,7 @@ def detection_steps(config, transforms, photo_joints):
         for name, transform, cartesian, speed in (
             ("precontact", pre, False, 0.0),
             ("nominal_contact", final, True, float(detect["approach_speed"])),
-            ("retract", pre, True, min(0.005, float(detect["approach_speed"]))),
+            ("retract", pre, True, float(detect.get("retract_speed", min(0.005, float(detect["approach_speed"]))))),
         ):
             steps.append({"name": f"detect_{index}_{name}", "action": "arm_move",
                           "end_effector_frame": detect["tool_frame"], "_pose": to_pose(transform),

@@ -165,6 +165,16 @@ class DetectController(Node):
             "workspace_max": [1.0, 1.0, 1.5],
         }
         self.cfg = {k: self.declare_parameter(k, v).value for k, v in defaults.items()}
+        # 未设置分段速度的旧配置保持原有接近/撤离速度。
+        for key, fallback in (
+            ('contact_approach_speed', self.cfg['approach_speed']),
+            ('retract_speed', min(0.005, float(self.cfg['approach_speed']))),
+        ):
+            self.cfg[key] = self.declare_parameter(key, fallback).value
+        for key in ('approach_speed', 'contact_approach_speed', 'retract_speed'):
+            value = self.cfg[key]
+            if type(value) not in (int, float) or not math.isfinite(value) or value <= 0:
+                raise ValueError(f'{key} 必须为有限正数（m/s）')
         if self.cfg["touch_control_mode"] not in ("admittance", "moveit_force_guard"):
             raise ValueError("touch_control_mode 必须为 admittance 或 moveit_force_guard")
         if not 0.0 < float(self.cfg["force_filter_alpha"]) <= 1.0:
@@ -1573,7 +1583,12 @@ class DetectController(Node):
             self.state('COMPLIANT_HOLD', '已到检测目标，维持阻抗控制；等待接触力达到阈值')
             return
         candidate = self.command.copy()
-        travel = min(limit, commanded_distance+self.cfg['approach_speed']/self.cfg['rate'])
+        # 在名义点精确分段，禁止快速增量跨入名义点后的寻找接触行程。
+        before_nominal = commanded_distance < self.nominal_distance-1e-9
+        speed = (self.cfg['approach_speed'] if before_nominal else
+                 self.cfg.get('contact_approach_speed', self.cfg['approach_speed']))
+        segment_limit = min(limit, self.nominal_distance) if before_nominal else limit
+        travel = min(segment_limit, commanded_distance+speed/self.cfg['rate'])
         candidate[:3, 3] = self.line_start[:3, 3]+self.axis*travel
         if not self.in_workspace(candidate) or not self.in_workspace(candidate @ self.mounting):
             raise RetryableApproachError('target_unreachable', '下一接近增量超出 tool0 或探针工作空间')
@@ -1617,7 +1632,8 @@ class DetectController(Node):
         req.path_constraints = self.orientation_path_constraints()
         req.cartesian_speed_limited_link = self.cfg["tool_frame"]
         # 撤离不快于接近，避免接触结束后突然按旧 5 mm/s 提速。
-        req.max_cartesian_speed = min(0.005, float(self.cfg['approach_speed']))
+        req.max_cartesian_speed = float(self.cfg.get(
+            'retract_speed', min(0.005, float(self.cfg['approach_speed']))))
         # Jazzy 支持这些字段；限制撤离轨迹的关节速度和加速度。
         req.max_velocity_scaling_factor = self.cfg["velocity_scaling"]
         req.max_acceleration_scaling_factor = self.cfg["acceleration_scaling"]

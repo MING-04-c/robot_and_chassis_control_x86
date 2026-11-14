@@ -1,14 +1,14 @@
 # Arrival diagnostic: secure the chassis; do not run the main task concurrently.
 # Joint angles and Cartesian RPY: degrees. Cartesian XYZ: metres.
 # Device, capture and force limits are inherited from config/robot_task.yaml.
-# 检测控制同样继承主配置：真机导纳，预接近→名义点→接触点均为 1 mm/s。
-# 统一修改 robot_task.yaml 的 detect_controller.approach_speed（单位 m/s，当前 0.001）。
+# 检测继承主配置：真机导纳预接近→名义点2.5 mm/s，名义点后1 mm/s。
+# 撤离上限3 mm/s，测厚保持2.5秒；统一在 robot_task.yaml 的 detect_controller 中修改。
 # 下列中间/拍照点与 path_preview.yaml 同步，均为 base_link 下 tool0 目标，非镜头或探针尖端。
 # travel 是行车关节位，detection_ready 是过渡关节位；均非笛卡尔中间点。
 travel: [-45.0, 15.0, -71.0, 4.4, 148.0, 75.0]
-detection_ready: [-45.0, 0.0, 0.0, 0.0, 90.0, 0.0]
+detection_ready: [-45.0, 0.0, 0.0, 0.0, 90.0, 135.0]
 # 新增过渡位2；仿真放宽的肘限位不适用于此真机诊断。
-detection_ready_2: [-45.0, -90.0, 180.0, 0.0, 0.0, 90.0]
+detection_ready_2: [-45.0, -90.0, 180.0, 0.0, 0.0, 135.0]
 
 workflow:
   name: arrival_detect

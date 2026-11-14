@@ -41,11 +41,11 @@ thickness_detector:
 # 行车关节位：底盘运动前自动确认；不是下方两个笛卡尔中间点。
 travel: [-45.0, 15.0, -71.0, 4.4, 148.0, 75.0]
 # 过渡关节位：行车位与拍照路径之间的六轴姿态。
-detection_ready: [-45.0, 0.0, 0.0, 0.0, 90.0, 0.0]
+detection_ready: [-45.0, 0.0, 0.0, 0.0, 90.0, 135.0]
 # 过渡位2：基座→肩→肘→腕1→腕2→腕3，单位度；去程在过渡位1后，回程在其前。
 # 180°肘角必须符合实际真机模型；仿真±250°覆盖没有同步到真机。
 # 若MoveIt按原软限位将180°压小，关节控制器会在执行前拒绝该规划结果。
-detection_ready_2: [-45.0, -90.0, 180.0, 0.0, 0.0, 90.0]
+detection_ready_2: [-45.0, -90.0, 180.0, 0.0, 0.0, 135.0]
 arm_joint_postures:
   ros__parameters:
     velocity_scaling: 0.1
@@ -213,7 +213,9 @@ detect_controller:
     # 接触点沿拍照工具 +Z 反方向退 3 cm；相机 +Z 与其同向时等价于相机 z 减 30 mm。
     # 前面 OMPL 绕障不锁姿态，到预接近位后固定所选朝向，沿实际 tool0 +Z 直线推进。
     approach_clearance: 0.03  # 与当前仿真同步：预接近到名义接触点3 cm。
-    approach_speed: 0.001  # 预接近→名义点及继续寻找接触均为1 mm/s；反向撤离同速。
+    approach_speed: 0.0025  # 导纳预接近→名义点：2.5 mm/s。
+    contact_approach_speed: 0.001  # 导纳名义点后继续寻找接触：1 mm/s。
+    retract_speed: 0.003  # MoveIt 沿接近轴反向撤离：末端速度上限3 mm/s。
     max_penetration: 0.05
     recover_approach_failure: true
     recovery_settle_seconds: 0.5
@@ -232,7 +234,7 @@ detect_controller:
     home_joint_tolerance: 0.01
     force_filter_alpha: 0.25
     force_bias_sample_count: 50
-    hold_seconds: 5.0  # Actual contact dwell for thickness reading.
+    hold_seconds: 2.5  # Actual contact dwell for thickness reading.
     velocity_scaling: 0.01  # 检测预接近和回拍照位：模型关节速度上限的 1%，非固定末端线速度。
     acceleration_scaling: 0.01
 

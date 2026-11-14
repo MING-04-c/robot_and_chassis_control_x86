@@ -1,7 +1,7 @@
 # Remote session overrides. Motion waypoints/safety remain in robot_task.yaml.
 # 中间点一/二、拍照 tool0 位姿及倒序返回均只在主配置维护，此处不再复制。
-# 检测控制继承主配置：真机导纳，预接近→名义点→接触点均为 1 mm/s。
-# 统一修改 robot_task.yaml 的 detect_controller.approach_speed（单位 m/s，当前 0.001）。
+# 检测继承主配置：真机导纳预接近→名义点2.5 mm/s，名义点后1 mm/s。
+# 撤离上限3 mm/s，测厚保持2.5秒；统一在 robot_task.yaml 的 detect_controller 中修改。
 # 此入口等待麒麟 start；检测后停在拍照位，收到 go_home 才走中间点返回。
 base_config_file: robot_task.yaml
 # Kylin PC address; HK binds locally to all interfaces, not to this remote IP.

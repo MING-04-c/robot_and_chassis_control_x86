@@ -520,6 +520,19 @@ module.main()
         controller.descend_step(node)
         self.assertEqual(node.state.call_args.args[0], 'COMPLIANT_HOLD')
 
+    def test_admittance_speed_changes_at_nominal_without_fast_overshoot(self):
+        controller, node = self.probe_node()
+        node.cfg.update(approach_speed=.0025, contact_approach_speed=.001)
+        for distance, expected in ((.01, .010125), (.01999, .02),
+                                   (.02, .02005), (.025, .02505)):
+            node.command[:3, 3] = node.line_start[:3, 3]+node.axis*distance
+            node.current_tool.return_value = node.command.copy()
+            controller.descend_step(node)
+            request = node.ik.call_async.call_args.args[0]
+            pose = request.ik_request.pose_stamped.pose.position
+            np.testing.assert_allclose([pose.x, pose.y, pose.z],
+                                      node.line_start[:3, 3]+node.axis*expected)
+
     def test_contact_uses_axial_force_and_keeps_overload_guard(self):
         from geometry_msgs.msg import WrenchStamped
         controller, node = self.probe_node()
@@ -802,7 +815,7 @@ module.main()
         from eli_cs_robot_moveit_config.joint_postures import load_postures, joint_constraints
         postures = load_postures(ROOT/'robot_task_control/config/robot_task.yaml')
         np.testing.assert_allclose(np.rad2deg(postures['travel']), [-45., 15., -71., 4.4, 148., 75.])
-        np.testing.assert_allclose(np.rad2deg(postures['detection_ready']), [-45., 0., 0., 0., 90., 0.])
+        np.testing.assert_allclose(np.rad2deg(postures['detection_ready']), [-45., 0., 0., 0., 90., 135.])
         constraints = joint_constraints(postures['travel'])
         self.assertEqual([j.joint_name for j in constraints.joint_constraints], list(JOINTS))
         self.assertFalse(constraints.orientation_constraints)

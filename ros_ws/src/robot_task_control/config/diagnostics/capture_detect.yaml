@@ -8,13 +8,13 @@
 # 本文件不包含中间点或到拍照位的动作；不会测完自动经过中间点回过渡位。
 # 当前相机位姿用 terminal_link_1 的实际 TF，不能把 tool0 位姿当作镜头位置。
 # Device, capture, force, speed and tool-Z selection settings come from robot_task.yaml.
-# 检测控制同样继承主配置：真机导纳，预接近→名义点→接触点均为 1 mm/s。
-# 统一修改 robot_task.yaml 的 detect_controller.approach_speed（单位 m/s，当前 0.001）。
+# 检测继承主配置：真机导纳预接近→名义点2.5 mm/s，名义点后1 mm/s。
+# 撤离上限3 mm/s，测厚保持2.5秒；统一在 robot_task.yaml 的 detect_controller 中修改。
 
 # Required shared posture definitions; not scheduled by this workflow.
 # Joint angles: degrees, base/shoulder/elbow/wrist1/wrist2/wrist3.
 travel: [-45.0, 15.0, -71.0, 4.4, 148.0, 75.0]
-detection_ready: [-45.0, 0.0, 0.0, 0.0, 90.0, 0.0]
+detection_ready: [-45.0, 0.0, 0.0, 0.0, 90.0, 135.0]
 
 workflow:
   name: capture_detect
