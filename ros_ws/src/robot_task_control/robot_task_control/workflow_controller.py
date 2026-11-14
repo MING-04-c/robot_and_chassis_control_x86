@@ -310,6 +310,8 @@ class WorkflowController(Node):
         step = self.current_step()
         self.workflow_status_pub.publish(String(data=json.dumps({
             "schema": "robot_workflow_status_v1",
+            "mode": self.workflow.get('task_mode', 'local'),
+            "profile": self.workflow.get('task_profile', 'full'),
             "workflow": "camera_capture_only" if self.capture_only else self.workflow_name,
             "capture_only": self.capture_only,
             "run_id": getattr(self, "run_id", ""), "active": self.active,

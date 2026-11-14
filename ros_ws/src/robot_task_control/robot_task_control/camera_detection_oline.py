@@ -1,10 +1,12 @@
 """Host-paced photo/detect cycles, reusing the real guarded detector unchanged."""
 import json
+import math
 from time import monotonic
 from uuid import uuid4
 
 from std_msgs.msg import String
 from std_srvs.srv import Trigger
+from masc_chassis_msgs.msg import BmsStatus, CommStatus
 
 from robot_task_control.camera_detection_task import CameraDetectionTask
 
@@ -18,6 +20,18 @@ class CameraDetectionOline(CameraDetectionTask):
         self.home_requested = False
         self.completed_cycles = 0
         self.last_cycle_error = ''
+        self.low_battery_enabled = bool(self.declare_parameter('low_battery_return_enabled', False).value)
+        self.low_battery_threshold = float(self.declare_parameter('low_battery_threshold', 10.0).value)
+        if not math.isfinite(self.low_battery_threshold) or not 0 < self.low_battery_threshold <= 100:
+            raise ValueError('low_battery_threshold must be in (0,100]')
+        self.power_samples = {}
+        self.battery_percent = None
+        self.low_battery_return_pending = False
+        self.return_reason = ''
+        self.create_subscription(BmsStatus, '/masc_chassis/bms_status',
+                                 lambda msg: self.cache_power('bms', msg), 10)
+        self.create_subscription(CommStatus, '/masc_chassis/comm_status',
+                                 lambda msg: self.cache_power('comm', msg), 10)
         self.create_service(Trigger, '~/detect', self.detect_request)
         self.create_service(Trigger, '~/go_home', self.go_home_request)
         self.create_subscription(String, '/industrial_pc/capture_saved', self.on_capture_saved, 10)
@@ -48,6 +62,8 @@ class CameraDetectionOline(CameraDetectionTask):
             self.root_run_id = self.run_id
             self.home_recorded = False
             self.completed_cycles = 0
+            self.low_battery_return_pending = False
+            self.return_reason = ''
             self.phase = 'IDLE'
         return super().start_request(request, response)
 
@@ -56,31 +72,81 @@ class CameraDetectionOline(CameraDetectionTask):
         if self.phase not in ('WAIT_DETECT', 'WAIT_NEXT'):
             response.success, response.message = False, '当前阶段不能开始检测：'+self.phase
             return response
+        self.update_battery()
+        if self.low_battery_return_pending:
+            response.success, response.message = False, '电量低于阈值，已锁定返回充电，不再开始新检测'
+            return response
         if not self.ready():
             response.success, response.message = False, '真机、力反馈或检测接口尚未就绪'
             return response
-        self.detection_requested = True
-        if self.phase == 'WAIT_DETECT':
-            self.results.clear()
-            self.transition('WAIT_RESULT', '已收到检测指令；等待本次已保存照片的坐标')
-        else:
-            self.reset_cycle(True)
-            self.transition('WAIT_READY', '新一轮检测：重新稳定拍照、发送并等待新坐标')
+        self.reset_cycle(True)
+        self.transition('WAIT_READY', '收到检测指令：重新稳定拍照、发送并等待本轮新坐标')
         response.success, response.message = True, '检测请求已接受；请根据当前照片批次回传坐标'
         return response
 
     def go_home_request(self, request, response):
         del request
         if self.phase not in ('WAIT_DETECT', 'WAIT_NEXT'):
-            response.success, response.message = False, '请等待照片保存或本轮检测回位完成后再发回家；当前：'+self.phase
+            response.success, response.message = False, '请在到位等待或本轮检测回位完成后发回家；当前：'+self.phase
             return response
         if not self.ready():
             response.success, response.message = False, '运动接口未就绪，不放行返回路径'
             return response
         self.home_requested = True
-        self.transition('DONE', '收到回家指令；放行倒序中间点、过渡位、行车位及小车返程')
+        self.return_reason = 'go_home'
+        self.transition('DONE', '收到回家指令；放行外层返程流程（photo入口保持拍照位）')
         response.success, response.message = True, '回家已接受；实际完成请查询任务状态'
         return response
+
+    def begin_capture(self):
+        # Arriving at the photo pose starts a session, not a capture. Every detect
+        # command, including the first one, obtains a fresh capture identity.
+        if not self.detection_requested:
+            self.transition('WAIT_DETECT', '已到拍照位；等待 detect 开始拍照传输，或 go_home 返回')
+            return
+        super().begin_capture()
+
+    def cache_power(self, name, message):
+        self.power_samples[name] = (message, monotonic())
+
+    def update_battery(self):
+        def fresh(name):
+            message, received = self.power_samples.get(name, (None, -math.inf))
+            if message is None or monotonic()-received >= 3.:
+                return None
+            stamp = message.header.stamp
+            stamp_ns = stamp.sec*10**9+stamp.nanosec
+            age = (self.get_clock().now().nanoseconds-stamp_ns)/1e9
+            return message if stamp_ns > 0 and -.1 <= age < 3. else None
+        bms, comm = fresh('bms'), fresh('comm')
+        valid = (bms is not None and comm is not None
+                 and comm.comm_state == CommStatus.COMM_STATE_CONNECTED
+                 and 0 <= bms.bat_soc <= 100
+                 and math.isfinite(bms.bat_voltage) and math.isfinite(bms.bat_current)
+                 and bms.bms_health not in (BmsStatus.BMS_HEALTH_TIMEOUT, BmsStatus.BMS_HEALTH_UNKNOWN))
+        self.battery_percent = int(bms.bat_soc) if valid else None
+        if (self.low_battery_enabled and valid and self.battery_percent < self.low_battery_threshold
+                and self.phase not in ('DONE', 'FAULT')):
+            self.low_battery_return_pending = True
+
+    def return_if_safe(self):
+        if not self.low_battery_return_pending:
+            return False
+        # STARTING/RUNNING may already have launched physical motion. Let the
+        # guarded detector finish and confirm photo-home before releasing return.
+        safe = ('WAIT_READY', 'WAIT_DETECT', 'WAIT_NEXT', 'CAPTURE', 'WAIT_SAVED',
+                'WAIT_RESULT', 'CLEAR_TARGETS', 'RECORD_HOME', 'WAIT_TARGETS')
+        if self.phase not in safe or not self.ready():
+            return False
+        if self.operation is not None and not self.operation.done():
+            return False
+        self.stop_capture()
+        self.results.clear()
+        self.operation = None
+        self.home_requested = True
+        self.return_reason = 'low_battery'
+        self.transition('DONE', f'电量低于{self.low_battery_threshold:g}%；已在拍照原位，收臂后沿标准路线返回充电桩')
+        return True
 
     def after_capture(self):
         self.transition('WAIT_SAVED', '照片已发送；等待麒麟确认本批HK、RGB、深度图校验保存完成')
@@ -113,8 +179,10 @@ class CameraDetectionOline(CameraDetectionTask):
         self.transition('WAIT_NEXT', '本轮未完成且已在拍照原位；等待主机重新检测或回家：'+str(reason))
 
     def advance(self):
+        self.check_hardware()
+        if self.return_if_safe():
+            return
         if self.phase in ('WAIT_SAVED', 'WAIT_DETECT', 'WAIT_NEXT'):
-            self.check_hardware()
             if not self.connected() or monotonic()-self.detect_at > 2.:
                 raise ValueError('等待主机期间真机外控或检测状态断流')
             if self.detect.get('state') == 'FAULT':
@@ -128,6 +196,7 @@ class CameraDetectionOline(CameraDetectionTask):
 
     def tick(self):
         try:
+            self.update_battery()
             if self.phase not in ('IDLE', 'FAULT', 'DONE'):
                 self.advance()
         except Exception as error:
@@ -136,7 +205,7 @@ class CameraDetectionOline(CameraDetectionTask):
 
     def transition(self, phase, detail):
         # A detector batch finishing must never publish session DONE; only the
-        # explicit host home command is allowed to release the return workflow.
+        # explicit host home command or latched low-power return releases it.
         if phase == 'DONE' and not self.home_requested:
             self.completed_cycles += 1
             self.detection_requested = False
@@ -151,6 +220,10 @@ class CameraDetectionOline(CameraDetectionTask):
             'active': self.phase not in ('IDLE', 'DONE', 'FAULT'),
             'run_id': self.run_id, 'root_run_id': self.root_run_id,
             'completed_cycles': self.completed_cycles, 'last_cycle_error': self.last_cycle_error,
+            'mode': 'online', 'battery_percent': self.battery_percent,
+            'low_battery_return_enabled': self.low_battery_enabled,
+            'low_battery_return_pending': self.low_battery_return_pending,
+            'return_reason': self.return_reason,
             'detect_state': self.detect.get('state'),
             'capture_manifest_sha256': (self.snapshot or {}).get('capture_manifest_sha256'),
             'capture_saved_by_host': (self.snapshot or {}).get('host_saved', False),

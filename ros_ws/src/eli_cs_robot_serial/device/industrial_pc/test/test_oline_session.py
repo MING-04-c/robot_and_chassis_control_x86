@@ -63,7 +63,8 @@ def test_camera_error_and_waiting_state_are_exported():
     assert normal['state'] == 'waiting' and not abnormal['has_fault']
 
 
-def test_two_remote_cycles_wait_for_home_and_reject_old_photos(tmp_path):
+@pytest.mark.parametrize('return_action', ['go_home', 'low_battery'])
+def test_two_remote_cycles_wait_for_home_and_reject_old_photos(tmp_path, return_action):
     recipe = DEVICE.parents[2]/'robot_task_control/config/robot_task.yaml'
     capture_config = load_config(recipe)
     capture_config.update(output_dir=str(tmp_path/'robot-images'), local_only=False)
@@ -80,6 +81,7 @@ def test_two_remote_cycles_wait_for_home_and_reject_old_photos(tmp_path):
         port = probe.getsockname()[1]
     rclpy.init(args=['--ros-args', '-p', 'bind_host:=127.0.0.1', '-p', 'port:='+str(port),
         '-p', 'oline_mode:=true', '-p', 'auto_start:=false', '-p', 'ready_stable_sec:=0.0',
+        '-p', 'low_battery_return_enabled:=true',
         '-p', 'status_topic:=/camera_detection_task/status', '-p', 'stop_service:=/camera_detection_task/stop',
         '-p', 'charging_status_layout:=byte_flags', '-p', 'target_source:=tcp',
         '-p', 'workflow_file:='+str(workflow_file), '-p', 'capture_config_file:='+str(capture_file),
@@ -87,7 +89,7 @@ def test_two_remote_cycles_wait_for_home_and_reject_old_photos(tmp_path):
     client = dict(robot_host='127.0.0.1', control_port=port, timeout=3., use_shared_key=False, handshake_enabled=True)
     host = tmp_path/'host'
     captures, starts, homes, targets = [], [], [], []
-    running = [None]
+    running, battery_soc = [None], [73]
     def fake_capture(command, **kwargs):
         identity = command[command.index('--run-id')+1]
         captures.append(identity)
@@ -150,7 +152,7 @@ def test_two_remote_cycles_wait_for_home_and_reject_old_photos(tmp_path):
                         result_id=batch+'_1', batch_id=batch, point_index=1, success=True, returned_home=True,
                         measurement=dict(schema='paint_thickness_measurement_v1', value=123., unit='um',
                                          sequence=len(starts), received_at_ros=dict(sec=stamp.sec, nanosec=stamp.nanosec))))))
-                messages = [BmsStatus(bat_soc=73, bat_voltage=48.2, bat_current=-1.5,
+                messages = [BmsStatus(bat_soc=battery_soc[0], bat_voltage=48.2, bat_current=-1.5,
                                      bms_health=BmsStatus.BMS_HEALTH_GOOD),
                             ChassisStatus(), CommStatus(comm_state=CommStatus.COMM_STATE_CONNECTED)]
                 for publisher, message in zip(power_pubs, messages):
@@ -182,14 +184,16 @@ def test_two_remote_cycles_wait_for_home_and_reject_old_photos(tmp_path):
             assert not captures and not starts
             assert command('start', 'start-once')['ok']
             assert command('start', 'start-once')['disposition'] == 'duplicate'
+            wait(lambda: task.phase == 'WAIT_DETECT')
+            assert not captures and not starts
+            assert command('detect', 'detect-one')['ok']
             wait(lambda: task.phase == 'WAIT_SAVED')
             wait(lambda: remote_phase() == 'WAIT_SAVED')
             assert not starts
             listener.acknowledge_saved_capture(status(client)['robot_status'])
-            wait(lambda: task.phase == 'WAIT_DETECT')
+            wait(lambda: task.phase == 'WAIT_RESULT')
             first = task.snapshot['capture_manifest_sha256']
-            assert not request(client, result('too-early', first))['ok']
-            assert command('detect', 'detect-one')['ok']
+            assert not command('detect', 'detect-during-result')['ok']
             wait(lambda: remote_phase() == 'WAIT_RESULT')
             assert not request(client, result('old-one', '0'*64))['ok']
             packet = result('points-one', first)
@@ -212,6 +216,17 @@ def test_two_remote_cycles_wait_for_home_and_reject_old_photos(tmp_path):
             second = task.snapshot['capture_manifest_sha256']
             assert second != first
             assert request(client, result('points-two', second))['ok']
+            if return_action == 'low_battery':
+                wait(lambda: task.phase == 'RUNNING')
+                battery_soc[0] = 9
+                wait(lambda: task.low_battery_return_pending)
+                assert workflow.active  # Detector has not yet confirmed photo-home.
+                wait(lambda: task.phase == 'DONE' and not workflow.active)
+                assert task.completed_cycles == 2 and len(starts) == 2
+                assert task.return_reason == 'low_battery'
+                wait(lambda: len(bridge.detection_results) == 2)
+                assert workflow.step_index == len(workflow.steps)
+                return
             wait(lambda: task.phase == 'WAIT_NEXT')
             assert task.completed_cycles == 2 and len(starts) == 2 and len(homes) == 1
             wait(lambda: len(bridge.detection_results) == 2)

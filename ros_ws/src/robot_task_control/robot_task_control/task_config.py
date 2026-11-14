@@ -96,8 +96,8 @@ def load_task_config(path):
         raise ValueError('Invalid ros_discovery_range')
     if system['line_navigation_mode'] != 'replay' or system['line_record_route']:
         raise ValueError('Production task replays the standard route; recording belongs to route teaching')
-    if system['line_charging_mode']:
-        raise ValueError('Production task returns to the start without charging search')
+    if system['line_charging_mode'] and document['workflow'].get('task_mode') != 'online':
+        raise ValueError('Charging return requires online mode')
     for name, keys in (
         ('tcp', {'enabled', 'enable_status_monitor', 'key_file', 'charging_status_layout'}),
         ('thickness_detector', {'transport', 'device', 'baudrate', 'data_directory'}),

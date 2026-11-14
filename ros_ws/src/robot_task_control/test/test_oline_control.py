@@ -24,7 +24,8 @@ ROOT = Path(__file__).resolve().parents[1]
 
 def task(phase='WAIT_DETECT'):
     node = SimpleNamespace(phase=phase, ready=Mock(return_value=True), results=deque(),
-                           reset_cycle=Mock(), detection_requested=False)
+                           reset_cycle=Mock(), detection_requested=False,
+                           update_battery=Mock(), low_battery_return_pending=False)
     def transition(state, detail):
         node.phase, node.detail = state, detail
     node.transition = transition
@@ -77,11 +78,12 @@ def test_shared_launch_selects_oline_node_and_validates_before_devices(tmp_path)
         assert any(args.get('auto_start') == 'false' for args in serial)
 
 
-def test_detect_first_uses_saved_photo_and_next_detect_requests_a_new_capture():
+def test_first_and_next_detect_both_request_a_new_capture():
     node = task()
     result = CameraDetectionOline.detect_request(node, Trigger.Request(), Trigger.Response())
-    assert result.success and node.phase == 'WAIT_RESULT'
-    node.reset_cycle.assert_not_called()
+    assert result.success and node.phase == 'WAIT_READY'
+    node.reset_cycle.assert_called_once_with(True)
+    node.reset_cycle.reset_mock()
     node.phase = 'WAIT_NEXT'
     result = CameraDetectionOline.detect_request(node, Trigger.Request(), Trigger.Response())
     assert result.success and node.phase == 'WAIT_READY'
@@ -132,6 +134,8 @@ def test_cycle_done_waits_at_photo_without_finishing_workflow():
     node = CameraDetectionOline.__new__(CameraDetectionOline)
     node.phase, node.completed_cycles, node.detection_requested = 'RUNNING', 0, True
     node.home_requested = False
+    node.check_hardware = Mock()
+    node.low_battery_return_pending = False
     node.save_report, node.get_logger = Mock(), Mock()
     with patch.object(CameraDetectionTask, 'advance', lambda subject: subject.transition('DONE', 'batch done')), \
             patch.object(CameraDetectionOline, 'publish_oline_status'):

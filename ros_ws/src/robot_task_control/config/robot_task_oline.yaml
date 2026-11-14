@@ -2,7 +2,8 @@
 # 中间点一/二、拍照 tool0 位姿及倒序返回均只在主配置维护，此处不再复制。
 # 检测继承主配置：真机导纳预接近→名义点2.5 mm/s，名义点后1 mm/s。
 # 撤离上限3 mm/s，测厚保持2.5秒；统一在 robot_task.yaml 的 detect_controller 中修改。
-# 此入口等待麒麟 start；检测后停在拍照位，收到 go_home 才走中间点返回。
+# 兼容旧入口；新入口可用 robot_task.launch.py mode:=online。
+# 等待 start，到拍照位后等待 detect 才采图；go_home 或有效电量<10%时返回充电。
 base_config_file: robot_task.yaml
 # Kylin PC address; HK binds locally to all interfaces, not to this remote IP.
 # receiver_ip 是远端麒麟；hk_bind_ip 是机器人本机监听，不是相机位姿或安装坐标。

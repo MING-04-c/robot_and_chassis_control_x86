@@ -348,7 +348,7 @@ class IndustrialPC(Node):
                                            "deadline": time.monotonic()+3}
         job["deferred"] = True
         if action in ('detect', 'go_home', 'capture_saved') and not self.oline_mode:
-            self.finish_command(identity, self.ack(False, message_id=identity, reason='请先启动robot_task_oline.launch.py'))
+            self.finish_command(identity, self.ack(False, message_id=identity, reason='此命令需要 mode:=online'))
             return True
         if action == 'capture_saved':
             camera = self.robot_status()['camera_detection']

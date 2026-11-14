@@ -2,9 +2,12 @@
 
 import json
 from pathlib import Path
+import tempfile
+import yaml
 
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, GroupAction, IncludeLaunchDescription, OpaqueFunction, SetEnvironmentVariable
+from launch.actions import DeclareLaunchArgument, GroupAction, IncludeLaunchDescription, OpaqueFunction, SetEnvironmentVariable, RegisterEventHandler
+from launch.event_handlers import OnShutdown
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.logging import get_logger
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
@@ -15,12 +18,46 @@ from robot_task_control.task_config import launch_arguments, load_station_config
 
 
 def launch_setup(context):
+    from robot_task_control.task_modes import mode_config
+    path, config = load_task_config(LaunchConfiguration('config_file').perform(context))
+    legacy = LaunchConfiguration('oline_mode', default='false').perform(context) == 'true'
+    mode = 'online' if legacy else LaunchConfiguration('mode', default='local').perform(context)
+    profile = LaunchConfiguration('workflow', default='full').perform(context)
+    auto = LaunchConfiguration('auto_start', default='').perform(context)
+    if auto not in ('', 'true', 'false'):
+        raise ValueError('auto_start requires true/false')
+    if LaunchConfiguration('station_workflow_file', default='').perform(context) and (mode != 'local' or profile != 'full'):
+        raise ValueError('station_workflow_file is a local diagnostic; use workflow:=photo for online')
+    if mode not in ('local', 'online') or profile not in ('full', 'line', 'photo'):
+        raise ValueError('mode requires local/online; workflow requires full/line/photo')
+    recipe = None
+    try:
+        if mode != 'local' or profile != 'full' or auto:
+            config = mode_config(config, mode, profile, None if not auto else auto == 'true')
+            with tempfile.NamedTemporaryFile(mode='w', suffix='_robot_task_mode.yaml', delete=False) as stream:
+                recipe = Path(stream.name)
+                yaml.safe_dump(config, stream, sort_keys=False)
+            path, config = load_task_config(recipe)
+        actions = launch_configured(context, path, config, mode, profile)
+        if recipe is not None:
+            if not actions:
+                recipe.unlink(missing_ok=True)
+            else:
+                actions.insert(0, RegisterEventHandler(OnShutdown(on_shutdown=[
+                    OpaqueFunction(function=lambda _context: recipe.unlink(missing_ok=True) or [])])))
+        return actions
+    except Exception:
+        if recipe is not None:
+            recipe.unlink(missing_ok=True)
+        raise
+
+
+def launch_configured(context, path, config, mode, profile):
     from eli_cs_robot_moveit_config.joint_postures import load_postures
     from robot_task_control.final_capture import load_config
     from robot_task_control.standard_route import inspect_standard
     from robot_task_control.workflow_controller import WorkflowController
 
-    path, config = load_task_config(LaunchConfiguration('config_file').perform(context))
     station_file = LaunchConfiguration('station_workflow_file', default='').perform(context)
     workflow_path, station = load_station_config(station_file) if station_file else (path, None)
     # Finish validation before returning any action that can open a device.
@@ -31,10 +68,7 @@ def launch_setup(context):
             raise ValueError('Workflow references an undefined joint posture: '+step['posture'])
     load_config(path)
     system = dict(config['system'])
-    oline = LaunchConfiguration('oline_mode', default='false').perform(context).lower() == 'true'
-    if oline and (station is not None or system['auto_start'] or not config['tcp']['enabled']
-                  or not workflow.get('remote_detection_cycles')):
-        raise ValueError('oline requires its remote recipe, manual start, TCP and no station override')
+    oline = mode == 'online'
     if station is not None:
         for step in workflow['steps']:
             if (step['action'] not in ('arm_posture', 'arm_move', 'camera_detection', 'delay')
@@ -42,12 +76,12 @@ def launch_setup(context):
                 raise ValueError('Station diagnostic allows only MoveIt arm points, camera_detection and delay')
         if workflow.get('arm_postures_before_chassis') is not True:
             raise ValueError('Station diagnostic must retain posture cancellation on failure')
-    else:
+    elif profile != 'photo':
         route = Path(system['standard_route_file']).expanduser()
         report = inspect_standard(json.loads(route.read_text(encoding='utf-8')))
         if not report['accepted']:
             raise ValueError('Standard route rejected: '+'; '.join(report['issues']))
-    get_logger('robot_task').info(f'Configuration: {path}; workflow: {workflow_path}; steps: {len(workflow["steps"])}')
+    get_logger('robot_task').info(f'Mode: {mode}; profile: {profile}; configuration: {path}; workflow: {workflow_path}; steps: {len(workflow["steps"])}')
     if LaunchConfiguration('validate_only').perform(context).lower() == 'true':
         get_logger('robot_task').info('Validation only: no drivers, nodes or robot motion started')
         return []
@@ -72,10 +106,13 @@ def launch_setup(context):
         'launch_force_sensor': True, 'start_hk_camera': False,
         'start_image_transfer': False, 'start_line_camera': True,
         'prepare_line_camera_early': False,
+        'line_charging_status_layout': config['tcp']['charging_status_layout'],
     })
-    if station is not None:
+    if station is not None or profile == 'photo':
         system.update(start_chassis=False, start_line_camera=False, use_velocity_mux=False,
                       manage_line_stream=False, auto_start=workflow.get('auto_start', False))
+        if station is None:
+            system['auto_start'] = config['system']['auto_start']
         get_logger('robot_task').info('Station diagnostic: chassis and line camera are not started; secure the chassis before starting')
         for index, step in enumerate(workflow['steps'], 1):
             get_logger('robot_task').info(f'Station step {index}: {step.get("name", step["action"])}')
@@ -134,5 +171,8 @@ def generate_launch_description():
                               description='Optional arrival diagnostic YAML; no chassis or line camera'),
         DeclareLaunchArgument('validate_only', default_value='false', choices=['true', 'false']),
         DeclareLaunchArgument('oline_mode', default_value='false', choices=['true', 'false']),
+        DeclareLaunchArgument('mode', default_value='local', choices=['local', 'online']),
+        DeclareLaunchArgument('workflow', default_value='full', choices=['full', 'line', 'photo']),
+        DeclareLaunchArgument('auto_start', default_value='', description='true: auto start; false: wait for local service or remote start'),
         OpaqueFunction(function=launch_setup),
     ])

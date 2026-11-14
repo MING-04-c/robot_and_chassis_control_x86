@@ -8,6 +8,7 @@
 | 要查什么 | 文档 |
 |---|---|
 | 启动、点位、相机、诊断、返回顺序 | [任务操作指南](tasks/ROBOT_TASK_GUIDE.md) |
+| local/online、full/line/photo、本机或远端启动、低电量回桩 | [任务模式](tasks/TASK_MODES.md) |
 | 真机漆膜测厚、朝向、限力、失败处理 | [漆膜检测逻辑](tasks/PAINT_DETECTION.md) |
 | 麒麟 start / detect / go_home、报文、电池与异常 | [oline 流程与协议](tcp/OLINE流程与协议.md) |
 | 麒麟工具部署及配置 | [TCP 目录](tcp/README.md)、[快速启动](tcp/QUICKSTART.md) |
