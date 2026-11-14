@@ -209,11 +209,11 @@ detect_controller:
     # 先试原角度，再按下面步长试 ±15°、±30°……180°，每个候选检查无碰撞 IK。
     preposition_tool_z_spin: true
     preposition_angle_step_deg: 15.0
-    phase_timeout: 300.0  # 0.5 mm/s 下最大 100 mm 接近需约 200 秒，保留执行余量。
+    phase_timeout: 300.0  # 保留规划、接近和状态确认的时间余量。
     # 接触点沿拍照工具 +Z 反方向退 3 cm；相机 +Z 与其同向时等价于相机 z 减 30 mm。
     # 前面 OMPL 绕障不锁姿态，到预接近位后固定所选朝向，沿实际 tool0 +Z 直线推进。
     approach_clearance: 0.03  # 与当前仿真同步：预接近到名义接触点3 cm。
-    approach_speed: 0.0005  # 最后接近及反向撤离均为 0.5 mm/s。
+    approach_speed: 0.001  # 预接近→名义点及继续寻找接触均为1 mm/s；反向撤离同速。
     max_penetration: 0.05
     recover_approach_failure: true
     recovery_settle_seconds: 0.5

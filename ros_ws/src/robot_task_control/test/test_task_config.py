@@ -285,7 +285,7 @@ def test_station_launch_keeps_arm_safety_and_capture_without_chassis(tmp_path, s
     assert detect['require_thickness_measurement'] is True
     assert detect['preposition_tool_z_spin'] is True
     assert detect['approach_clearance'] == .03
-    assert detect['approach_speed'] == .0005
+    assert detect['approach_speed'] == .001
     assert detect['phase_timeout'] >= (detect['approach_clearance'] + detect['max_penetration']) / detect['approach_speed'] + 30
     assert (detect['initial_force_limit'], detect['contact_force'], detect['overload_force']) == (15., 20., 25.)
     assert any(args.get('auto_request') == 'false' for args in includes)

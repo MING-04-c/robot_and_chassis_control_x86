@@ -355,7 +355,7 @@ def test_production_yaml_uses_requested_limits_and_slowdown():
     assert config['preposition_tool_z_spin'] is True
     assert config['preposition_angle_step_deg'] == 15.
     assert config['approach_clearance'] == .03
-    assert config['approach_speed'] == .0005
+    assert config['approach_speed'] == .001
     assert config['velocity_scaling'] == config['acceleration_scaling'] == .01
     assert document['camera_detection_task']['ros__parameters']['camera_points_mm'] == [0., 0., 100.]
     assert document['arm_joint_postures']['ros__parameters']['velocity_scaling'] == .1

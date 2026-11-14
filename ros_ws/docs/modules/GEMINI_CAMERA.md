@@ -8,6 +8,13 @@
 
 ## 编译与启动
 
+真机联合任务采用现场约定：`terminal_link_1`、`camera_color_optical_frame`、
+`camera_depth_optical_frame` 的原点和轴向重合。`robot_task.launch.py` 发布从任务
+`camera_frame` 到两个 optical frame 的单位变换；任务采图进程强制设置
+`publish_tf:=false`，避免驱动为同一子坐标系发布另一个父节点。这是任务的坐标约定，
+不表示 SDK 的原始彩色/深度外参天然为零；原始采集数据及 SDK 外参仍照常保存。
+运行联合任务时，独立相机驱动也不能同时发布这两个 frame 的另一套 TF。
+
 ```bash
 cd ~/project/robot_and_chassis_control/ros_ws
 source /opt/ros/jazzy/setup.bash

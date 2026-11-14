@@ -659,7 +659,7 @@ private:
     std_msgs::msg::String message;
     message.data = report.str();
     timing_pub_->publish(message);
-    RCLCPP_INFO(get_logger(), "Sensor timing: %s", message.data.c_str());
+    RCLCPP_DEBUG(get_logger(), "Sensor timing: %s", message.data.c_str());
     timing_.next_window(now);
   }
 

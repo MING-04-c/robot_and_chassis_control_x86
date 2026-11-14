@@ -89,6 +89,15 @@ def launch_setup(context):
     detect['joint_postures_file'] = str(workflow_path)
     actions = [
         SetEnvironmentVariable('ROS_AUTOMATIC_DISCOVERY_RANGE', system['ros_discovery_range']),
+        # Task convention: both optical frames coincide with the manually defined
+        # camera frame. Capture disables driver TF to avoid competing parents.
+        *[Node(package='tf2_ros', executable='static_transform_publisher',
+               name='task_'+stream+'_optical_tf', output='screen', parameters=[],
+               arguments=['--x', '0', '--y', '0', '--z', '0',
+                          '--qx', '0', '--qy', '0', '--qz', '0', '--qw', '1',
+                          '--frame-id', camera['camera_frame'],
+                          '--child-frame-id', 'camera_'+stream+'_optical_frame'])
+          for stream in ('color', 'depth')],
         Node(package='robot_task_control', executable='arm_joint_postures',
              name='arm_joint_postures', output='screen', parameters=[posture]),
         # The connection gate dispatches its stack later; keep its launch scope alive.

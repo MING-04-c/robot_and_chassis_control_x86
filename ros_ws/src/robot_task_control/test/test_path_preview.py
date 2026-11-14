@@ -316,8 +316,8 @@ def test_probe_preview_has_precontact_nominal_contact_retract_and_photo_return()
     assert not constraints.joint_constraints
     assert constraints.orientation_constraints[0].absolute_x_axis_tolerance == pytest.approx(
         min(math.radians(detect["orientation_tolerance_deg"]), detect["pose_tolerance"] / (4 * .1)))
-    assert steps[1]["_cartesian_speed"] == .0005
-    assert steps[2]["_cartesian_speed"] == .0005
+    assert steps[1]["_cartesian_speed"] == .001
+    assert steps[2]["_cartesian_speed"] == .001
     assert steps[1]["_cartesian_step"] == detect["moveit_cartesian_step"]
     assert steps[2]["_cartesian_step"] == .001
 

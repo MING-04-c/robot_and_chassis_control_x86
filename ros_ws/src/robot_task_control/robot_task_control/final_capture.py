@@ -283,7 +283,8 @@ class CaptureSession(Node):
         self.write_state('depth_warming')
         with camera_process([executable('orbbec_camera', 'orbbec_camera_node'), '--ros-args',
                              '-r', '__node:=orbbec_camera_node', '-r', '__ns:=/'+namespace,
-                             '--params-file', str(Path(depth_params).expanduser())]) as process:
+                             '--params-file', str(Path(depth_params).expanduser()),
+                             '-p', 'publish_tf:=false']) as process:
             self.stable_image('/'+namespace+'/color/image_raw', process)
             from orbbec_camera_msgs.srv import GetCaptureFrame
             client = self.create_client(GetCaptureFrame, '/'+namespace+'/capture_frame')
