@@ -57,6 +57,11 @@ class StartAlignmentWorkflowTests(unittest.TestCase):
             self.assertIn(status, node.fail_workflow.call_args.args[0])
             self.assertEqual(node.follow_tracking_seconds, 3.0)
 
+    def test_reverse_search_boundary_reports_missing_final_bar(self):
+        node = self.workflow_state('reverse_finish_search_limit')
+        WorkflowController.advance_line_follow(node, {'seconds': 1.0})
+        node.fail_workflow.assert_called_once_with('已到返程搜索距离边界，仍未确认终点横线；底盘保持停车')
+
     def test_marker_confirmation_uses_yaml_timeout_not_a_fixed_sleep(self):
         for timeout, should_fail in ((1., True), (5., False)):
             node = self.workflow_state('stop_marker_settling')

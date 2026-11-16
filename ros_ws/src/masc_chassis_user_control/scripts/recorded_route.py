@@ -389,6 +389,39 @@ class ReverseFinishGuard:
         self.arrived = False
         self.curvature = 0.
         self.diagnostics = {}
+        self.charging_search_anchor = None
+        self.charging_search_start_travel = None
+        self.charging_search_limit = 0.
+
+    def begin_charging_search(self, pose, distance):
+        """After the terminal bar is confirmed, give charging search its own bounded leg."""
+        if self.charging_search_anchor is not None or self.fault is not None or self.arrived:
+            return False
+        if isinstance(distance, bool) or not math.isfinite(distance) or distance <= 0.:
+            raise ValueError('charging search distance must be positive and finite')
+        current = tuple(pose[:2])
+        # Do not let a late marker confirmation erase a line-acquisition fence that
+        # was already crossed between the previous odometry sample and this frame.
+        dx, dy = current[0]-self.goal[0], current[1]-self.goal[1]
+        beyond = dx*self.tangent[0]+dy*self.tangent[1]
+        extra = math.hypot(dx, dy) if beyond > 0. else 0.
+        step = math.dist(current, self.previous)
+        if (extra > self.config.finish_extra_distance+1e-6
+                or self.travel+step > self.travel_limit):
+            return False
+        # Account for movement since the previous guard check before changing phases.
+        self.travel += step
+        self.previous = current
+        self.charging_search_anchor = current
+        self.charging_search_start_travel = self.travel
+        self.charging_search_limit = float(distance)
+        # The marker-relative dock guard enforces the exact search distance. Keep a
+        # 5 cm cumulative-odometry cushion here as an independent outer watchdog.
+        self.travel_limit = self.travel + self.charging_search_limit + .05
+        self.diagnostics.update(charging_search_anchor_m=current,
+                                charging_search_limit_m=self.charging_search_limit,
+                                charging_search_travel_m=0.)
+        return True
 
     def check(self, pose):
         if self.arrived:
@@ -414,7 +447,19 @@ class ReverseFinishGuard:
         self.diagnostics.update(extra_distance_m=extra, visual_travel_m=self.travel,
                                 extra_distance_limit_m=self.config.finish_extra_distance,
                                 lateral_error_m=lateral, control_terms_valid=False)
-        if extra > self.config.finish_extra_distance+1e-6 or self.travel > self.travel_limit:
+        if self.charging_search_anchor is None:
+            distance_limit_exceeded = extra > self.config.finish_extra_distance+1e-6
+        else:
+            charging_search_distance = math.dist(pose[:2], self.charging_search_anchor)
+            charging_search_travel = self.travel-self.charging_search_start_travel
+            self.diagnostics.update(charging_search_anchor_m=self.charging_search_anchor,
+                                    charging_search_limit_m=self.charging_search_limit,
+                                    charging_search_distance_m=charging_search_distance,
+                                    charging_search_travel_m=charging_search_travel)
+            # The old route-end fence is intentionally no longer applied after
+            # the terminal marker; ChargingDock owns this marker-relative 10 cm leg.
+            distance_limit_exceeded = False
+        if distance_limit_exceeded or self.travel > self.travel_limit:
             self.fault = 'reverse_finish_search_limit'
         elif lateral > self.config.max_tracking_error:
             self.fault = 'reverse_finish_deviation'

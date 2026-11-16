@@ -27,6 +27,41 @@ from robot_task_control.velocity_mux import VelocityMux
 
 
 class DeviceStartupTest(unittest.TestCase):
+    def test_line_readiness_poll_allows_slow_startup_response(self):
+        from concurrent.futures import Future
+        from types import SimpleNamespace
+        from unittest.mock import Mock, patch
+        from robot_task_control import workflow_controller as module
+
+        first, second = Future(), Future()
+        client = Mock()
+        client.service_is_ready.return_value = True
+        client.call_async.side_effect = [first, second]
+        node = SimpleNamespace(
+            check_arm_devices=False, check_line_devices=True,
+            device_check_future=None, device_check_requested=float('-inf'),
+            device_check_result_time=float('-inf'), line_devices_ready=False,
+            line_devices_reason='waiting', devices_stable_since=None,
+            devices_check_started=10., device_check_timeout=120.,
+            device_check_logged=10., device_ready_stable_sec=1.,
+            follow_ready_client=client, follow_enable_client=client,
+            mux_enable_client=client, mux_mode_client=client,
+            add_callback=Mock(), on_line_devices_ready=Mock(),
+            get_logger=Mock(), fail_workflow=Mock(),
+        )
+        for now in (10., 10.5, 11., 14.9):
+            with patch.object(module, 'monotonic', return_value=now):
+                self.assertFalse(module.WorkflowController.advance_device_checks(node))
+        self.assertEqual(client.call_async.call_count, 1)
+        client.remove_pending_request.assert_not_called()
+        with patch.object(module, 'monotonic', return_value=15.1):
+            self.assertFalse(module.WorkflowController.advance_device_checks(node))
+        self.assertTrue(first.cancelled())
+        client.remove_pending_request.assert_called_once_with(first)
+        self.assertEqual(client.call_async.call_count, 2)
+        self.assertEqual(node.line_devices_reason, 'readiness service timeout')
+        node.fail_workflow.assert_not_called()
+
     def test_standard_route_versions_and_invalid_record_preserve_previous(self):
         import json
         from robot_task_control.standard_route import publish_standard

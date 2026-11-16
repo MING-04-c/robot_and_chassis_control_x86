@@ -17,7 +17,7 @@ system:
   line_navigation_mode: replay
   standard_route_file: ~/.ros/line_follow/standards/route_01/standard_route.json
   line_record_route: false
-  line_charging_mode: false
+  line_charging_mode: true  # 倒车回桩以充电反馈确认完成；横线用于定位和对齐
   line_follow_speed: 0.1
   line_reverse_speed: 0.05
   line_reverse_route_max_curvature: 5.0
@@ -234,7 +234,7 @@ detect_controller:
     home_joint_tolerance: 0.01
     force_filter_alpha: 0.25
     force_bias_sample_count: 50
-    hold_seconds: 2.5  # Actual contact dwell for thickness reading.
+    hold_seconds: 2.0  # Actual contact dwell before retreat; return motion takes additional time.
     velocity_scaling: 0.01  # 检测预接近和回拍照位：模型关节速度上限的 1%，非固定末端线速度。
     acceleration_scaling: 0.01
 
@@ -250,7 +250,7 @@ capture:
   robot_settle_sec: 0.5
   camera_warmup_sec: 3.0
   stable_frames: 8
-  frame_difference_threshold: 3.0
+  frame_difference_threshold: 7.0
   stability_timeout_sec: 30.0
   pause_line_camera: true
   line_streaming_service: /line_camera/camera_node/streaming

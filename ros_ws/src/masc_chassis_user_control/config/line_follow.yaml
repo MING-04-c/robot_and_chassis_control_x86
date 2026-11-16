@@ -37,6 +37,7 @@ line_follow_controller:
     record_route: true
     standard_visual_loss_timeout: 5.0 # replay中段短暂丢线最多续行5秒；相机/里程计过期仍立即停
     standard_visual_loss_distance: 0.30 # m，丢线续行累计实际路程上限；末段15cm必须视觉有效
+    standard_finish_extra_distance: 0.05 # m，前进标准路线末段最多超过记录终点5cm寻找停车横线
     standard_visual_assist_gain: 0.5 # replay视觉辅助，同时检查横向与朝向
     standard_curve_min_speed: 0.05 # m/s，replay可信弯道最低巡航目标；不覆盖低巡航设定/严重偏线/终点/物理限制
     standard_visual_assist_max_yaw: 0.06 # rad/s；最终仍服从总曲率/角速度上限

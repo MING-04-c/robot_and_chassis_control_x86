@@ -1357,7 +1357,7 @@ def standard_route_ros(check_finish=False, check_loss=None):
                 expected='standard_finish_timeout' if check_finish=='timeout' else 'standard_finish_search_limit'
                 assert node.standard_fault==expected,(node.reason,node.standard_finish)
                 assert commands[-1].linear.x==0.
-                assert position[0]<=.36,position[0]
+                assert position[0]<=.41,position[0]
                 assert standard.read_bytes()==original
                 print('PASS: standard final visual handoff, bounded extra search/timeout and immutable route: '+expected)
                 return

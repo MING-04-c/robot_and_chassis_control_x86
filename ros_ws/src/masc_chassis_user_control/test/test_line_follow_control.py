@@ -806,9 +806,14 @@ class ChargingDockTests(unittest.TestCase):
     def test_small_offset_is_corrected_and_forward_reposition_is_bounded(self):
         from charging_dock import ChargingDock
         dock, config = ChargingDock(RouteConfig()), ControlConfig()
-        results = [dock.command((0., 0., 0.), self.feedback(.05), i, i*.1,
-                               config, True, False, None) for i in range(20)]
-        self.assertTrue(any(abs(result[1]) > 0. for result in results), '小偏差不能卡在ready零速')
+        approach = [dock.command((0., 0., 0.), self.feedback(.05), i, i*.1,
+                                 config, True, False, None) for i in range(20)]
+        self.assertTrue(any(result[0] < 0. for result in approach), '横线前的小偏差不应反复停车')
+        self.assertTrue(all(result[1] == 0. for result in approach), '横线前沿用普通返程容差')
+        dock = ChargingDock(RouteConfig())
+        final = [dock.command((0., 0., 0.), self.feedback(.05), i, i*.1,
+                              config, True, True, 0.) for i in range(20)]
+        self.assertTrue(any(abs(result[1]) > 0. for result in final), '横线到位后仍须严格回中')
         dock = ChargingDock(RouteConfig())
         for i in range(20):
             result = dock.command((0., 0., 0.), self.feedback(), i, i*.1,
@@ -816,6 +821,42 @@ class ChargingDockTests(unittest.TestCase):
         self.assertGreater(result[0], 0.)
         result = dock.command((.051, 0., 0.), self.feedback(), 20, 2., config, True, False, -.2)
         self.assertEqual(result, (0., 0., 0., 'charging_dock_forward_limit'))
+
+    def test_no_marker_keeps_creeping_when_approach_error_is_inside_hysteresis(self):
+        from charging_dock import ChargingDock
+        dock, config = ChargingDock(RouteConfig()), ControlConfig()
+        for frame in range(12):
+            result = dock.command((0., 0., 0.), self.feedback(), frame, frame*.1,
+                                  config, True, False, None)
+        self.assertEqual(result[3], 'reverse_visual_finish_tracking')
+
+        # 10.5%略超普通返程死区，但仍在已进入ready后的迟滞范围；严格
+        # 到位帧计数应为0，也不能因此把“尚未看到横线”的低速倒车截成零。
+        result = dock.command((0., 0., 0.), self.feedback(.105), 12, 1.2,
+                              config, True, False, None)
+        self.assertEqual(result, (-.02, 0., 0., 'reverse_visual_finish_tracking'))
+
+    def test_final_dock_keeps_moving_when_marker_alignment_jitters_at_goal_threshold(self):
+        from charging_dock import ChargingDock
+        dock, config = ChargingDock(RouteConfig()), ControlConfig()
+        # 先在横线前建立ready；之后检测到横线并进入严格充电末段。
+        for frame in range(12):
+            dock.command((0., 0., 0.), self.feedback(.039), frame, frame*.1,
+                         config, True, False, None)
+        for frame in range(12, 30):
+            error = .044 if frame % 2 else .039  # 轻微噪声跨过严格的0.04门限
+            result = dock.command((0., 0., 0.), self.feedback(error), frame, frame*.1,
+                                  config, True, True, 0.)
+            self.assertEqual(result, (-.012, 0., 0., 'reverse_visual_finish_tracking'))
+
+        # 回差不是永久忽略：持续超出1.5倍门限仍应停纵向并重新横移。
+        for frame in range(30, 42):
+            result = dock.command((0., 0., 0.), self.feedback(.061), frame, frame*.1,
+                                  config, True, True, 0.)
+        self.assertEqual(result[0], 0.)
+        self.assertGreater(result[1], 0.)
+        self.assertEqual(result[2], 0.)
+        self.assertEqual(result[3], 'reverse_visual_finish_aligning')
 
     def test_deviation_missing_line_timeout_and_unique_frames(self):
         from charging_dock import ChargingDock
@@ -1155,6 +1196,34 @@ class RecordedRouteTests(unittest.TestCase):
                 replace(config, finish_exit_lateral=invalid).validate()
         with self.assertRaises(ValueError):
             replace(config, finish_extra_distance=.101).validate()
+
+    def test_charging_search_gets_its_own_distance_after_terminal_marker(self):
+        config = RouteConfig()
+        points = [(i*.01, 0., 0.) for i in range(101)]
+        tracker = ReverseRouteFollower({'points': points}, points[-1], config)
+        tracker.diagnostics['remaining_m'] = .28
+        guard = ReverseFinishGuard(tracker, (.28, 0., 0.), config)
+
+        # The endpoint fence still limits line acquisition before the terminal bar.
+        self.assertIsNone(guard.check((-.099, 0., 0.)))
+        self.assertEqual(guard.check((-.101, 0., 0.)), 'reverse_finish_search_limit')
+
+        # A fresh guard represents the run that did find the bar near that fence.
+        guard = ReverseFinishGuard(tracker, (.28, 0., 0.), config)
+        marker_pose = (-.095, 0., 0.)
+        self.assertTrue(guard.begin_charging_search(marker_pose, .10))
+        self.assertIsNone(guard.check(marker_pose))
+        # Past the old route-end +10 cm boundary, but still within 10 cm of the bar.
+        self.assertIsNone(guard.check((-.194, 0., 0.)))
+        self.assertAlmostEqual(guard.diagnostics['charging_search_distance_m'], .099)
+        # The outer cumulative watchdog retains its independent 5 cm margin.
+        self.assertEqual(guard.check((-.246, 0., 0.)), 'reverse_finish_search_limit')
+
+        late_guard = ReverseFinishGuard(tracker, (.28, 0., 0.), config)
+        late_marker_pose = (-.101, 0., 0.)
+        self.assertFalse(late_guard.begin_charging_search(late_marker_pose, .10),
+                         'a late marker frame must not bypass the line-acquisition fence')
+        self.assertEqual(late_guard.check(late_marker_pose), 'reverse_finish_search_limit')
 
     def test_alignment_after_odom_restart_and_closed_path_does_not_finish_early(self):
         config = RouteConfig()
@@ -1854,6 +1923,55 @@ class ControlTests(unittest.TestCase):
         for grace in (-.01, .61):
             with self.assertRaises(ValueError):
                 replace(config, stop_marker_dropout_grace_sec=grace).validate()
+
+    def test_reverse_finish_ignores_one_frame_false_marker_then_accepts_real_bar(self):
+        config = replace(ControlConfig(forward_ignore_start_marker=False), drive_direction='reverse',
+                         reverse_ignore_start_marker=False)
+        gate = StopMarkerGate()
+        false_bar = {'x': 320., 'y': 170., 'kind': 'final'}
+        gate.observe([false_bar], 480, config, now=0., acquisition_frames=3)
+        self.assertEqual(gate.limit(-.03, config, now=0.), (0., 'confirming'))
+        self.assertEqual(gate.ledger.counts['encountered'], 0)
+        gate.observe([], 480, config, now=.05, acquisition_frames=3)
+        self.assertEqual(gate.limit(-.03, config, now=.05), (-.03, 'searching'))
+        for index in range(3):
+            gate.observe([false_bar], 480, config, now=.1+index*.05, acquisition_frames=3)
+        self.assertEqual(gate.ledger.counts['encountered'], 1)
+        self.assertEqual(gate.state(config), 'approaching')
+
+    def test_reverse_finish_discards_only_far_missing_marker_with_route_remaining(self):
+        config = replace(ControlConfig(forward_ignore_start_marker=False), drive_direction='reverse',
+                         reverse_ignore_start_marker=False)
+        bar = {'x': 320., 'y': 170., 'kind': 'final'}
+        gate = StopMarkerGate()
+        for index in range(5):
+            gate.observe([bar], 480, config, now=index*.05, acquisition_frames=3)
+        gate.observe([], 480, config, now=.25, acquisition_frames=3)
+        self.assertFalse(gate.discard_far_missing(config, .5, .18))
+        self.assertFalse(gate.discard_far_missing(config, .81, .09))
+        self.assertTrue(gate.discard_far_missing(config, .81, .18))
+        self.assertEqual(gate.limit(-.03, config, now=.81), (-.03, 'searching'))
+        self.assertEqual(gate.ledger.counts['rejected'], 1)
+        self.assertEqual(gate.ledger.stations[0]['state'], 'rejected_false_positive')
+        for index in range(3):
+            gate.observe([bar], 480, config, now=.9+index*.05, acquisition_frames=3)
+        self.assertEqual(gate.ledger.counts['encountered'], 2)
+
+        near = StopMarkerGate()
+        for index in range(5):
+            near.observe([dict(bar, y=238.)], 480, config, now=index*.05, acquisition_frames=3)
+        near.observe([], 480, config, now=.25, acquisition_frames=3)
+        self.assertFalse(near.discard_far_missing(config, 1., .18))
+        self.assertEqual(near.limit(-.03, config, now=1.), (0., 'missing'))
+
+        arrived = StopMarkerGate()
+        for index in range(6):
+            arrived.observe([dict(bar, y=238.)], 480, config, now=index*.05,
+                            acquisition_frames=3)
+        self.assertTrue(arrived.arrived)
+        arrived.observe([], 480, config, now=.35, acquisition_frames=3)
+        self.assertFalse(arrived.discard_far_missing(config, 1., .18))
+        self.assertEqual(arrived.limit(-.03, config, now=1.), (0., 'stopped_final'))
 
     def test_stop_bar_half_second_dropout_keeps_bounded_creep(self):
         config = ControlConfig(forward_ignore_start_marker=False)

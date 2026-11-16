@@ -49,6 +49,12 @@ SUPPORTED_ACTIONS = set(CONTROL_COMMANDS) | {
     "continue_line_follow",
 }
 
+# The camera, chassis and MoveIt nodes start together. Give the readiness
+# service time to answer while they initialize, without queuing rapid polls.
+LINE_READY_REQUEST_TIMEOUT_SEC = 5.0
+LINE_READY_POLL_INTERVAL_SEC = 1.0
+LINE_READY_RESULT_MAX_AGE_SEC = 3.0
+
 
 class WorkflowController(Node):
     def __init__(self):
@@ -942,6 +948,9 @@ class WorkflowController(Node):
                 self.follow_status_time is not None
                 and now - self.follow_status_time <= 1.0
             )
+            if fresh and self.follow_status == 'reverse_finish_search_limit':
+                self.fail_workflow('已到返程搜索距离边界，仍未确认终点横线；底盘保持停车')
+                return
             if fresh and self.follow_status and self.follow_status.startswith('start_alignment_failed'):
                 self.fail_workflow('起步横线对齐失败，底盘保持停车：'+self.follow_status)
                 return
@@ -1550,7 +1559,7 @@ class WorkflowController(Node):
             if (
                 future is not None
                 and not future.done()
-                and now - self.device_check_requested > 1.5
+                and now - self.device_check_requested > LINE_READY_REQUEST_TIMEOUT_SEC
             ):
                 self.follow_ready_client.remove_pending_request(future)
                 future.cancel()
@@ -1558,7 +1567,7 @@ class WorkflowController(Node):
                 self.line_devices_reason = "readiness service timeout"
             if (
                 future is None or future.done()
-            ) and now - self.device_check_requested >= 0.3:
+            ) and now - self.device_check_requested >= LINE_READY_POLL_INTERVAL_SEC:
                 if self.follow_ready_client.service_is_ready():
                     self.device_check_requested = now
                     self.device_check_future = self.follow_ready_client.call_async(
@@ -1567,7 +1576,8 @@ class WorkflowController(Node):
                     self.add_callback(
                         self.device_check_future, self.on_line_devices_ready
                     )
-            if not self.line_devices_ready or now - self.device_check_result_time > 1.0:
+            if (not self.line_devices_ready
+                    or now - self.device_check_result_time > LINE_READY_RESULT_MAX_AGE_SEC):
                 missing.append("chassis/USB tracking: " + self.line_devices_reason)
             if not all(
                 client.service_is_ready()

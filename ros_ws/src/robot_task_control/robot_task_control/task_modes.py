@@ -24,7 +24,7 @@ def mode_config(document, mode='local', workflow='full', auto_start=None):
     if auto_start is not None:
         system['auto_start'] = auto_start
     # Full and line profiles return along the standard route to the charging dock.
-    system['line_charging_mode'] = mode == 'online' and workflow != 'photo'
+    system['line_charging_mode'] = workflow != 'photo'
     camera = config['camera_detection_task']['ros__parameters']
     camera['low_battery_return_enabled'] = mode == 'online' and workflow == 'full'
     camera['low_battery_threshold'] = 10.0

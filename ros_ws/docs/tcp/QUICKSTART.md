@@ -16,8 +16,14 @@ ros2 launch robot_task_control robot_task_oline.launch.py
 开放/连通 9010、9002、9030，先启动一个常驻终端：
 
 ```bash
-python3 listen_robot.py
+python3 control_page.py
 ```
+
+麒麟本机浏览器打开 `http://127.0.0.1:8765/`，页面同时提供收图、状态和控制。
+可点“启动任务”“采图并检测”“返回充电”“中止任务”，在 `WAIT_RESULT` 时输入本机真实结果 JSON 路径发送检测点。
+页面仅绑定本机回环地址；一次只运行一个 `control_page.py` 或 `listen_robot.py`，避免 9030 端口冲突。
+无桌面环境可加 `--no-browser`，仍可在麒麟本机打开该地址。
+如只需命令行，继续使用 `python3 listen_robot.py` 常驻监听。
 
 另一终端依次操作：
 

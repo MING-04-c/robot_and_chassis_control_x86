@@ -1,13 +1,14 @@
 """倒车充电末段：横线定位、先摆正回中、有限直线接近；单位米/弧度。"""
 import math
 from dataclasses import replace
-from reverse_visual import AlignmentSequencer, aligned, strafe_command
+from reverse_visual import AlignmentSequencer, strafe_command
 
 
 class ChargingDock:
     def __init__(self, route, max_distance=.10):
         if not .01 <= max_distance <= .10:
             raise ValueError('充电额外搜索距离必须在0.01～0.10m内')
+        self.approach_route = route
         self.route = replace(route, finish_goal_heading=math.radians(3.), finish_goal_lateral=.04,
                              visual_goal_lateral_m=.015)
         self.limit = max_distance
@@ -20,7 +21,6 @@ class ChargingDock:
         self.fault = None
         self.done = False
         self.last_stamp = None
-        self.center_frames = 0
         self.last_direction = 0
 
     def fail(self, reason):
@@ -63,13 +63,16 @@ class ChargingDock:
         creep_speed = min(config.stop_marker_creep_speed, speed_limit)
         if creep_speed <= .01:
             return self.fail('speed_below_motion_threshold')
-        if stamp != self.last_stamp:
-            self.center_frames = min(3, self.center_frames+1) if aligned(feedback, self.route) else 0
-            self.last_stamp = stamp
-        phase = self.sequencer.update(feedback, self.route, stamp, now,
-                                       terminal=True, stopped=stopped)
-        vy, w = strafe_command(feedback, config, self.route)
-        if phase != 'ready' or self.center_frames < 3:
+        # 横线尚未到位时沿用普通返程容差和迟滞；横线到位后才严格对齐。
+        alignment_route = self.route if marker_arrived else self.approach_route
+        # 最终对齐也保留ready状态的1.5倍回差：横线附近像素噪声不能
+        # 让门限两侧反复切换。目标切换/到位仍由sequencer用3张新帧确认。
+        phase = self.sequencer.update(feedback, alignment_route, stamp, now,
+                                       terminal=False, stopped=stopped)
+        vy, w = strafe_command(feedback, config, alignment_route)
+        # sequencer已负责连续新帧确认和停稳间隔，不再叠加第二个原始
+        # 阈值计数；否则最终横线处的小抖动会反复清零纵向速度。
+        if phase != 'ready':
             self.state = 'align_'+phase
             return 0., vy if phase == 'lateral' else 0., w if phase == 'heading' else 0., 'reverse_visual_finish_aligning'
         # 已摆正后只走直线；图像偏差明显增大时回到上面的对齐步骤。

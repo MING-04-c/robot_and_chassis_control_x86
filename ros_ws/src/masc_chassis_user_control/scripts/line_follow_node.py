@@ -489,7 +489,8 @@ class LineFollowNode(Node):
     def drain_station_events(self):
         pending, self.marker_gate.ledger.pending = self.marker_gate.ledger.pending, []
         names = dict(detected='识别新横线', ignored_departure='忽略出发线', arrived='到站停车',
-                     resumed='收到继续，离站', passed='确认通过', released_unseen='漏检行程达到上限，解除去重（非到站）')
+                     resumed='收到继续，离站', passed='确认通过', released_unseen='漏检行程达到上限，解除去重（非到站）',
+                     rejected_false_positive='远处候选持续消失，撤销误检')
         for event in pending:
             event = dict(event, direction=self.config.drive_direction, time_unix=time.time())
             if self.latest_odom is not None:
@@ -643,18 +644,28 @@ class LineFollowNode(Node):
 
     def finish_marker_is_final(self):
         # 提前视觉接管只改变转向来源；原30cm终点范围之外仍保留途中站语义。
+        remaining = (self.return_tracker.diagnostics.get('remaining_m', math.inf)
+                     if self.return_tracker is not None else math.inf)
         if self.config.reverse_return_to_start:
             stations = self.recorded_station_order()
             if any(event.get('action') == 'ignored_departure'
                    for event in (self.route_document or {}).get('station_events', []) if isinstance(event, dict)):
-                number = self.marker_gate.current_identity or self.marker_gate.ledger.counts['encountered']+1
-                if number != len(stations):
+                number = ((self.marker_gate.current_identity or self.marker_gate.ledger.counts['encountered']+1)
+                          - self.marker_gate.ledger.counts['rejected'])
+                # 倒车起步时前进终点横线可能已离开相机视野，没有生成“忽略出发线”事件。
+                # 在记录起点10cm内重新看到并到位的横线仍是终点，不能因编号少一而自动resume越线。
+                if number != len(stations) and remaining > .10:
                     return False
         return (self.return_finish is not None and self.return_tracker is not None
-                and self.return_tracker.diagnostics.get('remaining_m', math.inf) <= self.route_config.finish_distance)
+                and remaining <= self.route_config.finish_distance)
 
     def visual_finish_command(self, pose, dt):
         guard = self.return_finish
+        if (self.charging_mode and self.marker_gate.arrived
+                and self.marker_gate.latched_kind == 'final'):
+            # First find/confirm the terminal bar within the route-end fence; once
+            # confirmed, start the separate charging-search allowance from here.
+            guard.begin_charging_search(pose, self.dock.limit)
         fault = guard.check(pose)
         if fault is not None:
             if self.charging_mode:
@@ -916,6 +927,10 @@ class LineFollowNode(Node):
             if self.marker_gate.arrived and reason != 'reverse_route_complete' and self.return_finish is None:
                 state, moving = 'stop_marker_intermediate', False
             elif moving and reason != 'reverse_visual_finish_aligning':
+                if (self.return_finish is not None and not dock_active and self.return_tracker is not None
+                        and self.marker_gate.discard_far_missing(
+                            self.config, now, self.return_tracker.diagnostics.get('remaining_m', 0.))):
+                    self.get_logger().warning('倒车末段远处横线候选持续漏检，撤销该误检；主线有效，继续受路线边界限制倒车')
                 limited, marker_state = self.marker_gate.limit(v, self.config, now=now, dt=dt)
                 w *= abs(limited/v) if v else 0.
                 v = limited
@@ -1147,7 +1162,8 @@ class LineFollowNode(Node):
                                       for marker in candidates]
         if self.enabled and not self.start_alignment_active:
             self.marker_gate.observe(self.marker_candidates, height, self.config,
-                                     start_alignment=False)
+                                     start_alignment=False,
+                                     acquisition_frames=(3 if self.return_finish is not None else 1))
         if self.start_alignment_active:
             width = (self.status.get('image_width') if isinstance(self.status, dict) else None)
             if isinstance(width, int):

@@ -30,7 +30,7 @@ def test_modes_keep_shared_protection_and_select_only_requested_steps(tmp_path, 
     assert config['detect_controller'] == original['detect_controller']
     assert config['travel'] == original['travel']
     assert config['system']['auto_start'] is (mode == 'local')
-    assert config['system']['line_charging_mode'] is (mode == 'online' and profile != 'photo')
+    assert config['system']['line_charging_mode'] is (profile != 'photo')
     camera = config['camera_detection_task']['ros__parameters']
     assert camera['target_source'] == ('tcp' if mode == 'online' else 'local')
     assert camera['low_battery_return_enabled'] is (mode == 'online' and profile == 'full')
@@ -89,7 +89,7 @@ def test_launch_uses_effective_recipe_and_photo_never_starts_chassis(tmp_path, m
         assert config['workflow']['task_mode'] == mode
         assert config['workflow']['task_profile'] == profile
         assert system['auto_start'] == 'false'
-        assert system['line_charging_mode'] == str(mode == 'online' and profile != 'photo').lower()
+        assert system['line_charging_mode'] == str(profile != 'photo').lower()
         if profile == 'photo':
             assert system['start_chassis'] == system['start_line_camera'] == 'false'
             assert system['use_velocity_mux'] == 'false'

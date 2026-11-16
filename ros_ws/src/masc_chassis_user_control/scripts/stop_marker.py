@@ -171,7 +171,7 @@ def detect_stop_markers(mask, points, config, reference=None, diagnostics=None):
 class StationLedger:
     """一次任务内的横线身份及事件；重复观测不重复计数，不把漏检当作通过。"""
     def __init__(self):
-        self.counts = dict(encountered=0, ignored=0, arrived=0, resumed=0, passed=0, uncertain=0)
+        self.counts = dict(encountered=0, ignored=0, arrived=0, resumed=0, passed=0, uncertain=0, rejected=0)
         self.stations = []
         self.pending = []
 
@@ -192,7 +192,7 @@ class StationLedger:
         if marker is not None:
             station['kind'] = marker['kind']
         counter = {'ignored_departure': 'ignored', 'arrived': 'arrived', 'resumed': 'resumed',
-                   'passed': 'passed'}.get(action)
+                   'passed': 'passed', 'rejected_false_positive': 'rejected'}.get(action)
         if action == 'released_unseen' and 'passed' not in station['actions']:
             counter = 'uncertain'
         if counter:
@@ -236,6 +236,8 @@ class StopMarkerGate:
         self.dropout_commanded_distance = 0.
         self.settling_pending = False
         self.settling_outside_frames = 0
+        self.candidate = None
+        self.candidate_frames = 0
 
     def record_motion(self, speed, dt, config):
         """记录已输出的行驶距离估计；零速等待不消耗离站窗口，不代替里程计。"""
@@ -265,7 +267,7 @@ class StopMarkerGate:
             self.ignore_measured_distance += distance
             self.ignore_measured_unseen += distance
 
-    def observe(self, candidates, height, config, now=None, start_alignment=False):
+    def observe(self, candidates, height, config, now=None, start_alignment=False, acquisition_frames=1):
         """每张新图像调用一次；缺失帧不以零误差混入平均值。"""
         now = monotonic() if now is None else now
         self.height = height
@@ -337,7 +339,21 @@ class StopMarkerGate:
                      [m for m in remaining if distance(m) >= -2*config.stop_marker_overshoot_tolerance_ratio])
             match = min(ahead, key=lambda m: abs(distance(m)), default=None)
             if match is not None:
+                if acquisition_frames > 1:
+                    previous = self.candidate
+                    consistent = (previous is not None
+                                  and abs(match['y']-previous['y']) <= .04*height
+                                  and abs(match['x']-previous['x']) <= .06*height)
+                    self.candidate_frames = self.candidate_frames+1 if consistent else 1
+                    self.candidate = dict(match)
+                    if self.candidate_frames < acquisition_frames:
+                        return
+                self.candidate = None
+                self.candidate_frames = 0
                 self.current_identity = self.ledger.encounter(match)
+            else:
+                self.candidate = None
+                self.candidate_frames = 0
         self.samples = [(t, value) for t, value in self.samples
                         if 0 <= now-t <= config.stop_marker_average_max_age_sec]
         if match is not None:
@@ -420,6 +436,8 @@ class StopMarkerGate:
     def state(self, config, now=None):
         if self.arrived:
             return 'stopped_'+(self.latched_kind or 'unknown')
+        if self.marker is None and self.candidate is not None:
+            return 'confirming'
         if self.missing:
             age = (monotonic() if now is None else now)-self.last_seen_at if self.last_seen_at is not None else math.inf
             if (self.confirmations >= config.stop_marker_average_frames
@@ -447,6 +465,29 @@ class StopMarkerGate:
         if not self.position_confirmed:
             return 'settling'
         return 'stopped_'+(self.latched_kind or 'unknown')
+
+    def discard_far_missing(self, config, now, remaining_m):
+        """倒车末段仅在横线最后仍远、已持续漏检且路线仍有余量时撤销误检。"""
+        if (self.arrived or not self.missing or self.marker is None or self.last_seen_at is None
+                or self.current_identity is None or self.settling_pending
+                or self.error is None or self.raw_error is None
+                or min(self.error, self.raw_error) <= max(.10, 3*config.stop_marker_position_tolerance_ratio)
+                or now-self.last_seen_at < max(.6, config.stop_marker_dropout_grace_sec)
+                or remaining_m <= .10):
+            return False
+        self.ledger.record('rejected_false_positive', self.current_identity, self.marker,
+                           basis='far_marker_disappeared')
+        self.marker = self.reference_marker = None
+        self.current_identity = None
+        self.confirmations = self.kind_confirmations = self.settled_frames = 0
+        self.latched_kind = None
+        self.samples.clear()
+        self.error = self.raw_error = None
+        self.last_seen_at = None
+        self.missing = self.stopped = self.position_confirmed = self.settling_pending = False
+        self.settling_outside_frames = 0
+        self.dropout_commanded_distance = 0.
+        return True
 
     def limit(self, speed, config, now=None, dt=.02):
         """平均位置未到时持续靠近；到位/轻微越线为零速，不自动倒车。"""
@@ -515,6 +556,7 @@ class StopMarkerGate:
                 'departure_hold_distance_m': config.stop_marker_departure_hold_distance,
                 'departure_measured_unseen_m': self.ignore_measured_unseen,
                 'marker': self.marker, 'error_ratio': self.error, 'raw_error_ratio': self.raw_error,
+                'candidate': self.candidate, 'candidate_frames': self.candidate_frames,
                 'average_y': average_y, 'sample_count': len(self.samples),
                 'average_frames': config.stop_marker_average_frames, 'filter': 'arithmetic_mean',
                 'position_tolerance_ratio': config.stop_marker_position_tolerance_ratio,

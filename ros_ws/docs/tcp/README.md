@@ -31,3 +31,5 @@ HK 自身线缆协议无落盘 ACK，但 oline 新增的 9010 保存确认覆盖
 
 底层历史协议兼容字段见 [TCP通讯协议](TCP通讯协议_麒麟工控机.md)，
 旧工具说明由仓库统一归档；旧入口和自动重试描述不覆盖当前 oline 流程。
+
+本机可视化入口：`python3 control_page.py`；它同时运行收图监听，详见 [QUICKSTART](QUICKSTART.md)。

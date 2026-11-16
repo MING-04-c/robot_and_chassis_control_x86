@@ -2,7 +2,7 @@
 # Joint angles and Cartesian RPY: degrees. Cartesian XYZ: metres.
 # Device, capture and force limits are inherited from config/robot_task.yaml.
 # 检测继承主配置：真机导纳预接近→名义点2.5 mm/s，名义点后1 mm/s。
-# 撤离上限3 mm/s，测厚保持2.5秒；统一在 robot_task.yaml 的 detect_controller 中修改。
+# 撤离上限3 mm/s，测厚保持2秒；统一在 robot_task.yaml 的 detect_controller 中修改。
 # 下列中间/拍照点与 path_preview.yaml 同步，均为 base_link 下 tool0 目标，非镜头或探针尖端。
 # travel 是行车关节位，detection_ready 是过渡关节位；均非笛卡尔中间点。
 travel: [-45.0, 15.0, -71.0, 4.4, 148.0, 75.0]
