@@ -91,6 +91,8 @@
 
 ## 与旧工作区 ros_ws2 的检测控制对比
 
+> 本节是历史审查记录；当前仓库不包含 `ros_ws2`，不能把其中路径或配置当作可运行入口。
+
 本机未找到名为 ros2_ws 的目录；此次只读比较的是之前保存的 ros_ws2，未修改旧工作区。
 比较对象为旧 `camera_detection_real.yaml`、`camera_probe_touch.yaml` 和 `detect_controller.py`，
 不是旧通用 detect.yaml 的基座 -Z 默认，也不是仅用于测试的导纳配置。

@@ -1,5 +1,7 @@
 # 树莓派联合任务资源测试
 
+> **历史采样命令。** 本文引用的 `line_follow_only.launch.py` 和 `line_follow_arm_test.launch.py` 已从当前源码移除，不能直接执行。需要重新采样时，把被测命令替换为现行 `robot_task.launch.py` 入口。
+
 资源采样必须和 ROS 2 launch 在同一个进程环境内运行，否则 `pidstat` 可能只能看到采样器，拿不到 ROS 节点。推荐使用：
 
 ```bash

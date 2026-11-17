@@ -13,16 +13,17 @@ ros2 launch robot_task_control robot_task_oline.launch.py
 ```
 
 麒麟解压新版 `industrial_pc_kylin_tcp.zip`，进入包目录，核对 `config.json` 中的机器人 IP 和保存目录。
-开放/连通 9010、9002、9030，先启动一个常驻终端：
+开放/连通 9010、9002、9030，然后只需启动控制页面：
 
 ```bash
-python3 control_page.py
+./start_control_page.sh
 ```
 
-麒麟本机浏览器打开 `http://127.0.0.1:8765/`，页面同时提供收图、状态和控制。
+该脚本会启动页面服务并自动打开麒麟本机浏览器。页面进程同时启动 9010 状态与心跳、9002 海康图片接收、9030 RGB-D 接收和检测结果管理，无需再单独启动监听程序。
+页面显示任务阶段、机械臂与安全状态、循迹、底盘通信、电量与充电、相机检测、各 TCP 通道、活动异常、厚度和最近检测结果。
 可点“启动任务”“采图并检测”“返回充电”“中止任务”，在 `WAIT_RESULT` 时输入本机真实结果 JSON 路径发送检测点。
 页面仅绑定本机回环地址；一次只运行一个 `control_page.py` 或 `listen_robot.py`，避免 9030 端口冲突。
-无桌面环境可加 `--no-browser`，仍可在麒麟本机打开该地址。
+无桌面环境可执行 `./start_control_page.sh --no-browser`，再在麒麟本机打开 `http://127.0.0.1:8765/`。
 如只需命令行，继续使用 `python3 listen_robot.py` 常驻监听。
 
 另一终端依次操作：

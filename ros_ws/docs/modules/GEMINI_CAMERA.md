@@ -16,7 +16,7 @@
 运行联合任务时，独立相机驱动也不能同时发布这两个 frame 的另一套 TF。
 
 ```bash
-cd ~/project/robot_and_chassis_control/ros_ws
+cd /home/robot/project/robot_and_chassis_control-main/ros_ws
 source /opt/ros/jazzy/setup.bash
 MAKEFLAGS="-j1 -l1" CMAKE_BUILD_PARALLEL_LEVEL=1 colcon build --base-paths src --packages-select orbbec_camera_msgs orbbec_description orbbec_camera geminipro_camer_calibration --executor sequential --cmake-args -DBUILD_TESTING=OFF
 source install/setup.bash
@@ -206,7 +206,7 @@ publisher.publish(message)
 | `/geminipro_calibration/target_tool0` | 观测时刻 tool0 下的检测点，供核对；不是基座运动指令 |
 | `/geminipro_calibration/tool0_goal` | 补偿探头安装偏移后，机械臂需要达到的基座 tool0 位姿 |
 
-`detect_control` 接收 `target_base` 后生成预接近点，沿基座 −Z 导纳接近；20 N 停止，保持 5 秒，沿 +Z 撤离并回初始关节位置。转换节点收到坐标只更新目标；触碰任务通过 `/detect_controller/start` 开始。详见 `detect_control/README.md`。
+`detect_control` 接收 `target_base` 后生成预接近点，按当前拍照工具 +Z 方向导纳接近；轴向力达到20 N停止，保持2秒后沿接近轴撤离并回到本轮拍照关节原位。转换节点收到坐标只更新目标；触碰任务由现行任务工作流启动。详细约束见[漆膜检测逻辑](../tasks/PAINT_DETECTION.md)。
 
 默认拒绝超过 5 秒的观测和缺失时间戳；允许短暂等待对应时刻 TF 到达。跨主机需要同步时钟，并通过 TCP 保留原图时间戳。TCP 数据接收程序负责把检测坐标发布到上述 ROS 话题。
 

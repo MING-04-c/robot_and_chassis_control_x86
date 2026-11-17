@@ -31,7 +31,7 @@ def main():
         if name == 'config.json' and destination.exists():
             continue
         shutil.copyfile(source, destination)
-        destination.chmod(0o755 if name.endswith('.py') else 0o644)
+        destination.chmod(0o755 if name.endswith(('.py', '.sh')) else 0o644)
     names = sorted(files)
     manifest = {name: hashlib.sha256((output/name).read_bytes()).hexdigest() for name in names}
     (output/'SOURCE_FILES_SHA256.json').write_text(json.dumps(manifest, indent=2)+'\n')

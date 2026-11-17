@@ -46,13 +46,13 @@
 先前进一次：
 
 ```bash
-ros2 launch robot_task_control line_follow_only.launch.py drive_direction:=forward line_show_window:=true
+ros2 launch masc_chassis_user_control line_follow.launch.py drive_direction:=forward show_window:=true
 ```
 
 到站锁停并实际停稳，看到“前进路线已停稳保存”后关闭旧 launch，保持小车位置和朝向不变，再倒车：
 
 ```bash
-ros2 launch robot_task_control line_follow_only.launch.py drive_direction:=reverse line_show_window:=true
+ros2 launch masc_chassis_user_control line_follow.launch.py drive_direction:=reverse show_window:=true
 ```
 
 前进每隔约2cm记录一个里程计点，并保存准确终点；默认路线文件 `~/.ros/line_follow/last_route.json`，每秒至多保存一次草稿，结束/退出时再保存；只有最新里程计有效且已停稳的结束记录才标记为可返回，行驶中的草稿不可作为返回路线。新前进任务先撤销旧记录；不足10cm、记录中坐标跳变或保存失败时不能作为有效返回路线。文件用临时文件原子替换，避免写到一半被读取。`route_file:=/绝对路径/route.json` 可在两个命令中指定同一文件。
@@ -72,7 +72,7 @@ ros2 launch robot_task_control line_follow_only.launch.py drive_direction:=rever
 ## 编译与启动
 
 ```bash
-cd ~/project/robot_and_chassis_control/ros_ws
+cd /home/robot/project/robot_and_chassis_control-main/ros_ws
 source /opt/ros/jazzy/setup.bash
 source install/setup.bash
 colcon build --packages-select ruier_camer_diver masc_chassis_user_control
@@ -309,7 +309,7 @@ ros2 service call /line_follow_controller/enable std_srvs/srv/SetBool '{data: tr
 先暂停底盘观察曝光效果：
 
 ```bash
-cd ~/project/robot_and_chassis_control/ros_ws
+cd /home/robot/project/robot_and_chassis_control-main/ros_ws
 source /opt/ros/jazzy/setup.bash
 source install/setup.bash
 ros2 launch masc_chassis_user_control line_follow.launch.py \
@@ -322,7 +322,7 @@ ros2 launch masc_chassis_user_control line_follow.launch.py \
 
 ```bash
 source /opt/ros/jazzy/setup.bash
-source ~/project/robot_and_chassis_control/ros_ws/install/setup.bash
+source /home/robot/project/robot_and_chassis_control-main/ros_ws/install/setup.bash
 ros2 service call /line_follow_controller/enable std_srvs/srv/SetBool '{data: true}'
 ```
 
@@ -372,7 +372,7 @@ colcon test-result --verbose
 
 ```bash
 source /opt/ros/jazzy/setup.bash
-source ~/project/robot_and_chassis_control/ros_ws/install/setup.bash
+source /home/robot/project/robot_and_chassis_control-main/ros_ws/install/setup.bash
 ros2 launch masc_chassis_user_control keyboard_teleop.launch.py linear_speed:=0.05 angular_speed:=0.2
 ```
 
@@ -430,7 +430,7 @@ ros2 launch masc_chassis_user_control keyboard_teleop.launch.py linear_speed:=0.
 曝光节点与控制使能独立，停车后仍可继续调整曝光。
 预览红叉为实测段末端。阈值是图像比例，不是标定后的地面停车距离。
 
-`robot_task_control/line_follow_only.launch.py` 使用 `until_untrusted: true`，
+现行整机 `robot_task.launch.py mode:=local workflow:=line` 使用 `until_untrusted: true`，
 开始后跟随可信段，不再按2秒结束；视觉不足先零速等待5秒，恢复后继续，未恢复才结束本轮，
 结束后需再次 start。预览及 `/line_follow/status` 同时显示 input_state（当前输入是否可走）
 和 last_blocked_reason（上次阻塞原因），禁用后仍保留。INPUT: tracking 且 CONTROL: disabled
@@ -602,8 +602,8 @@ ros2 topic pub --once /line_follow/resume std_msgs/msg/Empty '{}'
 复用现有入口，默认关闭：
 
 ```bash
-ros2 launch robot_task_control line_follow_only.launch.py \
-  drive_direction:=reverse charging_mode:=true line_show_window:=true
+ros2 launch masc_chassis_user_control line_follow.launch.py \
+  drive_direction:=reverse charging_mode:=true show_window:=true
 ```
 
 需要已保存的同一路线前进记录（默认`~/.ros/line_follow/last_route.json`），不是任意起点的未知路线倒车。前进记录与普通倒车入口不变。`charging_mode:=false`仍使用原来的横线终停规则。

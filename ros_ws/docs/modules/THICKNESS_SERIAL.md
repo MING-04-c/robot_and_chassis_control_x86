@@ -46,13 +46,13 @@ ros2 topic echo /detactor/task_result std_msgs/msg/String --qos-durability trans
 
 ## 接入探针检测和麒麟回传
 
-`camera_detection_real.launch.py`默认启动本串口且关闭周期采集。
-20N停止并进入5秒保持时，向 `/detactor/acquire_trigger` 触发一次采集，
+现行 `robot_task.launch.py` 会启动本串口并关闭周期采集；`workflow:=photo` 可只运行拍照位检测流程。
+轴向力达到20 N停止并进入2秒保持时，向 `/detactor/acquire_trigger` 触发一次采集，
 仅关联本次接触之后收到的有效测厚回包。撤离并确认实际关节回到记录原位、外力回落后，
 `/detect_controller/point_result`发布逐点结果，协调器补充point_id和照片身份后发到
 `/task_controller/detection_result`。
 TCP桥接将结果落盘在配置output_dir下的 `detection_results/`，通过9010状态查询返回最近100条。
-麒麟运行更新后的 `python3 listen_robot.py`，自动将结果保存到其output_dir下的
+麒麟运行 `./start_control_page.sh` 后，页面内置的监听器自动将结果保存到其output_dir下的
 `detection_results/`；一个结果ID一份JSON，重复查询/监听重启不重复生成文件。
 因此无需在机械臂回位后再读取一个可能来自其他任务的全局缓存。
 

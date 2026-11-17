@@ -1,6 +1,6 @@
 # 项目文档总入口
 
-当前工作区是 `ros_ws`；`ros_ws2` 是旧版参考，不参与本次修改。
+当前工作区是 `ros_ws`；仓库内没有可直接运行的 `ros_ws2` 工作区。
 自写操作说明集中在本目录；原来的散落说明和跳转占位文件已移除。
 
 ## 当前使用
@@ -30,7 +30,7 @@
 - 相机：[深度相机采集/坐标转换](modules/GEMINI_CAMERA.md)、[循迹相机](modules/LINE_CAMERA.md)。
 - 外设：[串口汇总](modules/SERIAL_DEVICES.md)、[力传感器](modules/FORCE_SENSOR.md)、[测厚仪](modules/THICKNESS_SERIAL.md)。
 - 模型：[新增末端装配](modules/TERMINAL_MODEL.md)。
-- 路线：[标准路线](tasks/STANDARD_ROUTE.md)、[底盘导航逻辑](tasks/CHASSIS_NAVIGATION_LOGIC.md)、[资源配置](tasks/RESOURCE_PROFILE_CN.md)。
+- 路线历史调试记录：[标准路线](tasks/STANDARD_ROUTE.md)、[底盘导航逻辑](tasks/CHASSIS_NAVIGATION_LOGIC.md)、[资源配置](tasks/RESOURCE_PROFILE_CN.md)。其中旧的独立 launch 已移除，现行启动以任务操作指南和任务模式为准。
 - 底盘整合笔记：[chassis 目录](chassis/README.md)。模块/专题中的旧任务入口不能覆盖上方现行指南。
 - 协议底稿：[TCP 原协议说明](tcp/TCP通讯协议_麒麟工控机.md)。oline 新增阶段和保存确认以上方现行协议为准。
 

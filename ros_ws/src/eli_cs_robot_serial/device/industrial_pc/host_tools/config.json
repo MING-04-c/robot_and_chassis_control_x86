@@ -1,5 +1,5 @@
 {
-  "robot_host": "169.254.199.100",
+  "robot_host": "169.254.199.250",
   "control_port": 9010,
   "hk_port": 9002,
   "rgbd_bind": "0.0.0.0",

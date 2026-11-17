@@ -1,5 +1,7 @@
 # YAML 底盘可执行任务表
 
+> **未实现的历史设计，不可直接运行。** 本文假定存在 `masc_user_serial`、`masc_tcp.launch.py` 和 `status_tcp_node`，但当前仓库没有这些包、launch 或节点。当前整机通信使用 `eli_cs_robot_serial` 的9010桥，任务入口见 `ros_ws/docs/tasks/ROBOT_TASK_GUIDE.md`；下文仅保留原方案设计。
+
 ## 1. 唯一控制器
 
 任务表只使用 `masc_chassis_ros_driver` 内的 `target_pid_controller_node`。

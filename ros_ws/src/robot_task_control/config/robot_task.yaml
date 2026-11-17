@@ -242,7 +242,7 @@ capture:
   # HK 海康 + 深度相机 RGB/原始深度三图；与 system.line_camera_device 循迹 USB 相机不同。
   output_dir: /home/robot/Desktop/line_robot_camer_detect_test
   local_only: true
-  receiver_ip: 169.254.199.250  # 远端麒麟 IP，供 RGB-D 主动发送；local_only:false 时使用。
+  receiver_ip: 169.254.199.120  # 远端麒麟 IP，供 RGB-D 主动发送；local_only:false 时使用。
   hk_bind_ip: 169.254.199.250  # HK 服务本机绑定地址，不能填远端 IP；oline 覆盖为 0.0.0.0。
   hk_port: 9002
   rgbd_port: 9030

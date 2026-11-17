@@ -2,15 +2,17 @@
 
 # 树莓派与麒麟工控机TCP协议
 
-树莓派169.254.199.100，麒麟169.254.199.120。当前默认无密钥，两端更新后直接运行；保留长度检查、SHA256、超时、重连与指令去重。
+当前现场机器人主机169.254.199.250，麒麟有线口169.254.199.120。当前默认无密钥，两端更新后直接运行；保留长度检查、SHA256、超时、重连与指令去重。
 
 ## 启动
+
+> 本节两条 Pi launch 是历史协议背景，对应文件已从当前源码移除，不能执行。现行机器人入口为 `robot_task.launch.py` 或兼容入口 `robot_task_oline.launch.py`；麒麟入口为 `./start_control_page.sh`。当前步骤见同目录 QUICKSTART。
 
 Pi仅相机：`ros2 launch robot_task_control camera_capture_remote.launch.py`。
 Pi完整任务：`ros2 launch robot_task_control line_follow_arm_test.launch.py remote_control:=true`。
 二者只运行一种，已包含9010通讯；9002由拍照流程按需开启。
 
-麒麟先 `python3 listen_robot.py`，另一终端 `python3 start_capture.py` 单独采集，或 `python3 start_task.py` 开始已加载的完整任务。更多命令见工具包QUICKSTART.md。
+现行麒麟端运行 `./start_control_page.sh`，页面进程同时承担监听、收图、状态和控制；只做历史协议调试时仍可分别使用命令行工具。更多命令见工具包QUICKSTART.md。
 
 ## 9010：命令、检测结果、状态
 
@@ -107,13 +109,13 @@ Pi根目录：~/robot_data/task_final/。麒麟根目录：工具目录/received
 
 ## 检测后测厚结果（串口仪器，TCP回传）
 
-保持 `python3 listen_robot.py` 常驻。9010状态应答的 `robot_status.detection_results` 为最近100个逐点结果，schema=`paint_detection_point_result_v1`。字段包含result_id、batch_id、point_index、point_id、run_id、root_run_id、retry_count、capture_manifest_sha256、success、returned_home、measurement（原 `paint_thickness_measurement_v1`，含value/unit/sequence/received_at_ros）。只有实际回到原位后才产生此结果；success=false时measurement可为null，不用旧值填补。监听端自动按result_id去重，保存到output_dir/detection_results/并打印状态。服务端持久化后可在重连或监听重启时补收最近100条；更早记录保留在树莓派磁盘。
+保持 `./start_control_page.sh` 页面进程常驻。9010状态应答的 `robot_status.detection_results` 为最近100个逐点结果，schema=`paint_detection_point_result_v1`。字段包含result_id、batch_id、point_index、point_id、run_id、root_run_id、retry_count、capture_manifest_sha256、success、returned_home、measurement（原 `paint_thickness_measurement_v1`，含value/unit/sequence/received_at_ros）。只有实际回到原位后才产生此结果；success=false时measurement可为null，不用旧值填补。监听端自动按result_id去重，保存到output_dir/detection_results/并打印状态。服务端持久化后可在重连或监听重启时补收最近100条；更早记录保留在树莓派磁盘。
 
 未接触/不可达时，树莓派安全回位后最多重新拍照取点3次。重拍必须返回新清单哈希对应的检测点，同一个物理点的point_id在整个任务中保持一致；已成功的点不重复执行。`send_points.py`用法不变。
 
 ## 底盘电量与充电状态（9010）
 
-树莓派运行现有底盘驱动及`industrial_pc.launch.py`，或使用已经包含TCP桥的任务入口。麒麟保持`python3 listen_robot.py`运行，终端会显示`电量=73% 充电=充电中`；`python3 start_task.py --action status`可单次查询。这里的73%是格式示例，实际值来自底盘。监听快照保存在output_dir下的`.listener_status.json`。
+树莓派运行现有底盘驱动及`industrial_pc.launch.py`，或使用已经包含TCP桥的任务入口。麒麟保持控制页面运行，页面会显示电量和充电状态；`python3 start_task.py --action status`仍可单次查询。显示值来自底盘有效新反馈，监听快照保存在output_dir下的`.listener_status.json`。
 
 状态应答新增`robot_status.chassis_power`，沿用原9010帧格式，无需新端口：
 

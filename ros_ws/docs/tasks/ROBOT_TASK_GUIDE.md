@@ -116,7 +116,7 @@ oline 覆盖为 `target_source: tcp`，不使用这些本地测试点，必须�
 
 到位等待 0.5 秒、采图前停稳 0.5 秒、相机预热 3 秒是固定等待；
 `step_timeout_sec`、结果/通信超时是最长允许时间，不是固定停留。
-接触保持 5 秒是测厚窗口，不是恒力控制。详细流程见[漆膜检测](PAINT_DETECTION.md)。
+接触保持 2 秒是测厚窗口，不是恒力控制。详细流程见[漆膜检测](PAINT_DETECTION.md)。
 
 查看 `/task_controller/status` 的 `step_index`（从 0 起）、`phase`、`failure_reason`，
 以及 `/camera_detection_task/status`、`/detect_controller/status`。

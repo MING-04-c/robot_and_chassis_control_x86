@@ -8,7 +8,7 @@
 识别反馈曝光：adaptive_exposure:=true（默认）；false 关闭曝光调节。
 底部连接要求：require_bottom_connected:=true 强制贴到底边，默认 false。
 暂停启动：enabled:=false；只观测输出：dry_run:=true（不启动底盘）。
-不要同时运行 masc_tcp.launch.py 或其他发布 /cmd_vel 的控制器。
+不要同时运行其他发布 /cmd_vel 的控制器。
 """
 
 import os

@@ -1,9 +1,8 @@
-> 当前控制流程和实车测试入口见[底盘循迹逻辑与实车测试](CHASSIS_NAVIGATION_LOGIC.md)。以下包含早期调试记录，参数以当前配置及该流程说明为准。
+> **历史调试记录，不可直接照命令运行。** 本文使用的 `line_follow_only.launch.py`、`navigation_mode:=teach` 和 `line_follow_charge_test.yaml` 已从当前源码移除。现行真机入口为 `robot_task.launch.py mode:=local workflow:=line`，实际路线、速度与充电参数以 `robot_task_control/config/robot_task.yaml` 为准。以下内容只用于理解算法演进和历史实测。
 
 # 标准路线：低速录制、检查、重放
 
-当前普通循迹和自动充电入口保留，默认 `navigation_mode:=vision`。
-新增模式仍使用 `line_follow_only.launch.py`，不启动机械臂、MoveIt、RViz、TCP或其他相机。
+本文记录的是早期独立循迹入口；当前生产任务已统一到 `robot_task.launch.py`。
 当前已验证的基线另有完整备份：项目根目录 `backups/line_follow_charge_baseline_20261106_163529/`。
 
 ## 采用的开源思路

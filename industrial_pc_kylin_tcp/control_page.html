@@ -1,5 +1,190 @@
-<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>麒麟 · 机器人任务控制</title><style>
-:root{font-family:system-ui,"Noto Sans CJK SC",sans-serif;color:#e9edf5;background:#10141c}*{box-sizing:border-box}body{margin:0}main{max-width:1080px;margin:auto;padding:28px 20px 60px}header{display:flex;justify-content:space-between;align-items:center;gap:16px}h1{font-size:24px;margin:0}.sub{color:#9ca9bd;font-size:14px}.pill{border-radius:30px;background:#293240;padding:8px 14px}.ok{background:#123c34;color:#7ee2c0}.bad{background:#4b252a;color:#ffb1b5}.grid{display:grid;grid-template-columns:1.2fr .8fr;gap:18px;margin-top:24px}.card{background:#1b222e;border:1px solid #303a4a;border-radius:18px;padding:22px}.card h2{margin:0 0 18px;font-size:17px}.phase{font-size:32px;font-weight:700;margin-bottom:10px}.meta{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.metric{background:#141b25;border-radius:12px;padding:13px}.metric label{display:block;color:#98a8bd;font-size:12px;margin-bottom:5px}.controls{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}button{border:0;border-radius:12px;padding:14px;color:white;background:#3565d8;font:inherit;font-weight:650;cursor:pointer}button:hover{filter:brightness(1.12)}button:disabled{opacity:.42;cursor:not-allowed}.danger{background:#b9464c}.secondary{background:#3a4657}input{background:#111822;border:1px solid #506076;color:white;padding:13px;border-radius:10px;width:100%;font:inherit}.file-row{display:flex;gap:10px}.file-row button{white-space:nowrap}.chat{display:flex;flex-direction:column;gap:10px;max-height:350px;overflow:auto}.bubble{padding:11px 14px;border-radius:13px;background:#293445;white-space:pre-wrap;word-break:break-word}.bubble.me{align-self:flex-end;background:#264d8b}.bubble.err{background:#633038}small{color:#a9b6c7}.wide{grid-column:1/-1}@media(max-width:760px){.grid{grid-template-columns:1fr}.wide{grid-column:auto}.file-row{flex-direction:column}}
-</style></head><body><main><header><div><h1>机器人任务控制</h1><div class="sub">麒麟工控机 · 本机控制台</div></div><span id="connection" class="pill bad">连接中</span></header><div class="grid"><section class="card"><h2>当前任务</h2><div id="phase" class="phase">等待状态</div><div class="meta"><div class="metric"><label>工作流</label><span id="workflow">—</span></div><div class="metric"><label>步骤</label><span id="step">—</span></div><div class="metric"><label>电量</label><span id="battery">未知</span></div><div class="metric"><label>充电</label><span id="charging">未知</span></div><div class="metric"><label>采集批次</label><span id="run">—</span></div><div class="metric"><label>已完成轮数</label><span id="cycles">—</span></div></div><p id="fault" class="sub"></p></section><section class="card"><h2>一键控制</h2><div class="controls"><button data-action="start">启动任务</button><button data-action="detect">采图并检测</button><button data-action="go_home" class="secondary">返回充电</button><button data-action="stop" class="danger">中止任务</button></div><p class="sub">操作回执只表示机器人已受理。请看左侧阶段确认执行进度。</p></section><section class="card wide"><h2>发送本轮检测点</h2><div class="file-row"><input id="resultFile" placeholder="麒麟本机真实结果 JSON 文件的绝对路径" aria-label="检测结果文件路径"><button id="sendPoints">发送检测点</button></div><p class="sub">仅在 WAIT_RESULT 阶段发送；文件必须对应本轮照片清单哈希。页面不会生成或复用检测坐标。</p></section><section class="card wide"><h2>通信记录</h2><div id="chat" class="chat" aria-live="polite"></div></section></div></main><script>
-const TOKEN='__CONTROL_TOKEN__';const $=id=>document.getElementById(id);let state=null,busy=false,lastPhase='';function say(msg,kind=''){const b=document.createElement('div');b.className='bubble '+kind;b.textContent=new Date().toLocaleTimeString()+'  '+msg;$('chat').prepend(b)}function txt(id,value){$(id).textContent=value??'—'}function render(s){state=s;const connected=s.channels?.control?.state==='connected'&&!!s.robot_status;const c=$('connection');c.textContent=connected?'通信正常':'通信断开 / 等待机器人';c.className='pill '+(connected?'ok':'bad');const r=s.robot_status||{},t=r.task?.data||{},d=r.camera_detection?.data||{};txt('phase',d.oline_mode?d.state:t.phase||'等待状态');txt('workflow',t.workflow);txt('step',t.step_index==null?'—':`${t.step_index+1} / ${t.step_count??'?'}`);txt('battery',r.chassis_power?.battery_percent==null?'未知':r.chassis_power.battery_percent+'%');txt('charging',r.chassis_power?.charging==null?'未知':r.chassis_power.charging?'充电中':'未充电');txt('run',d.run_id);txt('cycles',d.completed_cycles);txt('fault',t.failure_reason||r.abnormal_status?.active_faults?.map(x=>x.message).join('；')||'');const phase=d.oline_mode?d.state:t.phase;if(phase&&phase!==lastPhase){say('机器人阶段：'+phase);lastPhase=phase}document.querySelectorAll('[data-action]').forEach(b=>{const a=b.dataset.action;b.disabled=busy||!connected||(a==='detect'&&!['WAIT_DETECT','WAIT_NEXT'].includes(d.state))||(a==='go_home'&&!['WAIT_DETECT','WAIT_NEXT'].includes(d.state))});$('sendPoints').disabled=busy||!connected||d.state!=='WAIT_RESULT'}async function api(path,data){const res=await fetch(path,{method:'POST',headers:{'Content-Type':'application/json','X-Control-Token':TOKEN},body:JSON.stringify(data)});const body=await res.json();if(!res.ok)throw Error(body.error||'请求失败');return body}async function act(action){if(busy)return;if(action==='stop'&&!confirm('确认中止当前任务？中止不会自动返航。'))return;if(action==='go_home'&&!confirm('确认请求返回充电？请核对当前检测已完成并回位。'))return;busy=true;render(state||{});say('发送：'+({start:'启动任务',detect:'采图并检测',go_home:'返回充电',stop:'中止任务'}[action]),'me');try{const out=await api('/api/action',{action});say((out.response.ok?'已受理':'机器人拒绝')+' · '+(out.response.reason||out.response.disposition||'请等待状态更新')+' · ID '+out.message_id,out.response.ok?'':'err')}catch(e){say('发送失败：'+e.message,'err')}finally{busy=false;if(state)render(state)}}document.querySelectorAll('[data-action]').forEach(b=>b.onclick=()=>act(b.dataset.action));$('sendPoints').onclick=async()=>{if(busy)return;const file=$('resultFile').value.trim();if(!file)return say('请填写本机结果文件路径','err');if(!confirm('确认该文件使用本轮真实照片与深度生成的坐标？'))return;busy=true;render(state||{});say('发送检测点：'+file,'me');try{const out=await api('/api/points',{file});say((out.response.ok?'已受理':'机器人拒绝')+' · '+(out.response.reason||out.response.disposition||'请等待检测状态')+' · ID '+out.message_id,out.response.ok?'':'err')}catch(e){say('发送失败：'+e.message,'err')}finally{busy=false;if(state)render(state)}};async function poll(){try{const res=await fetch('/api/state',{cache:'no-store'});if(!res.ok)throw Error('状态服务异常');render(await res.json())}catch(e){$('connection').textContent='页面服务异常';$('connection').className='pill bad'}}poll();setInterval(poll,2000);
-</script></body></html>
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>麒麟 · 机器人任务控制</title>
+  <style>
+    :root{font-family:system-ui,"Noto Sans CJK SC",sans-serif;color:#e9edf5;background:#0c1119;--panel:#171f2b;--panel2:#111923;--line:#303c4e;--muted:#9eacc0;--blue:#4a78e8;--green:#53d3aa;--yellow:#f1c75b;--red:#ff8b91}*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at 10% 0,#182940 0,transparent 32%),#0c1119}main{max-width:1440px;margin:auto;padding:24px 20px 60px}header{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}h1{font-size:24px;margin:0}.sub{color:var(--muted);font-size:13px;line-height:1.6}.status-row{display:flex;gap:8px;flex-wrap:wrap}.pill{border:1px solid #465268;border-radius:30px;background:#263141;padding:7px 12px;font-size:13px}.ok{background:#123d34;border-color:#246d5c;color:#8be9ca}.warn{background:#473b18;border-color:#756225;color:#ffe192}.bad{background:#4b252a;border-color:#77373e;color:#ffb1b5}.grid{display:grid;grid-template-columns:repeat(12,1fr);gap:16px;margin-top:20px}.card{grid-column:span 4;background:linear-gradient(150deg,#192331,#151c27);border:1px solid var(--line);border-radius:16px;padding:19px;min-width:0}.span-3{grid-column:span 3}.span-5{grid-column:span 5}.span-8{grid-column:span 8}.wide{grid-column:1/-1}.card h2{display:flex;justify-content:space-between;align-items:center;margin:0 0 15px;font-size:17px}.card h2 small{font-weight:400}.phase{font-size:28px;font-weight:750;margin-bottom:12px;word-break:break-word}.meta{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.metric{background:var(--panel2);border:1px solid #2d3a4e;border-radius:10px;padding:12px;min-width:0;min-height:70px}.metric label{display:block;color:#9dafc8;font-size:12px;margin-bottom:6px}.metric span{display:block;overflow-wrap:anywhere;font-size:16px;line-height:1.35}.good-text{color:var(--green)}.warn-text{color:var(--yellow)}.bad-text{color:var(--red)}.controls{display:grid;grid-template-columns:repeat(2,1fr);gap:9px}button{border:0;border-radius:10px;padding:13px;color:white;background:var(--blue);font:inherit;font-weight:650;cursor:pointer}button:hover{filter:brightness(1.12)}button:disabled{opacity:.38;cursor:not-allowed}.danger{background:#b9464c}.secondary{background:#3c4b60}input{background:#0d141e;border:1px solid #506076;color:white;padding:12px;border-radius:9px;width:100%;font:inherit}.file-row{display:flex;gap:9px}.file-row button{white-space:nowrap}.channel-list,.fault-list,.result-list{display:flex;flex-direction:column;gap:9px}.row{display:flex;justify-content:space-between;gap:14px;align-items:flex-start;background:var(--panel2);border:1px solid #2d3a4e;border-radius:10px;padding:12px 13px;min-height:66px}.row-main{min-width:0}.row-title{font-weight:700;font-size:14px}.row-detail{color:#aebbd0;font-size:13px;line-height:1.45;margin-top:5px;overflow-wrap:anywhere}.dot{width:9px;height:9px;border-radius:50%;background:#69778c;display:inline-block;margin-right:7px}.dot.ok{background:var(--green);border:0}.dot.warn{background:var(--yellow);border:0}.dot.bad{background:var(--red);border:0}.badge{font-size:12px;border-radius:15px;padding:5px 9px;background:#2b3950;white-space:nowrap}.result-list .badge{font-size:13px;font-weight:700}.empty{color:var(--muted);font-size:13px;padding:10px 0}.chat{display:flex;flex-direction:column;gap:8px;max-height:260px;overflow:auto}.bubble{padding:10px 12px;border-radius:11px;background:#283548;white-space:pre-wrap;word-break:break-word;font-size:13px}.bubble.me{align-self:flex-end;background:#28518e}.bubble.err{background:#633038}.fault-banner{margin-top:12px;padding:10px 12px;border-radius:9px;background:#40252a;color:#ffc1c4}.hidden{display:none}.hint{margin:11px 0 0;color:var(--muted);font-size:12px;line-height:1.6}.coordinate-toolbar{display:flex;justify-content:space-between;gap:10px;margin-bottom:10px}.coordinate-actions{display:flex;gap:9px}.coordinate-head,.coordinate-row{display:grid;grid-template-columns:40px minmax(130px,1.2fr) repeat(3,minmax(100px,1fr)) 72px;gap:9px;align-items:center}.coordinate-head{padding:0 10px 7px;color:var(--muted);font-size:12px}.coordinate-list{display:flex;flex-direction:column;gap:8px}.coordinate-row{background:var(--panel2);border:1px solid #2d3a4e;border-radius:10px;padding:9px}.coordinate-row input{padding:10px}.coordinate-row input[type=checkbox]{width:18px;height:18px;justify-self:center;accent-color:var(--blue)}.coordinate-row button{padding:10px;background:#633038}.unit-note{color:var(--green);font-weight:650}@media(max-width:1050px){.card,.span-3,.span-5{grid-column:span 6}.span-8{grid-column:1/-1}}@media(max-width:700px){main{padding:18px 12px 40px}.card,.span-3,.span-5,.span-8,.wide{grid-column:1/-1}.meta{grid-template-columns:1fr 1fr}.file-row{flex-direction:column}.phase{font-size:24px}.coordinate-toolbar{align-items:stretch;flex-direction:column}.coordinate-actions{display:grid;grid-template-columns:1fr 1fr}.coordinate-head{display:none}.coordinate-row{grid-template-columns:32px 1fr 1fr}.coordinate-row .coordinate-id{grid-column:2/4}.coordinate-row button{grid-column:3}.coordinate-row input{min-width:0}}
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <div><h1>机器人任务控制</h1><div class="sub">麒麟工控机 · 状态监控与任务操作</div></div>
+    <div class="status-row"><span id="connection" class="pill bad">连接中</span><span id="heartbeat" class="pill warn">心跳等待</span><span id="updated" class="pill">尚未更新</span></div>
+  </header>
+
+  <div class="grid">
+    <section class="card span-8">
+      <h2>当前任务 <small id="taskFresh">等待数据</small></h2>
+      <div id="phase" class="phase">等待状态</div>
+      <div class="meta">
+        <div class="metric"><label>工作流</label><span id="workflow">—</span></div>
+        <div class="metric"><label>当前步骤</label><span id="step">—</span></div>
+        <div class="metric"><label>动作</label><span id="action">—</span></div>
+        <div class="metric"><label>运行状态</label><span id="overallState">—</span></div>
+        <div class="metric"><label>已完成轮数</label><span id="cycles">—</span></div>
+        <div class="metric"><label>等待剩余</label><span id="waitSeconds">—</span></div>
+      </div>
+      <div id="faultBanner" class="fault-banner hidden"></div>
+    </section>
+
+    <section class="card">
+      <h2>一键控制</h2>
+      <div class="controls">
+        <button data-action="start">启动任务</button>
+        <button data-action="detect">采图并检测</button>
+        <button data-action="go_home" class="secondary">返回充电</button>
+        <button data-action="stop" class="danger">中止任务</button>
+      </div>
+      <p class="hint">按钮回执表示机器人是否受理。实际进度以任务阶段和各设备状态为准。</p>
+    </section>
+
+    <section class="card">
+      <h2>底盘状态 <small id="powerHealth">—</small></h2>
+      <div class="meta">
+        <div class="metric"><label>底盘通信</label><span id="chassisConnected">未知</span></div>
+        <div class="metric"><label>电量</label><span id="battery">未知</span></div>
+        <div class="metric"><label>充电状态</label><span id="chargingState">—</span></div>
+        <div class="metric"><label>循迹状态</label><span id="lineState">未知</span></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>机器人状态 <small id="robotHealth">—</small></h2>
+      <div class="meta">
+        <div class="metric"><label>机械臂</label><span id="armState">未知</span></div>
+        <div class="metric"><label>安全警告</label><span id="safetyState">未知</span></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>采图与检测 <small id="cameraFresh">—</small></h2>
+      <div class="meta">
+        <div class="metric"><label>相机状态</label><span id="cameraState">未知</span></div>
+        <div class="metric"><label>漆膜厚度仪最新结果</label><span id="thickness">—</span></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>通信通道</h2>
+      <div id="channelList" class="channel-list"></div>
+    </section>
+
+    <section class="card span-3">
+      <h2>当前异常 <small id="faultCount">0 项</small></h2>
+      <div id="faultList" class="fault-list"></div>
+    </section>
+
+    <section class="card span-5">
+      <h2>最近检测结果</h2>
+      <div id="resultList" class="result-list"></div>
+    </section>
+
+    <section class="card wide">
+      <h2>发送 XYZ 检测坐标 <small class="unit-note">单位：mm</small></h2>
+      <div class="coordinate-toolbar">
+        <div class="hint">勾选要发送的检测点；X向右、Y向下、Z向前，Z必须大于0。</div>
+        <div class="coordinate-actions"><button id="addCoordinate" class="secondary">添加检测点</button><button id="sendCoordinates">发送所选坐标</button></div>
+      </div>
+      <div class="coordinate-head"><span>选择</span><span>检测点名称</span><span>X（mm）</span><span>Y（mm）</span><span>Z（mm）</span><span>操作</span></div>
+      <div id="coordinateList" class="coordinate-list"></div>
+      <p class="hint">仅在“等待检测结果”阶段可发送。坐标使用当前批次的相机光学坐标系，并自动绑定本轮照片清单。</p>
+    </section>
+
+    <section class="card wide">
+      <h2>从结果文件发送检测点</h2>
+      <div class="file-row"><input id="resultFile" placeholder="麒麟本机真实结果 JSON 文件的绝对路径" aria-label="检测结果文件路径"><button id="sendPoints">发送检测点</button></div>
+      <p class="hint">仅在 WAIT_RESULT 阶段可发送。文件应对应页面显示的当前采集批次。</p>
+    </section>
+
+    <section class="card wide">
+      <h2>页面操作记录</h2>
+      <div id="chat" class="chat" aria-live="polite"></div>
+    </section>
+  </div>
+</main>
+<script>
+const TOKEN='__CONTROL_TOKEN__';
+const $=id=>document.getElementById(id);
+let state=null,busy=false,lastPhase='',wasConnected=null,coordinateIndex=0;
+const names={
+  IDLE:'空闲',WAIT_DETECT:'等待采图',WAIT_SAVED:'等待确认图片保存',WAIT_RESULT:'等待检测结果',WAIT_NEXT:'等待下一步',DONE:'已完成',FINISHED:'已完成',FAULT:'故障',ERROR:'异常',LISTENING:'监听中',
+  connected:'已连接',connecting:'连接中',reconnecting:'重连中',receiving:'接收中',listening:'监听中',saved:'已保存',verifying:'校验中',waiting_sender:'等待拍照',waiting_result:'等待检测结果',error:'异常',
+  running:'运行中',waiting:'等待操作',initializing:'初始化中',completed:'已完成',attention:'需要关注',exception:'异常',stopped:'已停止',unknown:'未知',
+  disabled:'未启用',enabled:'已启用',tracking:'循迹中',reacquiring:'重新寻找轨迹',idle:'空闲',forward:'前进',reverse:'倒车',
+  charging:'充电中',not_charging:'未充电',RUNNING:'运动中',FAILED:'故障',CANCELLED:'已取消',
+  robot_task_online_full:'在线完整流程',wait_chassis_stopped:'等待底盘停稳',line_follow:'循迹行驶',arm_posture:'机械臂姿态',arm_move:'机械臂移动',camera_detection:'采图与检测',delay:'等待'
+};
+function human(v){if(v===true)return'是';if(v===false)return'否';if(v===null||v===undefined||v==='')return'—';return names[v]||String(v)}
+function readingText(value,unit){if(value===null||value===undefined)return'无读数';return String(value)+' '+(unit&&unit!=='unknown'?unit:'um')}
+function lineText(state,direction){if(!state||state==='unknown')return'未知';if(state==='disabled')return'未启用';return'已启用'+(direction?' · '+human(direction):'')}
+function armText(state,active){if(state==='FAILED')return'故障';if(active===true)return'忙碌';if(active===false)return'空闲';if(!state||state==='unknown')return'未知';return['IDLE','DONE','WAIT_READY','idle'].includes(state)?'空闲':'忙碌'}
+function txt(id,value,cls=''){const e=$(id);e.textContent=value??'—';e.className=cls}
+function say(msg,kind=''){const b=document.createElement('div');b.className='bubble '+kind;b.textContent=new Date().toLocaleTimeString()+'  '+msg;$('chat').prepend(b)}
+function ageText(age){return Number.isFinite(Number(age))?Number(age).toFixed(1)+' 秒前':'—'}
+function makeRow(title,detail,badge,tone=''){const row=document.createElement('div');row.className='row';const main=document.createElement('div');main.className='row-main';const t=document.createElement('div');t.className='row-title';const dot=document.createElement('span');dot.className='dot '+tone;t.append(dot,document.createTextNode(title));main.append(t);if(detail){const d=document.createElement('div');d.className='row-detail';d.textContent=detail;main.append(d)}const b=document.createElement('span');b.className='badge';b.textContent=badge;row.append(main,b);return row}
+function addCoordinateRow(){
+  if($('coordinateList').children.length>=100)return say('最多添加100个检测点','err');
+  coordinateIndex+=1;const row=document.createElement('div');row.className='coordinate-row';
+  const selected=document.createElement('input');selected.type='checkbox';selected.checked=true;selected.className='coordinate-select';selected.setAttribute('aria-label','选择检测点');
+  const id=document.createElement('input');id.className='coordinate-id';id.value='point_'+coordinateIndex;id.placeholder='检测点名称';
+  const inputs=['X','Y','Z'].map(axis=>{const input=document.createElement('input');input.className='coordinate-value';input.type='number';input.step='any';input.placeholder=axis;input.setAttribute('aria-label',axis+'坐标，单位毫米');return input});
+  const remove=document.createElement('button');remove.type='button';remove.textContent='删除';remove.onclick=()=>row.remove();
+  row.append(selected,id,...inputs,remove);$('coordinateList').append(row);
+}
+function selectedCoordinates(){
+  const output=[],ids=new Set();
+  for(const row of $('coordinateList').children){
+    if(!row.querySelector('.coordinate-select').checked)continue;
+    const pointId=row.querySelector('.coordinate-id').value.trim();if(!pointId)throw Error('检测点名称不能为空');if(ids.has(pointId))throw Error('检测点名称不能重复：'+pointId);ids.add(pointId);
+    const fields=[...row.querySelectorAll('.coordinate-value')];if(fields.some(input=>input.value.trim()===''))throw Error(pointId+' 的XYZ坐标没有填写完整');
+    const xyz=fields.map(input=>Number(input.value));if(xyz.some(value=>!Number.isFinite(value)))throw Error(pointId+' 的坐标必须是数字');if(xyz[2]<=0)throw Error(pointId+' 的Z坐标必须大于0');
+    output.push({point_id:pointId,xyz_mm:xyz});
+  }
+  if(!output.length)throw Error('请至少勾选一个检测点');return output;
+}
+function renderChannels(channels){
+  const host=$('channelList');host.replaceChildren();
+  const labels={control:'机器人状态 / 心跳 9010',hk:'海康相机 9002',rgbd:'深度相机 9030',detection:'检测结果'};
+  const countText={control:'次状态更新',hk:'张图片',rgbd:'组深度数据',detection:'条结果'};
+  for(const key of ['control','hk','rgbd','detection']){
+    const c=channels?.[key]||{},st=c.state||'unknown';
+    const ok=['connected','receiving','saved','listening','waiting_sender','waiting_result'].includes(st),bad=st==='error';
+    const count=Number(c.count);let detail=Number.isFinite(count)&&count>0?'已接收 '+count+' '+countText[key]:'等待数据';
+    if(c.error)detail=String(c.error);else if(c.message&&key==='control')detail=String(c.message);
+    host.append(makeRow(labels[key],detail,human(st),bad?'bad':ok?'ok':'warn'));
+  }
+}
+function faultMessage(f){if(typeof f==='string')return f;if(!f||typeof f!=='object')return String(f??'未知异常');return f.message||f.reason||f.code||JSON.stringify(f)}
+function renderFaults(r,t){const host=$('faultList');host.replaceChildren();let faults=Array.isArray(r.abnormal_status?.active_faults)?r.abnormal_status.active_faults.slice():[];if(t.failure_reason&&!faults.some(x=>faultMessage(x)===t.failure_reason))faults.unshift({message:t.failure_reason});txt('faultCount',faults.length+' 项',faults.length?'bad-text':'good-text');const banner=$('faultBanner');if(!faults.length){host.append(makeRow('系统未报告活动异常','仍需结合现场安全状态判断','正常','ok'));banner.classList.add('hidden');banner.textContent='';return}for(const f of faults.slice(0,8))host.append(makeRow(faultMessage(f),f.code||f.source||'机器人上报','异常','bad'));banner.textContent=faultMessage(faults[0]);banner.classList.remove('hidden')}
+function renderResults(items){const host=$('resultList');host.replaceChildren();const list=Array.isArray(items)?items:[];if(!list.length){const e=document.createElement('div');e.className='empty';e.textContent='暂无逐点检测结果';host.append(e);return}for(const item of list.slice(-5).reverse()){const title=item.point_id||item.id||item.name||'检测点';const reading=item.measurement||{};const value=reading.value??item.value;const detail=item.success===true?'检测成功':item.success===false?'检测失败':human(item.status)||'已接收';host.append(makeRow(String(title),detail,readingText(value,reading.unit),item.success===false?'bad':'ok'))}}
+function render(s){
+  state=s;const channels=s.channels||{},r=s.robot_status||{},normal=r.normal_status||{},t=r.task?.data||{},d=r.camera_detection?.data||normal.camera_detection||{},power=r.chassis_power||normal.power||{},fresh=normal.freshness||{},ages=normal.ages_seconds||{};
+  const connected=channels.control?.state==='connected'&&!!s.robot_status;const c=$('connection');c.textContent=connected?'机器人通信正常':'机器人通信断开 / 重连中';c.className='pill '+(connected?'ok':'bad');
+  const hb=s.heartbeat||{};const hbOk=hb.enabled&&['connected','active','ok'].includes(hb.state);const h=$('heartbeat');h.textContent=hb.intervention_required?'心跳需人工处理':hb.enabled?(hbOk?'心跳正常':'心跳 '+human(hb.state)):'心跳未启用';h.className='pill '+(hb.intervention_required?'bad':hbOk?'ok':'warn');
+  txt('updated',s.updated_at?new Date(s.updated_at).toLocaleTimeString():'尚未更新');
+  const phase=d.oline_mode?d.state:(normal.phase||t.phase||'等待状态');txt('phase',human(phase));txt('workflow',human(normal.workflow||t.workflow));txt('step',(normal.step_index??t.step_index)==null?'—':`${(normal.step_index??t.step_index)+1} / ${normal.step_count??t.step_count??'?'}`);txt('action',human(normal.action||t.action));txt('overallState',human(normal.state||'unknown'),normal.state==='exception'?'bad-text':normal.state==='attention'?'warn-text':['running','completed','idle'].includes(normal.state)?'good-text':'');txt('cycles',d.completed_cycles);txt('waitSeconds',normal.wait_seconds_remaining==null?'—':Number(normal.wait_seconds_remaining).toFixed(1)+' 秒');
+  const taskFresh=r.task?.fresh===true||fresh.task===true;txt('taskFresh',taskFresh?'数据新鲜':'数据过期',taskFresh?'good-text':'bad-text');
+  txt('chassisConnected',power.connected==null?'未知':power.connected?'正常':'断开',power.connected?'good-text':power.connected===false?'bad-text':'');txt('battery',power.battery_percent==null?'未知':power.battery_percent+'%',power.low_battery?'bad-text':'');const chargingText=power.charging===true?'充电中':power.charging===false?'未充电':human(power.charging_state);txt('chargingState',chargingText,power.charging?'good-text':'');txt('powerHealth',power.available===false?'无数据':power.connected===false?'通信异常':'正常',power.connected===false?'bad-text':'good-text');
+  const lineState=normal.line_state||r.line_follow?.data?.state,lineDirection=normal.drive_direction||r.line_follow?.data?.drive_direction;txt('lineState',lineText(lineState,lineDirection),lineState==='disabled'?'':lineState&&lineState!=='unknown'?'good-text':'');
+  const arm=normal.arm_state||r.arm_status?.data?.state,armActive=normal.arm_active??r.arm_status?.data?.active,safety=normal.safety_status||{};txt('armState',armText(arm,armActive),arm==='FAILED'?'bad-text':armActive===true?'warn-text':armActive===false||['IDLE','DONE','WAIT_READY','idle'].includes(arm)?'good-text':'');const safetyWarning=safety.latched===true||safety.inhibited===true;const safetyKnown=safety.available===true&&(safety.latched!==null||safety.inhibited!==null);txt('safetyState',safetyWarning?'有安全警告'+(safety.detail?'：'+safety.detail:''):safetyKnown?'无安全警告':'未知',safetyWarning?'bad-text':safetyKnown?'good-text':'');txt('robotHealth',safetyWarning||arm==='FAILED'?'存在异常':safetyKnown?'正常':'等待状态',safetyWarning||arm==='FAILED'?'bad-text':safetyKnown?'good-text':'');
+  txt('cameraState',human(d.camera_state||d.state));txt('cameraFresh',fresh.camera_detection===false?'数据过期':ageText(r.camera_detection?.age_seconds??ages.camera_detection),fresh.camera_detection===false?'bad-text':'');
+  const thickness=r.latest_thickness||{};const measurement=thickness.measurement||{};const tv=measurement.value;txt('thickness',thickness.available&&tv!=null?readingText(tv,measurement.unit)+' · '+ageText(thickness.age_seconds):'暂无');
+  renderChannels(channels);renderFaults(r,t);renderResults(r.detection_results);
+  if(wasConnected!==null&&connected!==wasConnected)say(connected?'机器人通信已恢复':'机器人通信中断，页面正在自动重连',connected?'':'err');wasConnected=connected;
+  if(phase&&phase!==lastPhase){say('机器人阶段：'+human(phase));lastPhase=phase}
+  document.querySelectorAll('[data-action]').forEach(b=>{const a=b.dataset.action;b.disabled=busy||!connected||(a==='detect'&&!['WAIT_DETECT','WAIT_NEXT'].includes(d.state))||(a==='go_home'&&!['WAIT_DETECT','WAIT_NEXT'].includes(d.state))});$('sendPoints').disabled=busy||!connected||d.state!=='WAIT_RESULT';$('sendCoordinates').disabled=busy||!connected||d.state!=='WAIT_RESULT';
+}
+async function api(path,data){const res=await fetch(path,{method:'POST',headers:{'Content-Type':'application/json','X-Control-Token':TOKEN},body:JSON.stringify(data)});const body=await res.json();if(!res.ok)throw Error(body.error||'请求失败');return body}
+async function act(action){if(busy)return;if(action==='stop'&&!confirm('确认中止当前任务？'))return;if(action==='go_home'&&!confirm('确认请求返回充电？请确认机械臂已安全回位。'))return;busy=true;render(state||{});say('发送：'+({start:'启动任务',detect:'采图并检测',go_home:'返回充电',stop:'中止任务'}[action]),'me');try{const out=await api('/api/action',{action});say((out.response.ok?'已受理':'机器人拒绝')+' · '+(out.response.reason||out.response.disposition||'等待状态更新')+' · ID '+out.message_id,out.response.ok?'':'err')}catch(e){say('发送失败：'+e.message,'err')}finally{busy=false;if(state)render(state)}}
+document.querySelectorAll('[data-action]').forEach(b=>b.onclick=()=>act(b.dataset.action));
+$('addCoordinate').onclick=addCoordinateRow;
+$('sendCoordinates').onclick=async()=>{if(busy)return;let points;try{points=selectedCoordinates()}catch(e){return say(e.message,'err')}const preview=points.map(p=>`${p.point_id}: [${p.xyz_mm.join(', ')}] mm`).join('\n');if(!confirm('确认发送以下相机光学坐标？机器人受理后将按任务流程使用这些检测点。\n\n'+preview))return;busy=true;render(state||{});say('发送XYZ检测坐标：'+points.length+'个点','me');try{const out=await api('/api/coordinates',{points});say((out.response.ok?'已受理':'机器人拒绝')+' · '+(out.response.reason||out.response.disposition||'等待检测状态')+' · ID '+out.message_id,out.response.ok?'':'err')}catch(e){say('坐标发送失败：'+e.message,'err')}finally{busy=false;if(state)render(state)}};
+$('sendPoints').onclick=async()=>{if(busy)return;const file=$('resultFile').value.trim();if(!file)return say('请填写本机结果文件路径','err');if(!confirm('确认该文件使用本轮真实照片和深度数据生成？'))return;busy=true;render(state||{});say('发送检测点：'+file,'me');try{const out=await api('/api/points',{file});say((out.response.ok?'已受理':'机器人拒绝')+' · '+(out.response.reason||out.response.disposition||'等待检测状态')+' · ID '+out.message_id,out.response.ok?'':'err')}catch(e){say('发送失败：'+e.message,'err')}finally{busy=false;if(state)render(state)}};
+async function poll(){try{const res=await fetch('/api/state',{cache:'no-store'});if(!res.ok)throw Error('状态服务异常');render(await res.json())}catch(e){const c=$('connection');c.textContent='本机页面服务异常';c.className='pill bad'}}
+addCoordinateRow();poll();setInterval(poll,2000);
+</script>
+</body>
+</html>

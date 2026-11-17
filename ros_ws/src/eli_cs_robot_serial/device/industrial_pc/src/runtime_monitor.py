@@ -148,6 +148,14 @@ class RuntimeMonitor:
             line_state=state if line_fresh else 'unknown',
             charging_dock=line.get('charging_dock') if line_fresh else None,
             arm_state=arm.get('state') if arm_fresh else 'unknown',
+            arm_active=arm.get('active') if arm_fresh else None,
+            # 页面直接显示保护停机节点的原始结论，不再用“反馈是否新鲜”冒充安全状态。
+            safety_status=dict(
+                available=safety_fresh or inhibit_fresh,
+                latched=safety.get('latched') if safety_fresh else None,
+                safety_mode=safety.get('safety_mode') if safety_fresh else None,
+                detail=safety.get('detail') if safety_fresh else None,
+                inhibited=inhibit.get('inhibited') if inhibit_fresh else None),
             wait_seconds_remaining=task.get('wait_seconds_remaining'), power=power,
             camera_detection=camera if camera_fresh else None,
             freshness=dict(task=task_fresh, line_follow=line_fresh, arm=arm_fresh,

@@ -7,5 +7,5 @@
 base_config_file: robot_task.yaml
 # Kylin PC address; HK binds locally to all interfaces, not to this remote IP.
 # receiver_ip 是远端麒麟；hk_bind_ip 是机器人本机监听，不是相机位姿或安装坐标。
-receiver_ip: 169.254.199.250
+receiver_ip: 169.254.199.120
 hk_bind_ip: 0.0.0.0

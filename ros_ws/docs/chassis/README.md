@@ -23,7 +23,7 @@
 ## CAN 接口设置
 
 CANable、CANable 2.0、Candlelight/gs_usb 的 Linux 配置步骤见
-[`docs/can_usage.md`](docs/can_usage.md)。
+[`can_usage.md`](can_usage.md)。
 
 以 `can0`、`500000` bitrate 为例：
 
@@ -145,7 +145,7 @@ masc_chassis_ros_driver/config/ros1/driver_params.yaml
 ```
 
 更多话题、服务和参数配置请参考
-[`masc_chassis_ros_driver/README.md`](masc_chassis_ros_driver/README.md)。
+[`masc_chassis_ros_driver/README.md`](../../src/masc_chassis_ros_driver/README.md)。
 
 ## 使用测试
 
@@ -166,7 +166,7 @@ rostopic pub -r 20 /cmd_vel geometry_msgs/Twist \
 ```
 
 ROS 通讯状态、CAN 帧统计和底盘状态检查见
-[`docs/ros_comm_check.md`](docs/ros_comm_check.md)。
+[`ros_comm_check.md`](ros_comm_check.md)。
 
 ## 安全注意事项
 

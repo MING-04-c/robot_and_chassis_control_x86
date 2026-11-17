@@ -1,8 +1,7 @@
 # MASC 底盘 ROS 驱动 API
 
-固定 TCP `test` 方案（从当前位置向正前方运动 10 cm）的控制链、状态变化和参数见
-[COMMUNICATION_IMPLEMENTATION.md](COMMUNICATION_IMPLEMENTATION.md)。可直接交给主机端 Codex
-的实现提示词见 [SUPERVISOR_PROMPT.md](SUPERVISOR_PROMPT.md)。
+仓库曾记录一套固定 TCP `test` 方案，见
+[COMMUNICATION_IMPLEMENTATION.md](COMMUNICATION_IMPLEMENTATION.md) 和 [SUPERVISOR_PROMPT.md](SUPERVISOR_PROMPT.md)。其中依赖的 `masc_user_serial`、`masc_tcp.launch.py` 与 `status_tcp_node` 当前并不存在，只作为未实现的历史设计参考，不能当作现行启动入口。
 
 多机协同（苏州）有限公司-MASC 驱动API。
 
@@ -257,7 +256,7 @@ ROS2 参数文件使用：
 ## ROS 通讯检查
 
 ROS 节点、话题、`comm_status`、`can_frame_stats` 和常见异常判断见
-[`../docs/ros_comm_check.md`](../docs/ros_comm_check.md)。
+[`ros_ws/docs/chassis/ros_comm_check.md`](../../docs/chassis/ros_comm_check.md)。
 
 拖车专用驱动可在启动参数中设置 `command.transmit_enabled: false`：禁止 SDK 周期发送
 运动帧0x100，并禁止驱动自动模式切换；反馈接收和拖车服务保持工作。默认true。

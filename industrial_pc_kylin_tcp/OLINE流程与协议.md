@@ -3,8 +3,8 @@
 # oline 多轮漆膜检测
 
 远程模式由麒麟发指令推进。统一入口为 `robot_task.launch.py mode:=online`；
-旧入口 `robot_task_oline.launch.py` 保留兼容。local、online 的 full/line/photo 选择见
-[任务模式](../tasks/TASK_MODES.md)。各入口不能同时启动。
+旧入口 `robot_task_oline.launch.py` 保留兼容。local、online 的 full/line/photo 选择见工作区
+`ros_ws/docs/tasks/TASK_MODES.md`。各入口不能同时启动。
 
 ## 启动
 
@@ -19,17 +19,17 @@ ros2 launch robot_task_control robot_task_oline.launch.py
 ```
 
 配置为 src/robot_task_control/config/robot_task_oline.yaml，receiver_ip 必须填麒麟实际 IP。
-当前示例沿用正式配置的 169.254.199.250；hk_bind_ip=0.0.0.0 是机器人本机监听地址。
+当前现场机器人主机为 `169.254.199.250`，麒麟有线口为 `169.254.199.120`；因此 receiver_ip 填 `.120`。hk_bind_ip=0.0.0.0 是机器人本机监听地址。
 该文件引用 robot_task.yaml 中的去程、回程点位、速度、力保护与测厚参数，不另复制运动点。
 麒麟 config.json 的 robot_host 填机器人 IP，output_dir 是麒麟收图保存目录。
 
-麒麟端先保持一个监听终端：
+麒麟端进入交付目录，只需启动控制页面：
 
 ```bash
-python3 listen_robot.py
+./start_control_page.sh
 ```
 
-监听器使用 Python 标准库，连接9010查询状态、接收9002的HK、监听9030接收RGB-D。
+页面进程使用 Python 标准库，连接9010查询状态、接收9002的HK、监听9030接收RGB-D，并自动打开本机浏览器。
 三图按同一采集编号保存并校验，自动向机器人发送“本批HK、RGB、深度图已经保存”的确认。
 新入口必须同步更新监听器；旧监听器没有保存确认，会停在WAIT_SAVED并最终报超时。
 
@@ -134,7 +134,7 @@ HK9002流本身仍无落盘ACK，新增确认通过9010同时覆盖HK和RGB-D，
 
 ## 状态、电池和异常
 
-listen_robot.py默认约每2秒通过心跳/状态请求获取并保存当前状态。
+控制页面内置的监听器默认约每2秒通过心跳/状态请求获取并保存当前状态；命令行模式可单独运行 `python3 listen_robot.py`。
 无需另开运动控制节点，不额外占用CAN口。
 
 | 字段 | 含义 |

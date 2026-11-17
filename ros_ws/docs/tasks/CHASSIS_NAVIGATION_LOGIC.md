@@ -1,5 +1,7 @@
 # 底盘循迹逻辑与实车测试
 
+> **历史调试记录，不可直接照命令运行。** 文中的 `line_follow_only.launch.py`、`navigation_mode:=teach` 和 `line_follow_charge_test.yaml` 已从当前源码移除。现行真机入口为 `robot_task.launch.py mode:=local workflow:=line`，配置源为 `robot_task_control/config/robot_task.yaml`。算法说明可用于排查，旧命令只供追溯。
+
 本次整理覆盖离桩、起步对齐、录制、前进重放、终点停车、倒车返回。机械臂、TCP通信沿用原流程。
 这套控制借鉴 Nav2 的分阶段控制方法，没有引入完整 Nav2 导航栈、地图定位或代价地图避障。
 

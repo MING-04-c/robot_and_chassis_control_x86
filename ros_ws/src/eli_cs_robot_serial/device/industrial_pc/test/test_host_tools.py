@@ -22,9 +22,27 @@ from listen_robot import RobotListener
 from robot_tcp_common import request
 from industrial_pc_heartbeat import HeartbeatWatch
 from send_points import prepare_result, prepare_pixel_result
+from control_page import prepare_coordinate_result
 
 
 class HostToolsTest(unittest.TestCase):
+    def test_manual_xyz_page_builds_current_capture_millimetre_result(self):
+        payload = prepare_coordinate_result([
+            {'point_id': 'point_1', 'xyz_mm': [10., 20., 300.]},
+            {'point_id': 'point_2', 'xyz_mm': [-5., 0., 250.]},
+        ], 'a'*64)
+        self.assertEqual(payload['coordinate_frame'], 'CAMERA_PINHOLE_PRELIMINARY')
+        self.assertEqual(payload['capture_manifest_sha256'], 'a'*64)
+        self.assertEqual(payload['points_xyz_camera_mm'][1]['xyz_camera_mm'], [-5., 0., 250.])
+        self.assertFalse(payload['robot_motion_authorized'])
+        with self.assertRaisesRegex(ValueError, 'Z'):
+            prepare_coordinate_result([{'point_id': 'bad', 'xyz_mm': [0., 0., 0.]}], 'a'*64)
+        with self.assertRaisesRegex(ValueError, '重复'):
+            prepare_coordinate_result([
+                {'point_id': 'same', 'xyz_mm': [0., 0., 100.]},
+                {'point_id': 'same', 'xyz_mm': [0., 0., 120.]},
+            ], 'a'*64)
+
     def test_pixel_result_requires_same_rgb_depth_and_capture_digest(self):
         temporary = tempfile.TemporaryDirectory()
         self.addCleanup(temporary.cleanup)
