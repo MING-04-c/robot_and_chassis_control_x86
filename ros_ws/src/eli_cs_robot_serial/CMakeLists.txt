@@ -83,6 +83,16 @@ install(PROGRAMS device/sensor/src/sensor_plot.py
   DESTINATION lib/${PROJECT_NAME}
 )
 
+install(PROGRAMS device/power/src/power_monitor.py
+  DESTINATION lib/${PROJECT_NAME}
+)
+install(FILES device/power/launch/power_plot.launch.py
+  DESTINATION share/${PROJECT_NAME}/launch
+)
+install(FILES device/power/README.md
+  DESTINATION share/${PROJECT_NAME}/device/power
+)
+
 # 工控机结果通信及不依赖 ROS 的主机端工具。
 install(PROGRAMS
   device/industrial_pc/src/industrial_pc_node.py
