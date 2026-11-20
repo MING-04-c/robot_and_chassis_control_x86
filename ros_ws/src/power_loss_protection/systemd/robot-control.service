@@ -1,0 +1,19 @@
+[Unit]
+Description=Managed ROS robot control
+Requires=power-loss-protection.service
+After=power-loss-protection.service
+ConditionPathExists=/opt/ros/jazzy/setup.bash
+
+[Service]
+Type=simple
+User=robot
+WorkingDirectory=/home/robot/project/robot_and_chassis_control-main/ros_ws
+ExecCondition=/usr/bin/python3 /opt/power-loss-protection/power_loss_protection.py can-start --config /etc/power-loss-protection/config.json
+ExecStart=/usr/bin/python3 /opt/power-loss-protection/power_loss_protection.py launch --config /etc/power-loss-protection/config.json
+KillSignal=SIGINT
+KillMode=mixed
+TimeoutStopSec=3
+SendSIGKILL=yes
+Restart=no
+
+# No Install section: operator starts ROS after UPS readiness is verified.

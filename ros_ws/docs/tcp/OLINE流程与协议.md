@@ -59,6 +59,25 @@ stop 是立即请求中止、保持停止的命令，不自动回家，也不保
 故障/保护锁定期间不强行返回，按现场恢复流程处理。
 本入口仍用正式检测朝向和真实力保护，未启用仿真的倾角搜索。
 
+## 独立的中途拍照往返入口
+
+需要“终点倒车回中途拍照站 → 中途仅拍照 → 前进终点测厚 → 回充”时，使用：
+
+```bash
+ros2 launch robot_task_control robot_task_station_cycle.launch.py
+```
+
+配置为 `robot_task_station_cycle.yaml`，引用主配置点位，原来的 online/local 入口保持原流程。
+首次使用先构建 `masc_chassis_user_control eli_cs_robot_serial robot_task_control` 并加载环境。
+终点等待时页面显示“返回中途拍照站”，对应 `action: return_station`，仅接受在终点拍照原位等待时发起。
+倒车停在最近一条有效中途横线，按主配置的完整去程展开到同一拍照位等待。
+中途点击“检测”只拍HK、RGB、深度图；校验麒麟已保存三图后，自动收臂前进终点。
+终点自动拍照，等待本批XYZ，测厚并确认回拍照原位后自动收臂回充。
+中途等待时可点“返回充电”，直接收臂沿本轮剩余路线回充。
+页面和机器人都要更新；不支持任意编号选站，也不跨重启恢复里程计锚点。
+机器人状态新增 `station_return_enabled`、`station_role`、`return_station_available`。
+阶段角色分别为 `terminal`（初始终点）、`mid_photo`（中途仅拍照）、`auto_terminal`（再次终点自动检测）。
+
 ## 麒麟命令
 
 在另一个终端依次使用：

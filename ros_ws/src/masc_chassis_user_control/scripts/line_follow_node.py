@@ -72,6 +72,9 @@ class LineFollowNode(Node):
         self.standard_finish = None
         self.standard_visual_loss = None
         self.standard_navigator = None
+        self.station_segment_pending = ''
+        self.station_forward_active = False
+        self.station_segment_pose = None
         self.standard_visual_loss_timeout = float(self.declare_parameter('standard_visual_loss_timeout', 5., fixed).value)
         self.standard_visual_loss_distance = float(self.declare_parameter('standard_visual_loss_distance', .30, fixed).value)
         if not 0. <= self.standard_visual_loss_timeout <= 10. or not 0. <= self.standard_visual_loss_distance <= .50:
@@ -261,6 +264,9 @@ class LineFollowNode(Node):
         self.create_service(SetBool, '~/enable', self.on_enable)
         self.create_service(Trigger, '~/ready', self.on_ready)
         self.create_service(Trigger, '~/save_route', self.on_save_route)
+        for segment in ('station', 'forward', 'home'):
+            self.create_service(Trigger, '~/prepare_station_'+segment,
+                lambda request, response, mode=segment: self.prepare_station_segment(mode, response))
         self.add_on_set_parameters_callback(self.on_parameters)
         # 控制/里程计回调仍串行，避免给状态机引入共享写入竞争。
         # 图像运算及写盘各自使用有界后台槽，不阻塞该执行器。
@@ -313,7 +319,9 @@ class LineFollowNode(Node):
 
     def start_alignment_required(self, config):
         """Only align when establishing a recorded or standard-route origin."""
-        return (config.start_alignment_enabled and config.stop_marker_enabled
+        return (not (getattr(self, 'station_forward_active', False)
+                     or getattr(self, 'station_segment_pending', '') == 'forward')
+                and config.start_alignment_enabled and config.stop_marker_enabled
                 and config.drive_direction == 'forward'
                 and (self.record_route or self.navigation_mode == 'replay'))
 
@@ -1448,8 +1456,17 @@ class LineFollowNode(Node):
                 and self.checkpoint_invalid_reason is not None):
             return SetParametersResult(successful=False, reason=self.checkpoint_invalid_reason)
         align_start = self.start_alignment_required(candidate)
+        segment = getattr(self, 'station_segment_pending', '')
+        resuming_forward = segment == 'forward'
+        resuming_reverse = segment == 'home'
+        if not self.enabled and enabled and segment:
+            expected_direction = 'forward' if resuming_forward else 'reverse'
+            if (candidate.drive_direction != expected_direction or self.odom_reason(time.monotonic()) is not None
+                    or math.dist(self.latest_odom['pose'][:2], self.station_segment_pose[:2]) > .03
+                    or abs(wrap(self.latest_odom['pose'][2]-self.station_segment_pose[2])) > .10):
+                return SetParametersResult(successful=False, reason='中途换向上下文或里程计位置已变化，保持停车')
         if (not self.enabled and enabled and candidate.drive_direction == 'forward'
-                and self.navigation_mode == 'replay'):
+                and self.navigation_mode == 'replay' and not resuming_forward):
             try:
                 document = self.read_standard()
                 if self.odom_reason(time.monotonic()) is not None:
@@ -1520,8 +1537,10 @@ class LineFollowNode(Node):
             self.pending_recorder = None
             self.start_aligner.reset()
             self.start_alignment_state = 'inactive'
+            self.station_forward_active = False
         if (candidate.drive_direction == 'reverse' and
-                (not self.enabled and enabled or candidate.drive_direction != self.config.drive_direction)):
+                (not self.enabled and enabled or candidate.drive_direction != self.config.drive_direction)
+                and not resuming_reverse):
             self.flush_route(wait=True)
             self.load_return_route()
         marker_was_enabled = self.config.stop_marker_enabled
@@ -1542,6 +1561,8 @@ class LineFollowNode(Node):
             self.return_axis = None
             self.return_camera_stamp = -1
         if enabled and not self.enabled:
+            self.station_forward_active = resuming_forward
+            self.station_segment_pending = ''
             self.departure.reset()
             self.marker_gate.reset()
             self.station_run_events = []
@@ -1556,6 +1577,42 @@ class LineFollowNode(Node):
         if not enabled or candidate.forward_speed == 0.0:
             self.stop()
         return SetParametersResult(successful=True)
+
+    def prepare_station_segment(self, segment, response):
+        """只准备同一轮路线的换向上下文；不使能底盘，不发运动指令。"""
+        if (self.enabled or self.navigation_mode != 'replay' or self.record_route
+                or self.odom_reason(time.monotonic()) is not None or self.standard_follower is None):
+            response.success, response.message = False, '需要禁用循迹、有效标准路线与新鲜里程计'
+            return response
+        odom = self.latest_odom
+        if abs(odom['v']) > .005 or abs(odom['vy']) > .005 or abs(odom['w']) > .015:
+            response.success, response.message = False, '换向前底盘必须停稳'
+            return response
+        if segment == 'station':
+            valid = self.config.drive_direction == 'forward' and self.marker_gate.arrived and self.marker_gate.latched_kind == 'final'
+        else:
+            valid = (self.config.drive_direction == 'reverse' and self.return_tracker is not None
+                     and self.marker_gate.arrived and self.marker_gate.latched_kind == 'intermediate'
+                     and self.return_fault is None)
+        if not valid:
+            response.success, response.message = False, '当前不在本轮已确认的终点/中途横线，不能切换任务路线'
+            return response
+        if segment == 'forward':
+            tracker = self.standard_follower.tracker
+            progress = tracker.arc[-1]-self.return_tracker.progress
+            if (not 0 <= progress <= tracker.arc[-1]
+                    or math.dist(tracker.at(progress), odom['pose'][:2]) > tracker.config.max_tracking_error):
+                response.success, response.message = False, '中途位置与原前进路线不一致，禁止重新锚定路线'
+                return response
+            tracker.progress = tracker.travel = progress
+            tracker.previous = tuple(odom['pose'][:2])
+            tracker.arrived = False
+            tracker.diagnostics = dict(remaining_m=tracker.arc[-1]-progress, progress_m=progress)
+            self.standard_finish = self.standard_visual_loss = self.standard_navigator = self.standard_fault = None
+        self.station_segment_pending = segment
+        self.station_segment_pose = tuple(odom['pose'])
+        response.success, response.message = True, '已保留本轮路线准备站点段：'+segment
+        return response
 
     def on_enable(self, request, response):
         results = self.set_parameters([rclpy.parameter.Parameter('enabled', value=request.data)])

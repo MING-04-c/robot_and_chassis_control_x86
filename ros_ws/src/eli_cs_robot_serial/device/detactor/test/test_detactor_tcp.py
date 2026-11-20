@@ -156,6 +156,8 @@ class DetectorTcpTest(unittest.TestCase):
                 fresh = json.loads(future.result().message)
                 self.assertEqual(fresh['sequence'], 2)
                 self.assertEqual(fresh['value'], 101.3)
+                self.assertEqual(fresh['measurement_revision'], 1)
+                self.assertFalse(fresh['measurement_changed'], '重复历史回包不是新测量')
                 timed_out = acquire.call_async(Trigger.Request())
                 wait_for(incoming)
                 self.assertEqual(os.read(master, 64), b'.d0<:>')
@@ -254,6 +256,8 @@ class DetectorTcpTest(unittest.TestCase):
                 peer.sendall(frame(20)+frame(30))
                 wait_for(lambda: readings[-1]['value'] == 30. and values and values[-1] == 30.)
                 self.assertEqual(readings[-1]['sequence'], 3)
+                self.assertEqual(readings[-1]['measurement_revision'], 3)
+                self.assertTrue(readings[-1]['measurement_changed'])
                 wait_for(lambda: (Path(directory)/'latest.txt').exists() and
                          (Path(directory)/'latest.txt').read_text().strip().split(';')[0] == '30')
                 displayed = [float(v) for v in (Path(directory)/'latest.txt').read_text().strip().split(';')]
@@ -298,12 +302,15 @@ class DetectorTcpTest(unittest.TestCase):
                 peer.sendall(frame(40))
                 wait_for(lambda: readings[-1]['value'] == 40.)
                 self.assertEqual(readings[-1]['sequence'], 5)
+                revision = readings[-1]['measurement_revision']
                 wait_for(lambda: values[-1] == 40.)
                 # 数值相同的新有效回包也发布；证明没有只在数值变化时才更新。
                 received = len(values)
                 peer.sendall(frame(40))
                 wait_for(lambda: len(values) > received and readings[-1]['sequence'] == 6)
                 self.assertEqual(values[-1], 40.)
+                self.assertEqual(readings[-1]['measurement_revision'], revision)
+                self.assertFalse(readings[-1]['measurement_changed'])
                 # 新订阅者可立即取得缓存的最新有效值，不需要等下一次测量。
                 retained = []
                 subscription = node.create_subscription(Float64, '/detactor/latest_value',

@@ -69,8 +69,8 @@ def validate_command(payload):
         raise ProtocolError('状态查询channel仅支持normal/abnormal')
     if (schema != "paint_robot_task_request_v1" or
             set(payload) != {"schema", "message_id", "action"} or
-            payload.get("action") not in ("start", "stop", "resume", "capture")):
-        raise ProtocolError("任务请求仅支持 start/stop/resume/capture")
+            payload.get("action") not in ("start", "stop", "resume", "capture", "detect", "go_home", "return_station")):
+        raise ProtocolError("任务请求仅支持 start/stop/resume/capture/detect/go_home/return_station")
     return payload["action"]
 
 

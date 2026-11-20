@@ -28,12 +28,17 @@ class CameraDetectionOline(CameraDetectionTask):
         self.battery_percent = None
         self.low_battery_return_pending = False
         self.return_reason = ''
+        self.station_role = 'terminal'
+        self.station_return_enabled = bool(self.declare_parameter('station_return_enabled', False).value)
         self.create_subscription(BmsStatus, '/masc_chassis/bms_status',
                                  lambda msg: self.cache_power('bms', msg), 10)
         self.create_subscription(CommStatus, '/masc_chassis/comm_status',
                                  lambda msg: self.cache_power('comm', msg), 10)
         self.create_service(Trigger, '~/detect', self.detect_request)
         self.create_service(Trigger, '~/go_home', self.go_home_request)
+        self.create_service(Trigger, '~/return_station', self.return_station_request)
+        self.create_service(Trigger, '~/start_mid_photo', self.start_mid_photo)
+        self.create_service(Trigger, '~/start_auto_terminal', self.start_auto_terminal)
         self.create_subscription(String, '/industrial_pc/capture_saved', self.on_capture_saved, 10)
 
     def reset_cycle(self, requested):
@@ -57,6 +62,8 @@ class CameraDetectionOline(CameraDetectionTask):
         self.operation = None
 
     def start_request(self, request, response):
+        if self.phase in ('IDLE', 'DONE'):
+            self.station_role = 'terminal'
         if self.phase == 'DONE':
             self.reset_cycle(False)
             self.root_run_id = self.run_id
@@ -66,6 +73,36 @@ class CameraDetectionOline(CameraDetectionTask):
             self.return_reason = ''
             self.phase = 'IDLE'
         return super().start_request(request, response)
+
+    def start_role(self, role, request, response):
+        if not self.station_return_enabled or self.phase not in ('IDLE', 'DONE'):
+            response.success, response.message = False, '上一站相机任务尚未结束'
+            return response
+        response = self.start_request(request, response)
+        if response.success:
+            self.station_role = role
+            self.detection_requested = role == 'auto_terminal'
+        return response
+
+    def start_mid_photo(self, request, response):
+        return self.start_role('mid_photo', request, response)
+
+    def start_auto_terminal(self, request, response):
+        return self.start_role('auto_terminal', request, response)
+
+    def return_station_request(self, request, response):
+        del request
+        self.update_battery()
+        if (not self.station_return_enabled or self.station_role != 'terminal'
+                or self.low_battery_return_pending
+                or self.phase not in ('WAIT_DETECT', 'WAIT_NEXT') or not self.ready()):
+            response.success, response.message = False, '仅在线完整任务的终点拍照原位等待时可返回中途站'
+            return response
+        self.home_requested = True
+        self.return_reason = 'return_station'
+        self.transition('DONE', '请求收臂后倒车到最近的中途横线拍照站')
+        response.success, response.message = True, '已受理返回中途拍照站；先收臂，再倒车'
+        return response
 
     def detect_request(self, request, response):
         del request
@@ -165,6 +202,11 @@ class CameraDetectionOline(CameraDetectionTask):
                    for name in ('hk.jpg', 'rgb.png', 'depth.png')):
                 raise ValueError('麒麟保存的三图哈希与本机采集不一致')
             self.snapshot['host_saved'] = True
+            if getattr(self, 'station_role', 'terminal') == 'mid_photo':
+                self.home_requested = True
+                self.return_reason = 'next_station'
+                self.transition('DONE', '中途站三图已确认保存；收臂后前进至终点自动拍照')
+                return
             self.transition('WAIT_RESULT' if self.detection_requested else 'WAIT_DETECT',
                             '麒麟已确认三图保存；等待本批坐标' if self.detection_requested
                             else '麒麟已确认三图保存；等待检测或回家指令')
@@ -204,6 +246,9 @@ class CameraDetectionOline(CameraDetectionTask):
         self.publish_oline_status()
 
     def transition(self, phase, detail):
+        if phase == 'DONE' and getattr(self, 'station_role', 'terminal') == 'auto_terminal' and not self.home_requested:
+            self.home_requested = True
+            self.return_reason = 'detection_complete'
         # A detector batch finishing must never publish session DONE; only the
         # explicit host home command or latched low-power return releases it.
         if phase == 'DONE' and not self.home_requested:
@@ -224,6 +269,9 @@ class CameraDetectionOline(CameraDetectionTask):
             'low_battery_return_enabled': self.low_battery_enabled,
             'low_battery_return_pending': self.low_battery_return_pending,
             'return_reason': self.return_reason,
+            'station_role': self.station_role,
+            'station_return_enabled': self.station_return_enabled,
+            'return_station_available': self.station_return_enabled and self.station_role == 'terminal' and self.phase in ('WAIT_DETECT', 'WAIT_NEXT'),
             'detect_state': self.detect.get('state'),
             'capture_manifest_sha256': (self.snapshot or {}).get('capture_manifest_sha256'),
             'capture_saved_by_host': (self.snapshot or {}).get('host_saved', False),

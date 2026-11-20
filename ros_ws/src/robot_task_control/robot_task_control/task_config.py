@@ -130,6 +130,8 @@ def load_task_config(path):
             or not all(type(v) in (int, float) and math.isfinite(v) for v in points)):
         raise ValueError('camera_points_mm must contain finite xyz triples in millimetres')
     detect = node_parameters(document, 'detect_controller')
+    for speed in ('preposition_speed', 'approach_speed', 'contact_approach_speed', 'retract_speed'):
+        positive(detect.get(speed), speed)
     if detect.get('touch_control_mode') not in ('admittance', 'moveit_force_guard') or detect.get('require_thickness_measurement') is not True:
         raise ValueError('Production task requires a supported touch controller and thickness measurement')
     positive(detect.get('initial_force_limit'), 'initial_force_limit')

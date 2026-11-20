@@ -1,0 +1,7 @@
+# 独立在线站点往返流程；完整机械臂点位和速度继承主配置。
+# 先到真正终点，页面“返回中途拍照站”倒车至最近的中途横线。
+# 中途站点“检测”仅拍照，保存确认后自动前进至终点拍照测厚，完成后回充。
+base_config_file: robot_task.yaml
+receiver_ip: 169.254.199.120
+hk_bind_ip: 0.0.0.0
+station_return_enabled: true

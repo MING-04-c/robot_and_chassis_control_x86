@@ -70,6 +70,12 @@ class WorkflowController(Node):
         self.camera_detection_status_time = None
         self.camera_detection_start_client = self.create_client(
             Trigger, '/camera_detection_task/start')
+        self.station_camera_clients = {
+            role: self.create_client(Trigger, '/camera_detection_task/start_'+role)
+            for role in ('mid_photo', 'auto_terminal')}
+        self.station_route_clients = {
+            role: self.create_client(Trigger, '/line_follow_controller/prepare_station_'+role)
+            for role in ('station', 'forward', 'home')}
         self.camera_detection_stop_client = self.create_client(
             Trigger, '/camera_detection_task/stop')
         self.create_subscription(String, '/camera_detection_task/status',
@@ -886,7 +892,15 @@ class WorkflowController(Node):
             self.request_bool(self.follow_enable_client, False,
                               lambda result: self.checked_bool(result, 'follow_direction_set'))
             return
-        if self.phase == 'follow_direction_set':
+        if self.phase == 'follow_direction_set' and step.get('route_segment'):
+            client = self.station_route_clients[step['route_segment']]
+            if not client.service_is_ready():
+                return
+            self.phase = 'follow_segment_pending'
+            self.add_callback(client.call_async(Trigger.Request()),
+                              lambda future: self.checked_bool(future, 'follow_segment_ready'))
+            return
+        if self.phase in ('follow_direction_set', 'follow_segment_ready'):
             if not self.follow_parameters.services_are_ready():
                 return
             self.phase = 'follow_direction_pending'
@@ -974,7 +988,8 @@ class WorkflowController(Node):
                 )
                 return  # 必须早于计时结束判断，不能用运行时长替代最终居中。
             if (fresh and self.follow_status == "stop_marker_intermediate"
-                    and not step.get('finish_at_first_marker', False)):
+                    and not step.get('finish_at_first_marker', False)
+                    and not step.get('stop_at_intermediate', False)):
                 if step.get('service_intermediate_stations', False) and self.station_rearmed:
                     self.begin_station(step)
                     return
@@ -1031,8 +1046,12 @@ class WorkflowController(Node):
             timed_finish = (not until_untrusted and
                             self.follow_tracking_seconds >= float(step["seconds"]))
             route_complete = fresh and self.follow_status == "reverse_route_complete"
+            if fresh and step.get('stop_at_intermediate') and (route_complete or self.follow_status == 'stop_marker_final'):
+                self.fail_workflow('已到返程终点但未确认中途横线；保持停车，不展开机械臂')
+                return
             final_marker = fresh and (self.follow_status == "stop_marker_final" or
-                step.get('finish_at_first_marker', False) and self.follow_status == 'stop_marker_intermediate')
+                (step.get('finish_at_first_marker', False) or step.get('stop_at_intermediate', False))
+                and self.follow_status == 'stop_marker_intermediate')
             if boundary_confirmed and step.get("require_final_marker", False) and not (final_marker or route_complete):
                 self.fail_workflow("目标停止横线尚未确认，主线持续不可用；不会执行后续机械臂点位")
                 return
@@ -1429,11 +1448,13 @@ class WorkflowController(Node):
 
     def advance_camera_detection(self):
         if self.phase == 'ready':
-            if not self.camera_detection_start_client.service_is_ready():
+            role = self.current_step().get('station_role')
+            client = self.station_camera_clients[role] if role else self.camera_detection_start_client
+            if not client.service_is_ready():
                 return
             self.camera_detection_status = None
             self.phase = 'camera_detection_starting'
-            self.add_callback(self.camera_detection_start_client.call_async(Trigger.Request()),
+            self.add_callback(client.call_async(Trigger.Request()),
                               self.on_camera_detection_start)
         elif self.phase == 'camera_detection_running':
             status = self.camera_detection_status
@@ -1441,6 +1462,14 @@ class WorkflowController(Node):
                 return
             state = status.get('state')
             if state == 'DONE':
+                reason = status.get('return_reason')
+                if reason == 'return_station':
+                    from robot_task_control.station_cycle import excursion_steps
+                    self.steps[self.step_index+1:] = excursion_steps(self.original_steps)
+                elif (self.current_step().get('station_role') == 'mid_photo'
+                        and reason in ('go_home', 'low_battery')):
+                    from robot_task_control.station_cycle import middle_home_steps
+                    self.steps[self.step_index+1:] = middle_home_steps(self.original_steps)
                 self.complete_step()
             elif state == 'FAULT':
                 self.fail_workflow('相机触碰测厚任务失败：'+str(status.get('message', '未知错误')))

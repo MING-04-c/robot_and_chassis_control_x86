@@ -349,9 +349,16 @@ private:
     const builtin_interfaces::msg::Time stamp = now();
     double latest_value = 0.0;
     to_double(latest_tokens.back(), latest_value);
+    const bool measurement_changed = latest_tokens != measurement_window_;
+    if (measurement_changed) {
+      ++measurement_revision_;
+      measurement_window_ = latest_tokens;
+    }
     std::ostringstream measurement;
     measurement << std::setprecision(17)
       << "{\"schema\":\"paint_thickness_measurement_v1\",\"sequence\":" << acquisition_count_
+      << ",\"measurement_revision\":" << measurement_revision_
+      << ",\"measurement_changed\":" << (measurement_changed ? "true" : "false")
       << ",\"value\":" << latest_value << ",\"unit\":\"" << measurement_unit_
       << "\",\"received_at_ros\":{\"sec\":" << stamp.sec
       << ",\"nanosec\":" << stamp.nanosec << "}}";
@@ -490,6 +497,8 @@ private:
   double request_period_;
   bool auto_request_;
   uint64_t acquisition_count_{0};
+  uint64_t measurement_revision_{0};
+  std::vector<std::string> measurement_window_;
   std::string data_directory_;
   std::string measurement_file_;
   std::vector<std::string> last_saved_latest_tokens_;

@@ -603,6 +603,7 @@ module.main()
         node.operation = None
         node.touch_control_mode = 'moveit_force_guard'
         node.outstanding_actions = set()
+        node.measurement_last_query = monotonic()
         controller.tick(node)
         self.assertIn('停稳确认超时', node.fail.call_args.args[0])
         node.begin_hold.assert_not_called()
@@ -658,6 +659,7 @@ module.main()
         pose[2, 3] = -.08
         node.current_tool.return_value = pose
         node.rotation_ok.return_value = True
+        node.measurement_last_query = monotonic()
         controller.tick(node)
         self.assertIn('实际探入行程超过限制', node.fail.call_args.args[0])
 

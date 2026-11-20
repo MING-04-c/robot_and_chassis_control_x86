@@ -109,6 +109,7 @@ class IndustrialPC(Node):
         self.stop_task = self.create_client(Trigger, "/task_controller/stop")
         self.capture_camera = self.create_client(Trigger, "/task_controller/capture")
         self.detect_camera = self.create_client(Trigger, '/camera_detection_task/detect')
+        self.return_station = self.create_client(Trigger, '/camera_detection_task/return_station')
         self.go_home = self.create_client(Trigger, '/camera_detection_task/go_home')
         self.resume_pub = self.create_publisher(Empty, "/line_follow/resume", 10)
         self.create_subscription(String, "/task_controller/status",
@@ -347,7 +348,7 @@ class IndustrialPC(Node):
         self.pending_controls[identity] = {"job": job, "record": record, "path": path,
                                            "deadline": time.monotonic()+3}
         job["deferred"] = True
-        if action in ('detect', 'go_home', 'capture_saved') and not self.oline_mode:
+        if action in ('detect', 'go_home', 'return_station', 'capture_saved') and not self.oline_mode:
             self.finish_command(identity, self.ack(False, message_id=identity, reason='此命令需要 mode:=online'))
             return True
         if action == 'capture_saved':
@@ -377,7 +378,8 @@ class IndustrialPC(Node):
                                     message="继续消息已发布，执行进展请查看状态"))
             return True
         client = {"start": self.start_task, "stop": self.stop_task,
-                  "capture": self.capture_camera, 'detect': self.detect_camera, 'go_home': self.go_home}[action]
+                  "capture": self.capture_camera, 'detect': self.detect_camera, 'go_home': self.go_home,
+                  'return_station': self.return_station}[action]
         if not client.service_is_ready():
             self.finish_command(identity, self.ack(False, message_id=identity,
                                 reason="任务服务未启动；请先在树莓派启动对应任务launch"))

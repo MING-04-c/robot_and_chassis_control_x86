@@ -19,9 +19,9 @@ setup(
     data_files=[
         ("share/ament_index/resource_index/packages", ["resource/" + package_name]),
         ("share/" + package_name, ["package.xml"]),
-        ("share/" + package_name + "/launch", ["launch/robot_task.launch.py", "launch/robot_task_oline.launch.py"]),
+        ("share/" + package_name + "/launch", ["launch/robot_task.launch.py", "launch/robot_task_oline.launch.py", "launch/robot_task_station_cycle.launch.py"]),
         ("share/" + package_name + "/launch/internal", ["launch/internal/robot_system.launch.py"]),
-        ("share/" + package_name + "/config", ["config/robot_task.yaml", "config/robot_task_oline.yaml"]),
+        ("share/" + package_name + "/config", ["config/robot_task.yaml", "config/robot_task_oline.yaml", "config/robot_task_station_cycle.yaml"]),
         ("share/" + package_name + "/config/diagnostics", [
             "config/diagnostics/arrival_detect.yaml", "config/diagnostics/capture_detect.yaml",
         ]),

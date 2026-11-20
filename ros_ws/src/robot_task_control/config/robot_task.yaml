@@ -213,9 +213,10 @@ detect_controller:
     # 接触点沿拍照工具 +Z 反方向退 3 cm；相机 +Z 与其同向时等价于相机 z 减 30 mm。
     # 前面 OMPL 绕障不锁姿态，到预接近位后固定所选朝向，沿实际 tool0 +Z 直线推进。
     approach_clearance: 0.03  # 与当前仿真同步：预接近到名义接触点3 cm。
-    approach_speed: 0.0025  # 导纳预接近→名义点：2.5 mm/s。
+    preposition_speed: 0.008  # 拍照位→预接近点：保留OMPL路径，按FK轨迹段限制末端速度8 mm/s。
+    approach_speed: 0.003  # 导纳预接近→名义点：3 mm/s；从此段起采集本点测厚。
     contact_approach_speed: 0.001  # 导纳名义点后继续寻找接触：1 mm/s。
-    retract_speed: 0.003  # MoveIt 沿接近轴反向撤离：末端速度上限3 mm/s。
+    retract_speed: 0.008  # MoveIt 沿接近轴反向撤离：末端速度上限8 mm/s。
     max_penetration: 0.05
     recover_approach_failure: true
     recovery_settle_seconds: 0.5

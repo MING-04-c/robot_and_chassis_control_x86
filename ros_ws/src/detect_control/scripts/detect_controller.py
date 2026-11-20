@@ -33,7 +33,7 @@ from moveit_msgs.msg import (
     OrientationConstraint,
     MoveItErrorCodes,
 )
-from moveit_msgs.srv import GetPositionIK, GetCartesianPath
+from moveit_msgs.srv import GetPositionIK, GetPositionFK, GetCartesianPath
 from shape_msgs.msg import SolidPrimitive
 from geometry_msgs.msg import WrenchStamped
 from geminipro_camer_calibration.live_tf import LiveRobotTransforms
@@ -56,6 +56,35 @@ JOINTS = [
     "wrist_2_joint",
     "wrist_3_joint",
 ]
+
+MEASUREMENT_PHASES = frozenset((
+    'ARM_DESCEND', 'DESCEND', 'COMPLIANT_HOLD', 'MOVEIT_WAIT_CONTACT',
+    'MOVEIT_PLAN_DESCENT', 'MOVEIT_DESCEND', 'VERIFY_MOVEIT_SEGMENT', 'STOP_CONTACT', 'HOLD'))
+
+
+def limit_tool_speed(trajectory, positions, speed):
+    """按FK相邻点的末端位移统一拉长时间；不加速、不改变规划的关节路径。"""
+    limited = deepcopy(trajectory)
+    points = limited.joint_trajectory.points
+    if (not math.isfinite(speed) or speed <= 0 or len(points) != len(positions)
+            or len(points) < 2 or limited.multi_dof_joint_trajectory.points):
+        raise RuntimeError('无效的预接近限速轨迹')
+    positions = np.asarray(positions, dtype=float)
+    if positions.shape != (len(points), 3) or not np.isfinite(positions).all():
+        raise RuntimeError('预接近FK坐标无效')
+    times = [p.time_from_start.sec*10**9+p.time_from_start.nanosec for p in points]
+    scale = 1.0
+    for index in range(1, len(points)):
+        dt = (times[index]-times[index-1])/1e9
+        if dt <= 0:
+            raise RuntimeError('预接近轨迹时间必须严格递增')
+        scale = max(scale, float(np.linalg.norm(positions[index]-positions[index-1]))/(dt*speed))
+    for point, stamp in zip(points, times):
+        stamp = math.ceil(stamp*scale)
+        point.time_from_start.sec, point.time_from_start.nanosec = divmod(stamp, 10**9)
+        point.velocities = [v/scale for v in point.velocities]
+        point.accelerations = [a/(scale*scale) for a in point.accelerations]
+    return limited
 
 
 class RetryableApproachError(RuntimeError):
@@ -146,6 +175,7 @@ class DetectController(Node):
             "approach_clearance": 0.02,
             "max_penetration": 0.005,
             "approach_speed": 0.002,
+            "preposition_speed": 0.0,  # 0 preserves legacy joint-only timing.
             "moveit_cartesian_step": 0.005,
             "max_tracking_error": 0.005,
             "lateral_tolerance": 0.002,
@@ -175,6 +205,8 @@ class DetectController(Node):
             value = self.cfg[key]
             if type(value) not in (int, float) or not math.isfinite(value) or value <= 0:
                 raise ValueError(f'{key} 必须为有限正数（m/s）')
+        if not math.isfinite(self.cfg['preposition_speed']) or self.cfg['preposition_speed'] < 0:
+            raise ValueError('preposition_speed 必须为有限非负数（m/s）')
         if self.cfg["touch_control_mode"] not in ("admittance", "moveit_force_guard"):
             raise ValueError("touch_control_mode 必须为 admittance 或 moveit_force_guard")
         if not 0.0 < float(self.cfg["force_filter_alpha"]) <= 1.0:
@@ -301,10 +333,14 @@ class DetectController(Node):
         self.point_result_pub = self.create_publisher(String, "~/point_result",
             QoSProfile(depth=100, durability=DurabilityPolicy.TRANSIENT_LOCAL))
         self.measurement_started_ns = None
+        self.last_thickness_revision = None
+        self.measurement_baseline_revision = None
+        self.measurement_last_query = -math.inf
         self.thickness_pub = self.create_publisher(String, "~/thickness_result", 10)
         self.create_subscription(String, "/detactor/measurement", self.on_thickness, 10)
         self.enable = self.create_client(SetBool, namespace + "/enable")
         self.ik = self.create_client(GetPositionIK, "/compute_ik")
+        self.fk = self.create_client(GetPositionFK, '/compute_fk')
         self.cartesian = self.create_client(GetCartesianPath, "/compute_cartesian_path")
         self.move = ActionClient(self, MoveGroup, "/move_action")
         self.execute = ActionClient(self, ExecuteTrajectory, "/execute_trajectory")
@@ -361,7 +397,7 @@ class DetectController(Node):
                       "point_index": self.point_index + 1, "measurement": self.thickness_result,
                       "next_phase": phase}
             if self.thickness_result is None:
-                result["reason"] = "接触保持期间未收到有效测厚回包"
+                result["reason"] = "本点接近及保持期间未检测到新的测厚记录"
                 self.get_logger().warning("本检测点未获得厚度读数；不会复用上一点读数")
             self.thickness_pub.publish(String(data=json.dumps(result, ensure_ascii=False)))
             try:
@@ -374,12 +410,10 @@ class DetectController(Node):
         self.phase, self.detail, self.since = phase, detail, monotonic()
         self.get_logger().info(f"{phase}: {detail}")
         self.publish_status()
-        self.window_pub.publish(Bool(data=phase == "HOLD"))
+        self.window_pub.publish(Bool(data=phase in MEASUREMENT_PHASES))
 
     def on_thickness(self, message):
-        """只将本次接触触发后收到的有效单值关联到当前检测点。"""
-        if self.phase != "HOLD" or self.measurement_started_ns is None:
-            return
+        """预接近后至保持结束接收本点新测量，重复历史回包不覆盖结果。"""
         try:
             reading = json.loads(message.data)
             value = reading["value"]
@@ -387,10 +421,25 @@ class DetectController(Node):
             received_ns = int(stamp["sec"]) * 10**9 + int(stamp["nanosec"])
             if (reading.get("schema") != "paint_thickness_measurement_v1" or
                     isinstance(value, bool) or not isinstance(value, (int, float)) or
-                    not math.isfinite(value) or received_ns < self.measurement_started_ns or
+                    not math.isfinite(value) or
                     reading.get("unit") not in ("unknown", "um", "mm")):
                 return
         except (ValueError, KeyError, TypeError):
+            return
+        revision = reading.get('measurement_revision')
+        if type(revision) is not int or revision < 1:
+            return  # 必须同步使用提供历史窗口变化标识的采集节点。
+        self.last_thickness_revision = revision
+        if self.phase not in MEASUREMENT_PHASES or self.measurement_started_ns is None:
+            return
+        if received_ns < self.measurement_started_ns:
+            return
+        if self.measurement_baseline_revision is None:
+            self.measurement_baseline_revision = revision
+            return  # 无接近前基准时，首帧仅建立基准，不能宣称是本点新测量。
+        if revision <= self.measurement_baseline_revision or reading.get('measurement_changed') is not True:
+            return
+        if self.thickness_result is not None and revision <= self.thickness_result.get('measurement_revision', 0):
             return
         self.thickness_result = reading
         result = {"schema": "paint_thickness_task_result_v1", "available": True,
@@ -998,6 +1047,7 @@ class DetectController(Node):
             self.retry_context = None
             self.axis = None
             self.thickness_result = None
+            self.measurement_started_ns = None
             self.contact_stop_requested = False
             self.force_filter = None
             self.batch = batch
@@ -1222,7 +1272,10 @@ class DetectController(Node):
                     if self.phase == "PREPOSITION" and code in (MoveItErrorCodes.NO_IK_SOLUTION, MoveItErrorCodes.PLANNING_FAILED):
                         raise RetryableApproachError("target_unreachable", f"预接近点不可达：{code}")
                     raise RuntimeError(f"MoveIt 执行失败：{code}")
-                callback()
+                if isinstance(goal, MoveGroup.Goal) and goal.planning_options.plan_only:
+                    self.execute_preposition_plan(result.result.planned_trajectory, callback)
+                else:
+                    callback()
 
             self.wait(observation["result"], finished, self.cfg["phase_timeout"])
 
@@ -1355,6 +1408,12 @@ class DetectController(Node):
             ),
         )
         goal = self.motion_request()
+        if phase == 'PREPOSITION' and self.cfg.get('preposition_speed', 0.) > 0:
+            goal.planning_options.plan_only = True
+        if phase == 'PREPOSITION':
+            self.measurement_started_ns = None
+            self.thickness_result = None
+            self.measure_pub.publish(Empty())  # 先查询历史窗口，建立本点接近前的基准。
         constraints = Constraints()
         pc = PositionConstraint()
         pc.header.frame_id = self.cfg["base_frame"]
@@ -1386,6 +1445,40 @@ class DetectController(Node):
             constraints.joint_constraints = joint_constraints(positions).joint_constraints
         goal.request.goal_constraints = [constraints]
         self.action(self.move, goal, on_reached or self.verify_preposition)
+
+    def execute_preposition_plan(self, trajectory, callback):
+        """保留OMPL绕障路径，通过FK计算各轨迹段速度并仅延长时间。"""
+        if not self.fk.service_is_ready() or not trajectory.joint_trajectory.points:
+            raise RuntimeError('预接近速度限制需要有效轨迹和 /compute_fk 服务')
+        points = trajectory.joint_trajectory.points
+        positions = []
+
+        def next_point():
+            if len(positions) == len(points):
+                limited = limit_tool_speed(trajectory, positions, self.cfg['preposition_speed'])
+                goal = ExecuteTrajectory.Goal()
+                goal.trajectory = limited
+                self.get_logger().info(f'预接近末端速度上限 {self.cfg["preposition_speed"]*1000:g} mm/s，保留原碰撞规划路径')
+                self.action(self.execute, goal, callback)
+                return
+            req = GetPositionFK.Request()
+            req.header.frame_id = self.cfg['base_frame']
+            req.fk_link_names = [self.cfg['tool_frame']]
+            req.robot_state.joint_state = deepcopy(self.joints)
+            req.robot_state.joint_state.name = list(trajectory.joint_trajectory.joint_names)
+            req.robot_state.joint_state.position = list(points[len(positions)].positions)
+            req.robot_state.joint_state.velocity = []
+            req.robot_state.joint_state.effort = []
+            req.robot_state.is_diff = True
+
+            def received(result):
+                if result.error_code.val != MoveItErrorCodes.SUCCESS or not result.pose_stamped:
+                    raise RuntimeError('预接近轨迹FK失败，不执行未限速轨迹')
+                p = result.pose_stamped[0].pose.position
+                positions.append([p.x, p.y, p.z])
+                next_point()
+            self.wait(self.fk.call_async(req), received)
+        next_point()
 
     def verify_preposition(self):
         self.preposition_finished = self.get_clock().now()
@@ -1419,6 +1512,10 @@ class DetectController(Node):
         if self.nominal_distance <= 0 or np.linalg.norm(lateral) > self.cfg['pose_tolerance']:
             raise RuntimeError('名义检测点不在当前接近轴前方，或预接近横向误差超限')
         self.travel_limit = self.nominal_distance+self.cfg['max_penetration']
+        self.thickness_result = None
+        self.measurement_started_ns = self.get_clock().now().nanoseconds
+        self.measurement_baseline_revision = self.last_thickness_revision
+        self.measurement_last_query = -math.inf
         self.get_logger().info(
             f"接近方向={self.cfg['approach_axis']}，基座单位向量={self.axis.tolist()}；"
             f"名义行程={self.nominal_distance*1000.:.1f}mm，额外行程上限={self.cfg['max_penetration']*1000.:.1f}mm")
@@ -1442,8 +1539,6 @@ class DetectController(Node):
 
     def begin_hold(self):
         self.contact = self.current_tool()
-        self.thickness_result = None
-        self.measurement_started_ns = self.get_clock().now().nanoseconds
         self.state("HOLD", f'停止位置推进，保持 {self.cfg["hold_seconds"]} 秒')
         message = PoseStamped()
         message.header.frame_id = self.cfg["base_frame"]
@@ -1742,6 +1837,9 @@ class DetectController(Node):
 
     def tick(self):
         try:
+            if self.phase in MEASUREMENT_PHASES and monotonic()-self.measurement_last_query >= 0.5:
+                self.measure_pub.publish(Empty())
+                self.measurement_last_query = monotonic()
             if monotonic() - self.last_status > 0.5:
                 self.publish_status()
             if self.stop_future is not None:

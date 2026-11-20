@@ -16,7 +16,7 @@ from robot_tcp_common import configuration, parser, request
 from send_points import prepare_result
 
 PAGE = Path(__file__).with_name('control_page.html')
-ACTIONS = {'start', 'detect', 'go_home', 'stop'}
+ACTIONS = {'start', 'detect', 'go_home', 'stop', 'return_station'}
 
 
 class ControlHTTPServer(ThreadingHTTPServer):

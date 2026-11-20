@@ -62,6 +62,11 @@ def launch_configured(context, path, config, mode, profile):
     workflow_path, station = load_station_config(station_file) if station_file else (path, None)
     # Finish validation before returning any action that can open a device.
     workflow = WorkflowController.load_workflow(workflow_path)
+    if node_parameters(config, 'camera_detection_task').get('station_return_enabled', False):
+        from robot_task_control.station_cycle import station_cycle_steps
+        if mode != 'online' or profile != 'full' or station is not None or config['system']['line_navigation_mode'] != 'replay' or config['system']['line_record_route']:
+            raise ValueError('中途站往返仅支持独立在线完整流程、标准路线重放及同一轮里程计')
+        station_cycle_steps(workflow['steps'])
     postures = load_postures(workflow_path)
     for step in workflow['steps']:
         if step['action'] == 'arm_posture' and step['posture'] not in postures:

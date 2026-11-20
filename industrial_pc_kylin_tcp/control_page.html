@@ -22,6 +22,7 @@
     <section class="card span-8">
       <h2>当前任务 <small id="taskFresh">等待数据</small></h2>
       <div id="phase" class="phase">等待状态</div>
+      <p id="stationHint" class="sub"></p>
       <div class="meta">
         <div class="metric"><label>工作流</label><span id="workflow">—</span></div>
         <div class="metric"><label>当前步骤</label><span id="step">—</span></div>
@@ -40,6 +41,7 @@
         <button data-action="detect">检测</button>
         <button data-action="go_home" class="secondary">返回充电</button>
         <button data-action="stop" class="danger">中止任务</button>
+        <button data-action="return_station" class="secondary" style="grid-column:1/-1">返回中途拍照站</button>
       </div>
       <p class="hint">按钮回执表示机器人是否受理。实际进度以任务阶段和各设备状态为准。</p>
     </section>
@@ -176,13 +178,15 @@ function render(s){
   txt('cameraState',human(d.camera_state||d.state));txt('cameraFresh',fresh.camera_detection===false?'数据过期':ageText(r.camera_detection?.age_seconds??ages.camera_detection),fresh.camera_detection===false?'bad-text':'');
   const thickness=r.latest_thickness||{};const measurement=thickness.measurement||{};const tv=measurement.value;txt('thickness',thickness.available&&tv!=null?readingText(tv,measurement.unit):'暂无');
   renderChannels(channels);renderFaults(r,t);renderResults(r.detection_results);
+  document.querySelector('[data-action="return_station"]').hidden=d.station_return_enabled!==true;
+  txt('stationHint',!d.station_return_enabled?'':d.station_role==='mid_photo'?'中途拍照站：点“检测”拍照，保存确认后自动收臂并前往终点；也可直接返回充电。':d.station_role==='auto_terminal'?'终点检测站：自动拍照，等待本轮XYZ；测厚完成后自动返回充电。':'终点检测站：可检测、返回中途拍照站或返回充电。');
   if(wasConnected!==null&&connected!==wasConnected)say(connected?'机器人通信已恢复':'机器人通信中断，页面正在自动重连',connected?'':'err');wasConnected=connected;
   if(phase&&phase!==lastPhase){say('机器人阶段：'+human(phase));lastPhase=phase}
   const taskActive=normal.active===true||t.active===true;
-  document.querySelectorAll('[data-action]').forEach(b=>{const a=b.dataset.action;b.disabled=busy||!connected||(a==='start'&&(taskActive||!taskFresh||Date.now()<startPendingUntil))||(a==='detect'&&!['WAIT_DETECT','WAIT_NEXT'].includes(d.state))||(a==='go_home'&&!['WAIT_DETECT','WAIT_NEXT'].includes(d.state))});$('sendPoints').disabled=busy||!connected||d.state!=='WAIT_RESULT';$('sendCoordinates').disabled=busy||!connected||d.state!=='WAIT_RESULT';
+  document.querySelectorAll('[data-action]').forEach(b=>{const a=b.dataset.action;b.disabled=busy||!connected||(a==='start'&&(taskActive||!taskFresh||Date.now()<startPendingUntil))||(a==='detect'&&!['WAIT_DETECT','WAIT_NEXT'].includes(d.state))||(a==='go_home'&&!['WAIT_DETECT','WAIT_NEXT'].includes(d.state))||(a==='return_station'&&d.return_station_available!==true)});$('sendPoints').disabled=busy||!connected||d.state!=='WAIT_RESULT'||d.station_role==='mid_photo';$('sendCoordinates').disabled=busy||!connected||d.state!=='WAIT_RESULT'||d.station_role==='mid_photo';
 }
 async function api(path,data){const res=await fetch(path,{method:'POST',headers:{'Content-Type':'application/json','X-Control-Token':TOKEN},body:JSON.stringify(data)});const body=await res.json();if(!res.ok)throw Error(body.error||'请求失败');return body}
-async function act(action){if(busy)return;if(action==='stop'&&!confirm('确认中止当前任务？'))return;if(action==='go_home'&&!confirm('确认请求返回充电？请确认机械臂已安全回位。'))return;if(action==='start')startPendingUntil=Date.now()+5000;busy=true;render(state||{});say('发送：'+({start:'启动任务',detect:'检测',go_home:'返回充电',stop:'中止任务'}[action]),'me');try{const out=await api('/api/action',{action});if(action==='start'&&!out.response.ok)startPendingUntil=0;say((out.response.ok?'已受理':'机器人拒绝')+' · '+(out.response.reason||out.response.disposition||'等待状态更新')+' · ID '+out.message_id,out.response.ok?'':'err')}catch(e){say('发送失败：'+e.message,'err')}finally{busy=false;if(state)render(state)}}
+async function act(action){if(busy)return;if(action==='stop'&&!confirm('确认中止当前任务？'))return;if(action==='return_station'&&!confirm('确认收臂后倒车到最近的中途拍照站？'))return;if(action==='go_home'&&!confirm('确认请求返回充电？请确认机械臂已安全回位。'))return;if(action==='start')startPendingUntil=Date.now()+5000;busy=true;render(state||{});say('发送：'+({start:'启动任务',detect:'检测',return_station:'返回中途拍照站',go_home:'返回充电',stop:'中止任务'}[action]),'me');try{const out=await api('/api/action',{action});if(action==='start'&&!out.response.ok)startPendingUntil=0;say((out.response.ok?'已受理':'机器人拒绝')+' · '+(out.response.reason||out.response.disposition||'等待状态更新')+' · ID '+out.message_id,out.response.ok?'':'err')}catch(e){say('发送失败：'+e.message,'err')}finally{busy=false;if(state)render(state)}}
 document.querySelectorAll('[data-action]').forEach(b=>b.onclick=()=>act(b.dataset.action));
 $('addCoordinate').onclick=addCoordinateRow;
 $('sendCoordinates').onclick=async()=>{if(busy)return;let points;try{points=selectedCoordinates()}catch(e){return say(e.message,'err')}const preview=points.map(p=>`${p.point_id}: [${p.xyz_mm.join(', ')}] mm`).join('\n');if(!confirm('确认发送以下相机光学坐标？机器人受理后将按任务流程使用这些检测点。\n\n'+preview))return;busy=true;render(state||{});say('发送XYZ检测坐标：'+points.length+'个点','me');try{const out=await api('/api/coordinates',{points});say((out.response.ok?'已受理':'机器人拒绝')+' · '+(out.response.reason||out.response.disposition||'等待检测状态')+' · ID '+out.message_id,out.response.ok?'':'err')}catch(e){say('坐标发送失败：'+e.message,'err')}finally{busy=false;if(state)render(state)}};

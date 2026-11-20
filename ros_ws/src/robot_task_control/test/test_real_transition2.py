@@ -71,9 +71,9 @@ def test_synced_camera_and_clearance_keep_real_slowdown_and_force_guards():
         assert data['camera_detection_task']['ros__parameters']['camera_points_mm'] == preview['camera_points_mm']
     detect = main['detect_controller']['ros__parameters']
     assert detect['approach_clearance'] == preview['approach_clearance'] == .03
-    assert detect['approach_speed'] == .0025
+    assert detect['approach_speed'] == .003
     assert detect['contact_approach_speed'] == .001
-    assert detect['retract_speed'] == .003
+    assert detect['retract_speed'] == .008
     assert detect['hold_seconds'] == 2.0
     assert detect['velocity_scaling'] == detect['acceleration_scaling'] == .01
     assert (detect['initial_force_limit'], detect['preposition_force_limit'],

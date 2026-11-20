@@ -42,7 +42,7 @@ from robot_task_control.workflow_controller import WorkflowController
 
 
 def test_oline_commands_and_saved_receipt_have_strict_fields():
-    for action in ('start', 'detect', 'go_home', 'stop'):
+    for action in ('start', 'detect', 'go_home', 'return_station', 'stop'):
         assert validate_command(dict(schema='paint_robot_task_request_v1', message_id='test', action=action)) == action
     packet = dict(schema='paint_robot_capture_saved_v1', message_id='save-test', capture_set_id='photo',
                   capture_manifest_sha256='a'*64, files_sha256={n: 'b'*64 for n in ('hk.jpg', 'rgb.png', 'depth.png')})

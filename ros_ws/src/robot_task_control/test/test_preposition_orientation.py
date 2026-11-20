@@ -1,5 +1,6 @@
 """Offline geometry and mocked service tests; never create ROS nodes or move hardware."""
 import importlib.util
+import json
 from pathlib import Path
 from unittest.mock import MagicMock
 
@@ -368,10 +369,71 @@ def test_production_yaml_uses_requested_limits_and_slowdown():
     assert config['preposition_tool_z_spin'] is True
     assert config['preposition_angle_step_deg'] == 15.
     assert config['approach_clearance'] == .03
-    assert config['approach_speed'] == .0025
+    assert config['approach_speed'] == .003
     assert config['velocity_scaling'] == config['acceleration_scaling'] == .01
     assert document['camera_detection_task']['ros__parameters']['camera_points_mm'] == [0., 0., 100.]
     assert document['arm_joint_postures']['ros__parameters']['velocity_scaling'] == .1
     assert not config['lock_tool_orientation']
     assert config['preposition_force_limit'] == 25.
     assert (config['initial_force_limit'], config['contact_force'], config['overload_force']) == (15., 20., 25.)
+
+
+def test_preposition_speed_limit_only_slows_original_collision_path():
+    from moveit_msgs.msg import RobotTrajectory
+    from trajectory_msgs.msg import JointTrajectoryPoint
+    trajectory = RobotTrajectory()
+    trajectory.joint_trajectory.joint_names = ['joint']
+    for index in range(3):
+        point = JointTrajectoryPoint(positions=[float(index)], velocities=[1.], accelerations=[2.])
+        point.time_from_start.sec = index
+        trajectory.joint_trajectory.points.append(point)
+    limited = MODULE.limit_tool_speed(trajectory, [[0., 0., 0.], [.016, 0., 0.], [.024, 0., 0.]], .008)
+    points = limited.joint_trajectory.points
+    assert points[-1].time_from_start.sec == 4
+    assert list(points[1].velocities) == [.5]
+    assert list(points[1].accelerations) == [.5]
+    assert list(points[1].positions) == [1.]
+    assert trajectory.joint_trajectory.points[-1].time_from_start.sec == 2
+    unchanged = MODULE.limit_tool_speed(trajectory, [[0., 0., 0.], [.001, 0., 0.], [.002, 0., 0.]], .008)
+    assert unchanged.joint_trajectory.points[-1].time_from_start.sec == 2
+
+
+def test_new_approach_measurement_survives_hold_and_is_frozen_on_retract():
+    from std_msgs.msg import String
+    subject = node()
+    subject.phase = 'DESCEND'
+    subject.measurement_started_ns = 10*10**9
+    subject.measurement_baseline_revision = 4
+    subject.thickness_result = None
+    def send(revision, stamp=11, changed=True):
+        reading = dict(schema='paint_thickness_measurement_v1', value=123., unit='um',
+                       sequence=revision+10, measurement_revision=revision, measurement_changed=changed,
+                       received_at_ros=dict(sec=stamp, nanosec=0))
+        CONTROLLER.on_thickness(subject, String(data=json.dumps(reading)))
+    send(4, changed=False)
+    assert subject.thickness_result is None
+    send(5, stamp=9)
+    assert subject.thickness_result is None
+    send(5)
+    assert subject.thickness_result['measurement_revision'] == 5
+    subject.current_tool.return_value = np.eye(4)
+    subject.cfg['hold_seconds'] = 2.
+    CONTROLLER.begin_hold(subject)
+    assert subject.thickness_result['measurement_revision'] == 5
+    assert subject.measurement_started_ns == 10*10**9
+    subject.phase = 'HOLD'
+    send(5, changed=False)
+    assert subject.thickness_result['measurement_revision'] == 5
+    send(6)
+    assert subject.thickness_result['measurement_revision'] == 6
+    subject.phase = 'RETRACT'
+    send(7)
+    assert subject.thickness_result['measurement_revision'] == 6
+
+
+def test_preposition_speed_uses_plan_only_before_retimed_execution():
+    subject = node()
+    subject.cfg.update(preposition_speed=.008, preposition_rp_tolerance_deg=[0., 0.])
+    subject.motion_request.side_effect = lambda: MODULE.MoveGroup.Goal()
+    CONTROLLER.plan_pose(subject, subject.pre)
+    assert subject.action.call_args.args[1].planning_options.plan_only

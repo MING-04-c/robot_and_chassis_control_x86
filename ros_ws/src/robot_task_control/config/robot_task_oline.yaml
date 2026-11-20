@@ -1,7 +1,7 @@
 # Remote session overrides. Motion waypoints/safety remain in robot_task.yaml.
 # 中间点一/二、拍照 tool0 位姿及倒序返回均只在主配置维护，此处不再复制。
-# 检测继承主配置：真机导纳预接近→名义点2.5 mm/s，名义点后1 mm/s。
-# 撤离上限3 mm/s，测厚保持2秒；统一在 robot_task.yaml 的 detect_controller 中修改。
+# 检测继承主配置：到预接近上限8 mm/s，预接近→名义点3 mm/s，名义点后1 mm/s。
+# 撤离上限8 mm/s；从预接近后采集本点测厚，接触保持2秒。
 # 兼容旧入口；新入口可用 robot_task.launch.py mode:=online。
 # 等待 start，到拍照位后等待 detect 才采图；go_home 或有效电量<10%时返回充电。
 base_config_file: robot_task.yaml
